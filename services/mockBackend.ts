@@ -1,4 +1,4 @@
-import { User, WatchlistItem, Device, Profile, LikedItem } from '../types';
+import { User, WatchlistItem, Device, LikedItem } from '../types';
 import { AVATARS } from '../constants';
 
 const DB_USERS_KEY = 'sv_mock_users';

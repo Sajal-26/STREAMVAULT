@@ -310,7 +310,7 @@ const Details: React.FC = () => {
 
       {/* Full Width More Like This Section */}
       {data.similar && data.similar.results.length > 0 && (
-          <ContentRow title="More Like This" items={data.similar.results.map(i => ({...i, media_type: type}))} />
+          <ContentRow title="More Like This" items={data.similar.results.map(i => ({...i, media_type: type as 'movie' | 'tv'}))} />
       )}
     </div>
   );

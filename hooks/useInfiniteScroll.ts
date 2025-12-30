@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useRef, useCallback } from 'react';
 
 export const useInfiniteScroll = (callback: () => void, isFetching: boolean) => {
   const observer = useRef<IntersectionObserver | null>(null);
