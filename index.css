@@ -1,0 +1,32 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Enforced Dark Theme Variables */
+  --bg-main: #141414;
+  --bg-card: #1f1f1f;
+  --text-main: #ffffff;
+  --text-muted: #9ca3af;
+  --color-primary: #E50914; /* Default Red */
+}
+
+body {
+  background-color: var(--bg-main);
+  color: var(--text-main);
+}
+
+.glass {
+  background: rgba(20, 20, 20, 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
