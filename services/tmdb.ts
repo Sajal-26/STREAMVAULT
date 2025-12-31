@@ -1,27 +1,13 @@
 import { TMDB_API_KEY, TMDB_BASE_URL } from '../constants';
 import { MediaItem, MediaDetails, Genre, SeasonDetails, PersonDetails } from '../types';
 
-// Optimized Proxy List: Faster/More reliable proxies first
+// List of proxies to rotate through if one fails
 const PROXY_GENERATORS = [
+    (url: string) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
     (url: string) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
     (url: string) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-    (url: string) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+    (url: string) => `https://thingproxy.freeboard.io/fetch/${encodeURIComponent(url)}`
 ];
-
-// Helper to fetch with a timeout
-const fetchWithTimeout = async (url: string, timeoutMs: number = 8000): Promise<Response> => {
-    const controller = new AbortController();
-    const id = setTimeout(() => controller.abort(), timeoutMs);
-
-    try {
-        const response = await fetch(url, { signal: controller.signal });
-        clearTimeout(id);
-        return response;
-    } catch (error) {
-        clearTimeout(id);
-        throw error;
-    }
-};
 
 const fetchFromTMDB = async <T>(endpoint: string, params: Record<string, string> = {}): Promise<T> => {
   const queryParams = new URLSearchParams({
@@ -39,25 +25,22 @@ const fetchFromTMDB = async <T>(endpoint: string, params: Record<string, string>
       const proxyUrl = generateProxyUrl(targetUrl);
       
       try {
-          // Use timeout to fail fast on slow mobile connections/proxies
-          const response = await fetchWithTimeout(proxyUrl, 5000); // 5s timeout per proxy
+          const response = await fetch(proxyUrl);
           
           if (!response.ok) {
               if (response.status === 404) throw new Error('Resource not found (404)');
               if (response.status === 401) throw new Error('TMDB API Key is invalid or expired.');
               
-              // If server error or rate limit, try next proxy
               if (response.status === 403 || response.status === 429 || response.status >= 500) {
-                  continue; 
+                  continue; // Try next proxy
               }
               throw new Error(`TMDB API Error: ${response.status} ${response.statusText}`);
           }
           
-          return await response.json();
+          return response.json();
 
       } catch (error: any) {
           lastError = error;
-          // Continue to next proxy if timeout or network error
       }
   }
 
