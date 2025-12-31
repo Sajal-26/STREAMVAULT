@@ -32,6 +32,7 @@ export interface MediaItem {
   release_date?: string;
   first_air_date?: string;
   media_type: 'movie' | 'tv' | 'person' | 'collection';
+  original_language?: string;
   genre_ids?: number[];
   character?: string; // For cast credits
   job?: string; // For crew credits

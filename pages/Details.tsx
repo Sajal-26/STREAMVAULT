@@ -177,6 +177,15 @@ const Details: React.FC = () => {
       setPlayingVideoKey(null);
   };
 
+  const getLanguageName = (code?: string) => {
+    if (!code) return 'Unknown';
+    try {
+      return new Intl.DisplayNames(['en'], { type: 'language' }).of(code);
+    } catch (e) {
+      return code.toUpperCase();
+    }
+  };
+
   if (loading) return <DetailsSkeleton />;
   
   if (error || !data) {
@@ -519,7 +528,9 @@ const Details: React.FC = () => {
 
              <div>
                 <span className="block text-secondary mb-1 font-bold uppercase tracking-wider text-xs cursor-default">Original Language</span>
-                <span className="text-primary uppercase cursor-default">English</span>
+                <span className="text-primary uppercase cursor-default">
+                  {getLanguageName(data.original_language)}
+                </span>
              </div>
              <div>
                 <span className="block text-secondary mb-1 font-bold uppercase tracking-wider text-xs cursor-default">Status</span>
