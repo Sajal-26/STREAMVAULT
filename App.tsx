@@ -6,6 +6,7 @@ import Home from './pages/Home';
 import Browse from './pages/Browse';
 import Details from './pages/Details';
 import PersonDetails from './pages/PersonDetails';
+import CollectionDetails from './pages/CollectionDetails';
 import SearchPage from './pages/Search';
 import Settings from './pages/Settings';
 import Watchlist from './pages/Watchlist';
@@ -26,6 +27,7 @@ const AppContent: React.FC = () => {
         <Route path="/search" element={<SearchPage />} />
         <Route path="/details/:type/:id" element={<Details />} />
         <Route path="/person/:id" element={<PersonDetails />} />
+        <Route path="/collection/:id" element={<CollectionDetails />} />
         
         <Route path="/watch/:type/:id" element={<Watch />} />
         <Route path="/watch/:type/:id/:season/:episode" element={<Watch />} />
