@@ -9,19 +9,24 @@ const fetchFromTMDB = async <T>(endpoint: string, params: Record<string, string>
   });
 
   const url = `${TMDB_BASE_URL}${endpoint}?${queryParams}`;
-  
-  // Use api.allorigins.win as it is more permissive with TMDB than corsproxy.io currently
-  const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
 
   try {
-    const response = await fetch(proxyUrl);
+    // TMDB supports CORS, so we request directly.
+    // Proxies often get 403 blocked due to shared IP usage.
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      }
+    });
     
     if (!response.ok) {
       if (response.status === 401) {
         throw new Error('TMDB API Key is invalid or expired. Please check constants.ts');
       }
       if (response.status === 403) {
-         throw new Error('TMDB API Access Forbidden (403). The proxy might be blocked or region restricted.');
+         throw new Error('TMDB API Access Forbidden (403). Your IP might be rate-limited by TMDB directly.');
       }
       throw new Error(`TMDB API Error: ${response.status} ${response.statusText}`);
     }
