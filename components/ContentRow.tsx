@@ -22,7 +22,7 @@ const ContentRow: React.FC<ContentRowProps> = ({ title, items }) => {
   if (!items || items.length === 0) return null;
 
   return (
-    <div className="mb-8 md:mb-12 px-4 md:px-12 relative group">
+    <div className="mb-8 md:mb-12 px-4 md:px-12 relative group/row">
       <h2 className="text-lg md:text-2xl font-bold text-primary mb-3 md:mb-4 flex items-center">
         <span className="w-1 h-5 md:h-6 bg-brand-primary mr-3 rounded-full"></span>
         {title}
@@ -31,7 +31,7 @@ const ContentRow: React.FC<ContentRowProps> = ({ title, items }) => {
       <div className="relative">
         <button 
           onClick={() => scroll('left')}
-          className="hidden md:flex absolute left-0 top-0 bottom-0 z-20 w-12 bg-gradient-to-r from-background to-transparent items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 cursor-pointer disabled:opacity-0"
+          className="hidden md:flex absolute left-0 top-0 bottom-0 z-20 w-12 bg-gradient-to-r from-background to-transparent items-center justify-center opacity-0 group-hover/row:opacity-100 transition-opacity duration-300 cursor-pointer disabled:opacity-0"
         >
           <ChevronLeft className="w-8 h-8 text-primary hover:scale-125 transition-transform" />
         </button>
@@ -49,7 +49,7 @@ const ContentRow: React.FC<ContentRowProps> = ({ title, items }) => {
 
         <button 
           onClick={() => scroll('right')}
-          className="hidden md:flex absolute right-0 top-0 bottom-0 z-20 w-12 bg-gradient-to-l from-background to-transparent items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 cursor-pointer"
+          className="hidden md:flex absolute right-0 top-0 bottom-0 z-20 w-12 bg-gradient-to-l from-background to-transparent items-center justify-center opacity-0 group-hover/row:opacity-100 transition-opacity duration-300 cursor-pointer"
         >
           <ChevronRight className="w-8 h-8 text-primary hover:scale-125 transition-transform" />
         </button>

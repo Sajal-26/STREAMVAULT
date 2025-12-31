@@ -26,11 +26,11 @@ const MediaCard: React.FC<MediaCardProps> = ({ item }) => {
   };
 
   return (
-    <div className="group relative block w-full aspect-[2/3] overflow-hidden rounded-md bg-surface transition-all duration-300 hover:scale-105 hover:z-10 shadow-lg hover:shadow-2xl">
+    <div className="group/card relative block w-full aspect-[2/3] overflow-hidden rounded-md bg-surface transition-all duration-300 hover:scale-105 hover:z-10 shadow-lg hover:shadow-2xl">
       <img
         src={imagePath}
         alt={title}
-        className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-110 group-hover:opacity-40"
+        className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover/card:scale-110 group-hover/card:opacity-40"
         loading="lazy"
       />
       
@@ -42,10 +42,10 @@ const MediaCard: React.FC<MediaCardProps> = ({ item }) => {
       />
 
       {/* Hover Overlay Content */}
-      <div className="absolute inset-0 flex flex-col justify-end p-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10 pointer-events-none bg-gradient-to-t from-black via-black/40 to-transparent">
+      <div className="absolute inset-0 flex flex-col justify-end p-3 opacity-0 group-hover/card:opacity-100 transition-opacity duration-300 z-10 pointer-events-none bg-gradient-to-t from-black via-black/40 to-transparent">
         
         {/* Action Buttons - Pointer events auto to allow clicking */}
-        <div className="flex gap-2 mb-3 pointer-events-auto transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
+        <div className="flex gap-2 mb-3 pointer-events-auto transform translate-y-4 group-hover/card:translate-y-0 transition-transform duration-300">
             <button 
                 onClick={handlePlay}
                 className="flex-1 flex items-center justify-center bg-white text-black py-2 rounded font-bold text-xs hover:bg-gray-200 transition-colors shadow-lg"
