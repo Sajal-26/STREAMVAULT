@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Search, Menu, X, Settings, Star } from 'lucide-react';
+import { Search, Menu, X, Settings, Star, Download } from 'lucide-react';
 import { tmdbService } from '../services/tmdb';
 import { MediaItem } from '../types';
 import { IMAGE_BASE_URL } from '../constants';
@@ -12,6 +12,7 @@ const Navbar: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [suggestions, setSuggestions] = useState<MediaItem[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [installPrompt, setInstallPrompt] = useState<any>(null);
   
   const navigate = useNavigate();
   const location = useLocation();
@@ -19,6 +20,14 @@ const Navbar: React.FC = () => {
   const lastScrollY = useRef(0);
 
   useEffect(() => {
+    // PWA Install Prompt Listener
+    const handleBeforeInstallPrompt = (e: any) => {
+      e.preventDefault();
+      setInstallPrompt(e);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
       
@@ -47,6 +56,7 @@ const Navbar: React.FC = () => {
     return () => {
         window.removeEventListener('scroll', handleScroll);
         document.removeEventListener('mousedown', handleClickOutside);
+        window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     };
   }, []);
 
@@ -86,6 +96,16 @@ const Navbar: React.FC = () => {
     navigate(`/details/${type}/${id}`);
     setShowSuggestions(false);
     setSearchQuery('');
+  };
+
+  const handleInstallClick = () => {
+    if (!installPrompt) return;
+    installPrompt.prompt();
+    installPrompt.userChoice.then((choiceResult: any) => {
+      if (choiceResult.outcome === 'accepted') {
+        setInstallPrompt(null);
+      }
+    });
   };
 
   const navLinks = [
@@ -188,6 +208,16 @@ const Navbar: React.FC = () => {
               )}
             </div>
 
+            {installPrompt && (
+                <button 
+                    onClick={handleInstallClick}
+                    className="flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 rounded-full text-xs font-medium transition-colors"
+                    title="Install StreamVault App"
+                >
+                    <Download className="w-4 h-4" /> Install App
+                </button>
+            )}
+
             <Link to="/settings" className="text-gray-300 hover:text-white transition p-1">
                 <Settings className="w-5 h-5" />
             </Link>
@@ -233,6 +263,17 @@ const Navbar: React.FC = () => {
             >
               <Settings className="w-4 h-4 mr-2" /> Settings
             </Link>
+            {installPrompt && (
+               <button
+                  onClick={() => {
+                      handleInstallClick();
+                      setIsMobileMenuOpen(false);
+                  }}
+                  className="w-full text-left px-3 py-2 rounded-md text-base font-medium text-brand-primary hover:text-white hover:bg-white/10 flex items-center"
+                >
+                  <Download className="w-4 h-4 mr-2" /> Install App
+               </button>
+            )}
           </div>
         </div>
       )}
