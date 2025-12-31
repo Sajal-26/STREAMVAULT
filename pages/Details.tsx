@@ -79,29 +79,14 @@ const Details: React.FC = () => {
             try {
                 const sData = await tmdbService.getSeasonDetails(parseInt(id), selectedSeasonNumber);
                 setSeasonData(sData);
-
-                // Update Videos for Season
-                if (sData.videos && sData.videos.results) {
-                    const seasonVideos = sData.videos.results.filter((v: any) => v.site === 'YouTube');
-                    
-                    if (seasonVideos.length > 0) {
-                        // If season specific videos exist, use them
-                        setVideos(seasonVideos);
-                        setTrailerKey(extractTrailerKey(seasonVideos));
-                    } else {
-                        // Fallback to Main Series Videos if season has none
-                        const globalVideos = data.videos?.results.filter(v => v.site === 'YouTube') || [];
-                        setVideos(globalVideos);
-                        setTrailerKey(extractTrailerKey(globalVideos));
-                    }
-                }
+                // Note: We are strictly using show-level videos, so we do not update videos/trailers based on season data here.
             } catch (err) {
                 console.error("Failed to fetch season", err);
             }
         }
     };
     fetchSeason();
-  }, [type, id, selectedSeasonNumber, data, error, extractTrailerKey]);
+  }, [type, id, selectedSeasonNumber, data, error]);
 
   const openTrailer = (key: string) => {
       setPlayingVideoKey(key);
@@ -381,7 +366,7 @@ const Details: React.FC = () => {
                 <div className="mb-8">
                     <h2 className="text-lg md:text-2xl font-bold text-primary mb-4 flex items-center">
                         <span className="w-1 h-5 md:h-6 bg-brand-primary mr-3 rounded-full"></span>
-                        {type === 'tv' && seasonData ? `Season ${selectedSeasonNumber} Extras` : 'Trailers & Extras'}
+                        Trailers & Extras
                     </h2>
                     <div className="flex space-x-4 overflow-x-auto hide-scrollbar pb-4 scroll-smooth">
                         {videos.map((video) => (
