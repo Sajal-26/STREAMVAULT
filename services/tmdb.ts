@@ -6,12 +6,12 @@ import { MediaItem, MediaDetails, Genre, SeasonDetails, PersonDetails, Collectio
 const PROXY_GENERATORS = [
     // 1. Direct Access (Best performance, works if no CORS/Network blocks)
     (url: string) => url,
-    // 2. CorsProxy.io (Fast, reliable)
-    (url: string) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+    // 2. CodeTabs (Reliable)
+    (url: string) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
     // 3. AllOrigins (Reliable backup)
     (url: string) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-    // 4. CodeTabs (Backup)
-    (url: string) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+    // 4. CorsProxy.io (Fast, reliable)
+    (url: string) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
     // 5. ThingProxy (Last resort)
     (url: string) => `https://thingproxy.freeboard.io/fetch/${url}`,
 ];
