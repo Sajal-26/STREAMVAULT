@@ -40,17 +40,19 @@ const MediaCard: React.FC<MediaCardProps> = ({ item, onRemove }) => {
   };
 
   return (
-    <div className="group/card relative block w-full aspect-[2/3] overflow-hidden rounded-md bg-surface transition-all duration-300 hover:scale-105 hover:z-10 shadow-lg hover:shadow-2xl">
-      <img
-        src={imagePath}
-        alt={title}
-        className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover/card:scale-110 group-hover/card:opacity-40"
-        loading="lazy"
-      />
+    <div className="group/card relative block w-full aspect-[2/3] rounded-md bg-surface transition-all duration-300 hover:scale-110 hover:z-20 hover:shadow-[0_0_20px_rgba(0,0,0,0.5)] cursor-pointer ring-1 ring-white/5 hover:ring-white/20">
+      <div className="absolute inset-0 overflow-hidden rounded-md">
+          <img
+            src={imagePath}
+            alt={title}
+            className="h-full w-full object-cover transition-opacity duration-300 group-hover/card:opacity-40"
+            loading="lazy"
+          />
+      </div>
 
       {/* Progress Bar (Visible Always if progress exists) */}
       {(item.progress !== undefined && item.progress > 0) && (
-          <div className="absolute bottom-0 left-0 right-0 z-20 bg-black/80 backdrop-blur-sm px-2 py-1.5">
+          <div className="absolute bottom-0 left-0 right-0 z-20 bg-black/80 backdrop-blur-sm px-2 py-1.5 rounded-b-md">
               <div className="flex items-center justify-between text-[11px] text-gray-200 mb-1 font-semibold">
                  <span>{formatWatchedTime(item.watchedDuration || 0)}</span>
               </div>
@@ -77,12 +79,12 @@ const MediaCard: React.FC<MediaCardProps> = ({ item, onRemove }) => {
       {/* Default Link Overlay (Invisible, covers whole card for navigation if not clicking buttons) */}
       <Link 
         to={`/details/${mediaType}/${item.id}`} 
-        className="absolute inset-0 z-0"
+        className="absolute inset-0 z-0 rounded-md"
         aria-label={`View details for ${title}`}
       />
 
       {/* Hover Overlay Content */}
-      <div className={`absolute inset-0 flex flex-col justify-end p-3 opacity-0 group-hover/card:opacity-100 transition-opacity duration-300 z-10 pointer-events-none bg-gradient-to-t from-black via-black/40 to-transparent ${item.progress ? 'pb-10' : ''}`}>
+      <div className={`absolute inset-0 flex flex-col justify-end p-3 opacity-0 group-hover/card:opacity-100 transition-opacity duration-300 z-10 pointer-events-none bg-gradient-to-t from-black via-black/40 to-transparent rounded-md ${item.progress ? 'pb-10' : ''}`}>
         
         {/* Action Buttons - Pointer events auto to allow clicking */}
         <div className="flex gap-2 mb-3 pointer-events-auto transform translate-y-4 group-hover/card:translate-y-0 transition-transform duration-300">

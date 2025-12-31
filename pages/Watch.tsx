@@ -20,7 +20,11 @@ const Watch: React.FC = () => {
         const details = await tmdbService.getDetails(type as 'movie' | 'tv', parseInt(id));
         detailsRef.current = details;
         
-        // Initial add (without progress)
+        // Initial add (without progress) only if not already present with progress
+        // We defer this logic to the backend/context usually, but here we just ensure we have the metadata ready.
+        // We'll trigger the first save when we get the first time update or if we unmount.
+        
+        // However, to show it immediately in "Continue Watching" even if they watch 0 seconds:
         addToContinueWatching({
           mediaId: parseInt(id),
           mediaType: type as 'movie' | 'tv',
@@ -39,25 +43,44 @@ const Watch: React.FC = () => {
       }
     };
     fetchDetails();
-  }, [id, type, season, episode]); // Intentionally exclude addToContinueWatching to avoid init loop
+  }, [id, type, season, episode]); 
 
   // Listen for progress messages from Videasy
   useEffect(() => {
       const handleMessage = (event: MessageEvent) => {
           try {
-              // Parse data if it's a string
-              const data = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
+              let data = event.data;
               
+              // Handle stringified JSON (common in postMessage)
+              if (typeof data === "string") {
+                  try {
+                      data = JSON.parse(data);
+                  } catch (e) {
+                      // If it's just a regular string message, ignore
+                      return;
+                  }
+              }
+
               if (!data) return;
 
-              // Check for standard time/duration properties
-              const currentTime = data.currentTime ?? data.time ?? data.position;
-              const duration = data.duration ?? data.total ?? data.length;
+              // Sometimes players wrap the payload in a 'data' or 'payload' property
+              const payload = data.data || data.payload || data;
 
+              // normalize keys
+              const currentTime = payload.currentTime ?? payload.time ?? payload.position;
+              const duration = payload.duration ?? payload.total ?? payload.length ?? payload.videoLength;
+
+              // Check if valid numbers
               if (typeof currentTime === 'number' && typeof duration === 'number' && duration > 0) {
                   const now = Date.now();
-                  // Throttle updates to every 2 seconds to prevent state/storage thrashing
-                  if (now - lastUpdateRef.current < 2000) return;
+                  
+                  // Throttle updates: Save max once every 2 seconds
+                  // Also allow update if it's the very first progress (>0) we see
+                  const isFirstProgress = lastUpdateRef.current === 0 && currentTime > 0;
+                  if (!isFirstProgress && (now - lastUpdateRef.current < 2000)) {
+                      return;
+                  }
+                  
                   lastUpdateRef.current = now;
 
                   if (detailsRef.current && id && type) {
@@ -79,7 +102,7 @@ const Watch: React.FC = () => {
                   }
               }
           } catch (e) {
-              // Ignore parse errors from other message sources
+              console.error("Error handling player message", e);
           }
       };
 
@@ -108,6 +131,7 @@ const Watch: React.FC = () => {
   // Construct Player URL
   const baseUrl = "https://player.videasy.net";
   const color = accentColor.replace('#', '');
+  // Added origin to help with potential CORS/Message issues
   const commonParams = `?color=${color}&overlay=true&autoplayNextEpisode=true&episodeSelector=true&autoplay=true`;
 
   let src = "";

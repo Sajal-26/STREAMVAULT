@@ -75,10 +75,10 @@ const ContentRow: React.FC<ContentRowProps> = ({ title, items, onRemove }) => {
         <div 
           ref={rowRef}
           onScroll={checkScroll}
-          className="flex space-x-3 md:space-x-4 overflow-x-auto hide-scrollbar pb-4 scroll-smooth"
+          className="flex space-x-3 md:space-x-4 overflow-x-auto hide-scrollbar pb-4 scroll-smooth pt-4 -mt-4 px-1" // Added padding top to account for hover scale
         >
           {items.map((item) => (
-             <div key={item.id} className="min-w-[130px] w-[130px] sm:min-w-[160px] sm:w-[160px] md:min-w-[200px] md:w-[200px] flex-shrink-0">
+             <div key={item.id} className="min-w-[150px] w-[150px] sm:min-w-[180px] sm:w-[180px] md:min-w-[220px] md:w-[220px] flex-shrink-0 mb-4">
                 <MediaCard item={item} onRemove={onRemove} />
              </div>
           ))}
