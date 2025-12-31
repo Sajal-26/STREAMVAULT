@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Play, Info } from 'lucide-react';
-import { MediaItem } from '../types';
+import { MediaItem, MediaDetails } from '../types';
+import { tmdbService } from '../services/tmdb';
 import { IMAGE_BASE_URL } from '../constants';
 
 interface HeroProps {
@@ -10,6 +11,30 @@ interface HeroProps {
 
 const Hero: React.FC<HeroProps> = ({ item }) => {
   const navigate = useNavigate();
+  const [details, setDetails] = useState<MediaDetails | null>(null);
+  const [logoPath, setLogoPath] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchHeroDetails = async () => {
+      if (item) {
+        try {
+           // Fetch full details to get the logo
+           const res = await tmdbService.getDetails(item.media_type || 'movie', item.id);
+           setDetails(res);
+
+           // Find Logo (prefer English PNG)
+           const logos = res.images?.logos || [];
+           const englishLogo = logos.find(l => l.iso_639_1 === 'en');
+           setLogoPath(englishLogo ? englishLogo.file_path : (logos[0]?.file_path || null));
+
+        } catch (e) {
+          console.error("Failed to fetch hero details", e);
+        }
+      }
+    };
+
+    fetchHeroDetails();
+  }, [item]);
 
   if (!item) return <div className="h-[60vh] md:h-[85vh] bg-gray-900 animate-pulse" />;
 
@@ -18,7 +43,6 @@ const Hero: React.FC<HeroProps> = ({ item }) => {
   const handlePlay = () => {
       const type = item.media_type || 'movie';
       if (type === 'tv') {
-          // Default to S1 E1 for quick play
           navigate(`/watch/tv/${item.id}/1/1`);
       } else {
           navigate(`/watch/movie/${item.id}`);
@@ -26,7 +50,7 @@ const Hero: React.FC<HeroProps> = ({ item }) => {
   };
 
   return (
-    <div className="relative h-[60vh] md:h-[85vh] w-full overflow-hidden">
+    <div className="relative h-[60vh] md:h-[85vh] w-full overflow-hidden group">
       {/* Background Image */}
       <div className="absolute inset-0">
         <img 
@@ -34,21 +58,33 @@ const Hero: React.FC<HeroProps> = ({ item }) => {
           alt={item.title} 
           className="w-full h-full object-cover"
         />
-        <div className="absolute inset-0 bg-gradient-to-r from-black via-black/50 to-transparent" />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#141414] via-[#141414]/20 to-transparent" />
       </div>
+
+      {/* Gradient Overlays for readability */}
+      <div className="absolute inset-0 bg-gradient-to-r from-black via-black/40 to-transparent" />
+      <div className="absolute inset-0 bg-gradient-to-t from-[#141414] via-[#141414]/20 to-transparent" />
 
       {/* Content */}
       <div className="absolute inset-0 flex flex-col justify-end pt-24 px-4 md:px-12 max-w-5xl pb-32 md:pb-48">
-        <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold text-white mb-2 md:mb-4 drop-shadow-lg tracking-tight leading-tight pt-10">
-          {item.title || item.name}
-        </h1>
+        
+        {/* Logo or Title */}
+        {logoPath ? (
+           <img 
+             src={`${IMAGE_BASE_URL}/w500${logoPath}`} 
+             alt={item.title} 
+             className="w-2/3 md:w-1/2 max-w-[500px] max-h-[200px] object-contain mb-6 md:mb-8 origin-left transition-transform duration-700 drop-shadow-2xl"
+           />
+        ) : (
+           <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold text-white mb-2 md:mb-4 drop-shadow-lg tracking-tight leading-tight pt-10">
+             {item.title || item.name}
+           </h1>
+        )}
         
         <p className="hidden md:block text-base md:text-lg text-gray-200 line-clamp-3 mb-6 md:mb-8 max-w-2xl drop-shadow-md">
           {item.overview}
         </p>
         
-        <div className="flex space-x-3 md:space-x-4">
+        <div className="flex items-center gap-4">
           <button 
             onClick={handlePlay}
             className="flex items-center px-4 md:px-6 py-2 md:py-3 bg-white text-black rounded-md font-bold hover:bg-opacity-90 transition transform hover:scale-105 text-sm md:text-base"

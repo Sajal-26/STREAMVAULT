@@ -2,7 +2,7 @@ import React from 'react';
 import Navbar from '../components/Navbar';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { Check, Trash2, User } from 'lucide-react';
+import { Check, Trash2, Palette } from 'lucide-react';
 
 const COLORS = [
   { name: 'Red', value: '#E50914' },
@@ -43,26 +43,12 @@ const Settings: React.FC = () => {
         <h1 className="text-4xl font-bold mb-2">Settings</h1>
         <p className="text-secondary mb-10">Customize your StreamVault experience.</p>
 
-        {/* Profile Section */}
-        <section className="bg-surface rounded-lg p-6 mb-8 border border-white/5 shadow-sm">
-           <h2 className="text-xl font-bold mb-6 border-b border-gray-700/20 pb-2">Guest Profile</h2>
-           <div className="flex items-center mb-6">
-              <div className="w-16 h-16 rounded-md bg-gradient-to-br from-brand-primary to-blue-600 flex items-center justify-center text-white text-2xl font-bold mr-6 shadow-md">
-                <User className="w-8 h-8" />
-              </div>
-              <div>
-                 <h3 className="text-lg font-medium">Guest User</h3>
-                 <p className="text-secondary text-sm">Local Session • Data stored in browser</p>
-                 <span className="inline-block mt-2 px-2 py-0.5 bg-green-500/20 text-green-500 text-xs font-bold rounded">
-                    ACTIVE
-                 </span>
-              </div>
-           </div>
-        </section>
-
         {/* Appearance Section */}
         <section className="bg-surface rounded-lg p-6 mb-8 border border-white/5 shadow-sm">
-           <h2 className="text-xl font-bold mb-6 border-b border-gray-700/20 pb-2">Appearance</h2>
+           <div className="flex items-center mb-6 border-b border-gray-700/20 pb-2">
+               <Palette className="w-5 h-5 mr-3 text-brand-primary" />
+               <h2 className="text-xl font-bold">Appearance</h2>
+           </div>
            
            {/* Accent Color */}
            <div>
@@ -72,7 +58,7 @@ const Settings: React.FC = () => {
                     <button
                        key={c.name}
                        onClick={() => handleColorChange(c.value)}
-                       className="w-12 h-12 rounded-full flex items-center justify-center transition-transform hover:scale-110"
+                       className="w-12 h-12 rounded-full flex items-center justify-center transition-transform hover:scale-110 border-2 border-transparent hover:border-white/20"
                        style={{ backgroundColor: c.value }}
                        title={c.name}
                     >
@@ -85,11 +71,11 @@ const Settings: React.FC = () => {
 
         {/* Data Management */}
         <section className="bg-surface rounded-lg p-6 mb-8 border border-white/5 shadow-sm">
-           <h2 className="text-xl font-bold mb-6 border-b border-gray-700/20 pb-2 text-red-500">Danger Zone</h2>
+           <h2 className="text-xl font-bold mb-6 border-b border-gray-700/20 pb-2 text-red-500">Data Management</h2>
            <div className="flex items-center justify-between">
                 <div>
-                    <h4 className="font-medium text-white">Clear All Data</h4>
-                    <p className="text-sm text-secondary">Remove your watchlist, liked items, and preferences.</p>
+                    <h4 className="font-medium text-white">Reset Application</h4>
+                    <p className="text-sm text-secondary">Clear your local watchlist, likes, and watch history.</p>
                 </div>
                 <button 
                     onClick={handleClearData}

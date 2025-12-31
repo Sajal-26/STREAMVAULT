@@ -52,6 +52,14 @@ export interface SeasonDetails {
   episodes: Episode[];
 }
 
+export interface Image {
+  file_path: string;
+  aspect_ratio: number;
+  height: number;
+  width: number;
+  iso_639_1: string | null;
+}
+
 export interface MediaDetails extends MediaItem {
   genres: { id: number; name: string }[];
   runtime?: number;
@@ -59,7 +67,11 @@ export interface MediaDetails extends MediaItem {
   seasons?: { season_number: number; name: string; episode_count: number }[];
   tagline?: string;
   videos?: {
-    results: { key: string; type: string; site: string }[];
+    results: { key: string; type: string; site: string; name: string }[];
+  };
+  images?: {
+    logos: Image[];
+    backdrops: Image[];
   };
   credits?: {
     cast: { id: number; name: string; profile_path: string | null; character: string }[];
@@ -88,36 +100,4 @@ export interface PersonDetails {
 export interface Genre {
   id: number;
   name: string;
-}
-
-export interface Profile {
-  id: string;
-  name: string;
-  avatar: string;
-  accentColor: string;
-  language: string;
-}
-
-export interface Device {
-  deviceId: string;
-  name: string;
-  type: 'desktop' | 'mobile' | 'tablet';
-  ip: string;
-  lastActive: string;
-  isCurrent?: boolean;
-}
-
-export interface User {
-  _id: string;
-  id: string;
-  email: string;
-  isAdmin: boolean;
-  role: 'User' | 'Admin' | 'Owner';
-  status: 'Active' | 'Suspended' | 'Banned';
-  joinedDate: string;
-  lastLogin: string;
-  watchlist: WatchlistItem[];
-  likes: LikedItem[];
-  devices: Device[];
-  profiles: Profile[];
 }

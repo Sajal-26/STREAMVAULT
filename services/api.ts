@@ -1,6 +1,4 @@
-import { WatchlistItem, LikedItem, ContinueWatchingItem, User } from '../types';
-import { mockBackend } from './mockBackend';
-import { USE_MOCK_BACKEND } from '../constants';
+import { WatchlistItem, LikedItem, ContinueWatchingItem } from '../types';
 
 const WATCHLIST_KEY = 'sv_guest_watchlist';
 const LIKES_KEY = 'sv_guest_likes';
@@ -73,20 +71,5 @@ export const api = {
         localStorage.removeItem(WATCHLIST_KEY);
         localStorage.removeItem(LIKES_KEY);
         localStorage.removeItem(CONTINUE_WATCHING_KEY);
-    },
-
-    // User Management (Admin)
-    getUsers: async (): Promise<User[]> => {
-        if (USE_MOCK_BACKEND) {
-             return mockBackend.getUsers();
-        }
-        return [];
-    },
-
-    deleteUser: async (id: string): Promise<any> => {
-        if (USE_MOCK_BACKEND) {
-            return mockBackend.deleteUser(id);
-        }
-        return { success: false };
     }
 };

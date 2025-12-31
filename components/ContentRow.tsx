@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import MediaCard from './MediaCard';
 import { MediaItem } from '../types';
@@ -10,12 +10,45 @@ interface ContentRowProps {
 
 const ContentRow: React.FC<ContentRowProps> = ({ title, items }) => {
   const rowRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  const checkScroll = () => {
+    if (rowRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = rowRef.current;
+      // Only show arrows if there is actual overflow
+      const hasOverflow = scrollWidth > clientWidth;
+      
+      setCanScrollLeft(scrollLeft > 0);
+      setCanScrollRight(hasOverflow && Math.ceil(scrollLeft + clientWidth) < scrollWidth);
+    }
+  };
+
+  useEffect(() => {
+    checkScroll();
+    
+    // ResizeObserver ensures we detect overflow changes when images load or window resizes
+    const ref = rowRef.current;
+    if (!ref) return;
+
+    const observer = new ResizeObserver(() => {
+        checkScroll();
+    });
+    
+    observer.observe(ref);
+    return () => observer.disconnect();
+  }, [items]);
 
   const scroll = (direction: 'left' | 'right') => {
     if (rowRef.current) {
       const { current } = rowRef;
-      const scrollAmount = direction === 'left' ? -current.offsetWidth + 100 : current.offsetWidth - 100;
+      const scrollAmount = direction === 'left' 
+        ? -(current.clientWidth * 0.8) 
+        : (current.clientWidth * 0.8);
+        
       current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+      // Timeout to check scroll state after animation finishes
+      setTimeout(checkScroll, 500);
     }
   };
 
@@ -29,30 +62,35 @@ const ContentRow: React.FC<ContentRowProps> = ({ title, items }) => {
       </h2>
       
       <div className="relative">
-        <button 
-          onClick={() => scroll('left')}
-          className="hidden md:flex absolute left-0 top-0 bottom-0 z-20 w-12 bg-gradient-to-r from-background to-transparent items-center justify-center opacity-0 group-hover/row:opacity-100 transition-opacity duration-300 cursor-pointer disabled:opacity-0"
-        >
-          <ChevronLeft className="w-8 h-8 text-primary hover:scale-125 transition-transform" />
-        </button>
+        {canScrollLeft && (
+          <button 
+            onClick={() => scroll('left')}
+            className="absolute left-0 top-0 bottom-0 z-20 w-12 bg-gradient-to-r from-background to-transparent flex items-center justify-center opacity-0 group-hover/row:opacity-100 transition-opacity duration-300 cursor-pointer"
+          >
+            <ChevronLeft className="w-10 h-10 text-white hover:scale-125 transition-transform drop-shadow-lg" />
+          </button>
+        )}
 
         <div 
           ref={rowRef}
+          onScroll={checkScroll}
           className="flex space-x-3 md:space-x-4 overflow-x-auto hide-scrollbar pb-4 scroll-smooth"
         >
           {items.map((item) => (
-             <div key={item.id} className="min-w-[130px] w-[130px] sm:min-w-[160px] sm:w-[160px] md:min-w-[200px] md:w-[200px]">
+             <div key={item.id} className="min-w-[130px] w-[130px] sm:min-w-[160px] sm:w-[160px] md:min-w-[200px] md:w-[200px] flex-shrink-0">
                 <MediaCard item={item} />
              </div>
           ))}
         </div>
 
-        <button 
-          onClick={() => scroll('right')}
-          className="hidden md:flex absolute right-0 top-0 bottom-0 z-20 w-12 bg-gradient-to-l from-background to-transparent items-center justify-center opacity-0 group-hover/row:opacity-100 transition-opacity duration-300 cursor-pointer"
-        >
-          <ChevronRight className="w-8 h-8 text-primary hover:scale-125 transition-transform" />
-        </button>
+        {canScrollRight && (
+          <button 
+            onClick={() => scroll('right')}
+            className="absolute right-0 top-0 bottom-0 z-20 w-12 bg-gradient-to-l from-background to-transparent flex items-center justify-center opacity-0 group-hover/row:opacity-100 transition-opacity duration-300 cursor-pointer"
+          >
+            <ChevronRight className="w-10 h-10 text-white hover:scale-125 transition-transform drop-shadow-lg" />
+          </button>
+        )}
       </div>
     </div>
   );

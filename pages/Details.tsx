@@ -26,6 +26,9 @@ const Details: React.FC = () => {
   const [selectedSeasonNumber, setSelectedSeasonNumber] = useState(1);
   const [seasonData, setSeasonData] = useState<SeasonDetails | null>(null);
 
+  // Media Assets State
+  const [logoPath, setLogoPath] = useState<string | null>(null);
+
   const fetchDetails = async () => {
     if (!type || !id) return;
     setLoading(true);
@@ -33,6 +36,12 @@ const Details: React.FC = () => {
     try {
       const res = await tmdbService.getDetails(type, parseInt(id));
       setData(res);
+
+      // Find Logo
+      const logos = res.images?.logos || [];
+      const englishLogo = logos.find(l => l.iso_639_1 === 'en');
+      setLogoPath(englishLogo ? englishLogo.file_path : (logos[0]?.file_path || null));
+
       if (type === 'tv') {
           setSelectedSeasonNumber(1);
       }
@@ -145,15 +154,29 @@ const Details: React.FC = () => {
       <Navbar />
 
       {/* Hero Section */}
-      <div className="relative h-[55vh] md:h-[70vh] w-full bg-black">
+      <div className="relative h-[55vh] md:h-[70vh] w-full bg-black overflow-hidden group">
+        {/* Background Image */}
         <div className="absolute inset-0">
           <img src={backdrop} alt={data.title} className="w-full h-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-t from-background via-black/40 to-transparent" />
         </div>
+        
+        {/* Gradient Overlays */}
+        <div className="absolute inset-0 bg-gradient-to-t from-background via-black/40 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-r from-black via-black/30 to-transparent" />
         
         <div className="absolute bottom-0 left-0 w-full px-4 md:px-12 pb-8 md:pb-12 flex flex-col md:flex-row items-end gap-8">
             <div className="flex-1 w-full">
-                <h1 className="text-3xl md:text-5xl lg:text-6xl font-extrabold mb-2 text-white leading-tight">{data.title || data.name}</h1>
+                
+                {logoPath ? (
+                   <img 
+                     src={`${IMAGE_BASE_URL}/w500${logoPath}`} 
+                     alt={data.title} 
+                     className="w-2/3 md:w-1/2 max-w-[400px] max-h-[150px] object-contain mb-6 origin-left transition-transform duration-700 drop-shadow-2xl"
+                   />
+                ) : (
+                   <h1 className="text-3xl md:text-5xl lg:text-6xl font-extrabold mb-2 text-white leading-tight">{data.title || data.name}</h1>
+                )}
+
                 {data.tagline && <p className="text-gray-300 italic mb-3 md:mb-4 text-sm md:text-lg">{data.tagline}</p>}
                 
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs md:text-sm font-medium text-gray-300 mb-6">
@@ -164,7 +187,7 @@ const Details: React.FC = () => {
                     <span className="border border-gray-500 px-2 rounded text-[10px] md:text-xs py-0.5">HD</span>
                 </div>
 
-                <div className="flex space-x-3 mb-6">
+                <div className="flex items-center space-x-3 mb-6">
                     <button 
                         onClick={handlePlay}
                         className="flex items-center px-6 py-2 md:py-3 bg-white text-black font-bold rounded hover:bg-opacity-90 transition text-sm md:text-base"
