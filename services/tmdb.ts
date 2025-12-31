@@ -9,24 +9,19 @@ const fetchFromTMDB = async <T>(endpoint: string, params: Record<string, string>
   });
 
   const url = `${TMDB_BASE_URL}${endpoint}?${queryParams}`;
+  
+  // Using corsproxy.io to bypass ISP blocks (e.g., in India)
+  const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(url)}`;
 
   try {
-    // TMDB supports CORS, so we request directly.
-    // Proxies often get 403 blocked due to shared IP usage.
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json'
-      }
-    });
+    const response = await fetch(proxyUrl);
     
     if (!response.ok) {
       if (response.status === 401) {
-        throw new Error('TMDB API Key is invalid or expired. Please check constants.ts');
+        throw new Error('TMDB API Key is invalid or expired.');
       }
       if (response.status === 403) {
-         throw new Error('TMDB API Access Forbidden (403). Your IP might be rate-limited by TMDB directly.');
+         throw new Error('TMDB API Access Forbidden (403). The Proxy or Key is rate-limited.');
       }
       throw new Error(`TMDB API Error: ${response.status} ${response.statusText}`);
     }
