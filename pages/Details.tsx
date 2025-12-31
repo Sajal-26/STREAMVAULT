@@ -355,8 +355,10 @@ const Details: React.FC = () => {
                             title="Official Trailer"
                             className="absolute inset-0 w-full h-full"
                             allowFullScreen
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                            referrerPolicy="strict-origin-when-cross-origin"
                             loading="lazy"
+                            frameBorder="0"
                          ></iframe>
                     </div>
                 </div>
@@ -443,7 +445,9 @@ const Details: React.FC = () => {
                       title="Trailer Player"
                       className="w-full h-full"
                       allowFullScreen
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                      referrerPolicy="strict-origin-when-cross-origin"
+                      frameBorder="0"
                   ></iframe>
               </div>
           </div>
