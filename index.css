@@ -14,6 +14,12 @@
 body {
   background-color: var(--bg-main);
   color: var(--text-main);
+  cursor: default; /* Changed from auto to default to prevent text selection cursor everywhere */
+}
+
+/* Ensure links and buttons still show pointer */
+a, button, [role="button"] {
+  cursor: pointer;
 }
 
 .glass {

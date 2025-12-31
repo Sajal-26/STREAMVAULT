@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import MediaCard from '../components/MediaCard';
 import { tmdbService } from '../services/tmdb';
@@ -10,6 +11,9 @@ interface BrowseProps {
 }
 
 const Browse: React.FC<BrowseProps> = ({ type }) => {
+  const [searchParams] = useSearchParams();
+  const urlGenreId = searchParams.get('genre');
+
   const [items, setItems] = useState<MediaItem[]>([]);
   const [genres, setGenres] = useState<Genre[]>([]);
   const [selectedGenre, setSelectedGenre] = useState<number | null>(null);
@@ -17,6 +21,15 @@ const Browse: React.FC<BrowseProps> = ({ type }) => {
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [hasMore, setHasMore] = useState(true);
+
+  // Sync URL params with state
+  useEffect(() => {
+    if (urlGenreId) {
+        setSelectedGenre(parseInt(urlGenreId));
+    } else {
+        setSelectedGenre(null);
+    }
+  }, [urlGenreId]);
 
   // Initial Data Load & Genre Change
   useEffect(() => {
@@ -64,6 +77,12 @@ const Browse: React.FC<BrowseProps> = ({ type }) => {
 
   const lastElementRef = useInfiniteScroll(loadMore, loading);
 
+  const handleGenreClick = (id: number | null) => {
+      // If clicking inside the component, we update state directly. 
+      // If we wanted to update URL, we would use setSearchParams, but local state is smoother for browsing.
+      setSelectedGenre(id);
+  };
+
   return (
     <div className="min-h-screen bg-background pt-20 transition-colors duration-300">
       <Navbar />
@@ -80,9 +99,9 @@ const Browse: React.FC<BrowseProps> = ({ type }) => {
             
             <div className="flex space-x-2 overflow-x-auto hide-scrollbar pb-2 md:pb-0 w-full md:w-auto">
                 <button
-                    onClick={() => setSelectedGenre(null)}
+                    onClick={() => handleGenreClick(null)}
                     className={`px-4 py-1.5 rounded-full text-xs md:text-sm font-medium whitespace-nowrap transition flex-shrink-0 ${
-                        selectedGenre === null ? 'bg-primary text-background' : 'bg-surface text-secondary hover:bg-gray-700 hover:text-white'
+                        selectedGenre === null ? 'bg-brand-primary text-white' : 'bg-surface text-secondary hover:bg-gray-700 hover:text-white'
                     }`}
                 >
                     All Genres
@@ -90,9 +109,9 @@ const Browse: React.FC<BrowseProps> = ({ type }) => {
                 {genres.map(g => (
                     <button
                         key={g.id}
-                        onClick={() => setSelectedGenre(g.id)}
+                        onClick={() => handleGenreClick(g.id)}
                         className={`px-4 py-1.5 rounded-full text-xs md:text-sm font-medium whitespace-nowrap transition flex-shrink-0 ${
-                            selectedGenre === g.id ? 'bg-primary text-background' : 'bg-surface text-secondary hover:bg-gray-700 hover:text-white'
+                            selectedGenre === g.id ? 'bg-brand-primary text-white' : 'bg-surface text-secondary hover:bg-gray-700 hover:text-white'
                         }`}
                     >
                         {g.name}

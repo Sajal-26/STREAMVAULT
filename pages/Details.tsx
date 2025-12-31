@@ -110,7 +110,6 @@ const Details: React.FC = () => {
               setActorName(topActor.name);
               try {
                   const creditsRes = await tmdbService.getPersonCredits(topActor.id);
-                  // Filter out current item and sort by popularity
                   const filtered = creditsRes.cast
                       .filter(i => i.id !== data.id && i.poster_path)
                       .sort((a, b) => (b.vote_average || 0) - (a.vote_average || 0))
@@ -138,10 +137,6 @@ const Details: React.FC = () => {
               setCreatorName(cName);
               try {
                   const creditsRes = await tmdbService.getPersonCredits(creatorId);
-                  // Combined credits (cast or crew? usually crew for director, but we want works they were involved in)
-                  // Let's use combined_credits (which the service calls) but maybe look at crew mostly? 
-                  // Actually combined is fine, allows seeing if they acted too. 
-                  // Let's prioritize items where they had a significant role? Simpler: Just sort by popularity/vote.
                   const items = [...creditsRes.crew, ...creditsRes.cast];
                   const unique = Array.from(new Map(items.map(item => [item.id, item])).values());
                   
@@ -271,7 +266,7 @@ const Details: React.FC = () => {
       <Navbar />
 
       {/* Hero Section */}
-      <div className="relative h-[55vh] md:h-[70vh] w-full bg-black overflow-hidden group">
+      <div className="relative h-[65vh] md:h-[80vh] w-full bg-black overflow-hidden group">
         {/* Background Image */}
         <div className="absolute inset-0">
           <img src={backdrop} alt={data.title} className="w-full h-full object-cover" />
@@ -282,13 +277,13 @@ const Details: React.FC = () => {
         <div className="absolute inset-0 bg-gradient-to-r from-black via-black/30 to-transparent" />
         
         <div className="absolute bottom-0 left-0 w-full px-4 md:px-12 pb-8 md:pb-12 flex flex-col md:flex-row items-end gap-8">
-            <div className="flex-1 w-full">
+            <div className="flex-1 w-full pt-20 md:pt-0"> {/* Added padding top for mobile safeguard */}
                 
                 {logoPath ? (
                    <img 
                      src={`${IMAGE_BASE_URL}/w500${logoPath}`} 
                      alt={data.title} 
-                     className="w-2/3 md:w-1/2 max-w-[400px] max-h-[150px] object-contain mb-6 origin-left transition-transform duration-700 drop-shadow-2xl"
+                     className="w-3/4 md:w-1/2 max-w-[400px] max-h-[150px] object-contain mb-6 origin-left transition-transform duration-700 drop-shadow-2xl"
                    />
                 ) : (
                    <h1 className="text-3xl md:text-5xl lg:text-6xl font-extrabold mb-2 text-white leading-tight">{data.title || data.name}</h1>
@@ -296,7 +291,7 @@ const Details: React.FC = () => {
 
                 {data.tagline && <p className="text-gray-300 italic mb-3 md:mb-4 text-sm md:text-lg">{data.tagline}</p>}
                 
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs md:text-sm font-medium text-gray-300 mb-6">
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs md:text-sm font-medium text-gray-300 mb-6 cursor-default">
                     <span className="text-green-400 flex items-center"><Star className="w-3 h-3 md:w-4 md:h-4 mr-1 fill-current"/> {data.vote_average.toFixed(1)} Match</span>
                     <span>{year}</span>
                     {runtime && <span>{runtime}</span>}
@@ -329,7 +324,7 @@ const Details: React.FC = () => {
                     </button>
                 </div>
 
-                <p className="hidden md:block text-gray-200 text-base md:text-lg leading-relaxed max-w-2xl">{data.overview}</p>
+                <p className="hidden md:block text-gray-200 text-base md:text-lg leading-relaxed max-w-2xl cursor-default">{data.overview}</p>
             </div>
         </div>
       </div>
@@ -339,15 +334,15 @@ const Details: React.FC = () => {
             
             {/* Mobile Only Overview */}
             <div className="md:hidden mb-8">
-               <h3 className="text-lg font-bold mb-2">Synopsis</h3>
-               <p className="text-gray-300 text-sm leading-relaxed">{data.overview}</p>
+               <h3 className="text-lg font-bold mb-2 cursor-default">Synopsis</h3>
+               <p className="text-gray-300 text-sm leading-relaxed cursor-default">{data.overview}</p>
             </div>
 
             {/* Episodes Section */}
             {type === 'tv' && (
                 <div className="mb-12">
                      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
-                        <h3 className="text-xl md:text-2xl font-bold text-primary">Episodes</h3>
+                        <h3 className="text-xl md:text-2xl font-bold text-primary cursor-default">Episodes</h3>
                         <div className="relative w-full sm:w-auto">
                             <select 
                                 value={selectedSeasonNumber}
@@ -385,9 +380,9 @@ const Details: React.FC = () => {
                                      <div className="flex-1 flex flex-col justify-center">
                                          <div className="flex justify-between items-baseline mb-2">
                                              <h4 className="font-bold text-base md:text-lg text-primary">{ep.episode_number}. {ep.name}</h4>
-                                             <span className="text-xs md:text-sm text-secondary">{ep.runtime ? `${ep.runtime}m` : ''}</span>
+                                             <span className="text-xs md:text-sm text-secondary cursor-default">{ep.runtime ? `${ep.runtime}m` : ''}</span>
                                          </div>
-                                         <p className="text-secondary text-xs md:text-sm line-clamp-2 md:line-clamp-3 leading-relaxed">
+                                         <p className="text-secondary text-xs md:text-sm line-clamp-2 md:line-clamp-3 leading-relaxed cursor-default">
                                              {ep.overview || "No description available for this episode."}
                                          </p>
                                      </div>
@@ -404,14 +399,9 @@ const Details: React.FC = () => {
                 </div>
             )}
 
-            {/* Collection Section */}
-            {data.belongs_to_collection && collectionParts.length > 0 && (
-                 <ContentRow title={`Collection: ${data.belongs_to_collection.name}`} items={collectionParts} />
-            )}
-
             {/* Cast Section */}
             <div className="mb-10">
-              <h2 className="text-lg md:text-2xl font-bold text-primary mb-4 flex items-center">
+              <h2 className="text-lg md:text-2xl font-bold text-primary mb-4 flex items-center cursor-default">
                 <span className="w-1 h-5 md:h-6 bg-brand-primary mr-3 rounded-full"></span>
                 Top Cast
               </h2>
@@ -426,7 +416,7 @@ const Details: React.FC = () => {
                               )}
                           </div>
                           <p className="text-sm font-bold text-primary truncate group-hover:text-brand-primary transition-colors">{person.name}</p>
-                          <p className="text-xs text-secondary truncate">{person.character}</p>
+                          <p className="text-xs text-secondary truncate cursor-default">{person.character}</p>
                       </Link>
                   ))}
               </div>
@@ -435,7 +425,7 @@ const Details: React.FC = () => {
             {/* Official Trailer Section */}
             {trailerKey && (
                 <div className="mb-10 md:mb-12">
-                    <h2 className="text-lg md:text-2xl font-bold text-primary mb-4 flex items-center">
+                    <h2 className="text-lg md:text-2xl font-bold text-primary mb-4 flex items-center cursor-default">
                         <span className="w-1 h-5 md:h-6 bg-brand-primary mr-3 rounded-full"></span>
                         Official Trailer
                     </h2>
@@ -457,7 +447,7 @@ const Details: React.FC = () => {
             {/* Trailers & Extras Section */}
             {videos.length > 0 && (
                 <div className="mb-8">
-                    <h2 className="text-lg md:text-2xl font-bold text-primary mb-4 flex items-center">
+                    <h2 className="text-lg md:text-2xl font-bold text-primary mb-4 flex items-center cursor-default">
                         <span className="w-1 h-5 md:h-6 bg-brand-primary mr-3 rounded-full"></span>
                         Trailers & Extras
                     </h2>
@@ -477,7 +467,7 @@ const Details: React.FC = () => {
                                     <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/0 transition">
                                         <PlayCircle className="w-10 h-10 text-white fill-black/50 group-hover:scale-125 transition-transform duration-300" />
                                     </div>
-                                    <div className="absolute bottom-2 right-2 bg-black/80 text-white text-[10px] px-2 py-0.5 rounded uppercase font-bold tracking-wider">
+                                    <div className="absolute bottom-2 right-2 bg-black/80 text-white text-[10px] px-2 py-0.5 rounded uppercase font-bold tracking-wider cursor-default">
                                         {video.type}
                                     </div>
                                 </div>
@@ -487,33 +477,28 @@ const Details: React.FC = () => {
                     </div>
                 </div>
             )}
-
-            {/* More from Leading Actor */}
-            {moreFromActor.length > 0 && (
-                <ContentRow title={`More from ${actorName}`} items={moreFromActor} />
-            )}
-
-            {/* More from Creator */}
-            {moreFromCreator.length > 0 && (
-                <ContentRow title={`More from ${creatorName}`} items={moreFromCreator} />
-            )}
-
          </div>
 
          {/* Right Sidebar Metadata */}
          <div className="space-y-6 text-sm text-secondary h-fit md:sticky md:top-24">
              <div>
-                 <span className="block text-secondary mb-2 font-bold uppercase tracking-wider text-xs">Genres</span>
+                 <span className="block text-secondary mb-2 font-bold uppercase tracking-wider text-xs cursor-default">Genres</span>
                  <div className="flex flex-wrap gap-2">
                      {data.genres.map(g => (
-                         <span key={g.id} className="text-primary bg-surface px-2 py-1 rounded text-xs hover:bg-white/10 cursor-pointer transition">{g.name}</span>
+                         // Make genres clickable linking to browse
+                         <Link 
+                            key={g.id} 
+                            to={`/${type === 'movie' ? 'movies' : 'tv'}?genre=${g.id}`}
+                            className="text-primary bg-surface px-2 py-1 rounded text-xs hover:bg-brand-primary hover:text-white cursor-pointer transition"
+                         >
+                            {g.name}
+                         </Link>
                      ))}
                  </div>
              </div>
              
-             {/* Updated Created By / Directed By Section */}
              <div>
-                <span className="block text-secondary mb-1 font-bold uppercase tracking-wider text-xs">
+                <span className="block text-secondary mb-1 font-bold uppercase tracking-wider text-xs cursor-default">
                     {type === 'movie' ? 'Directed By' : 'Created By'}
                 </span>
                 <div className="flex flex-wrap gap-2">
@@ -527,21 +512,38 @@ const Details: React.FC = () => {
                              </React.Fragment>
                         ))
                     ) : (
-                        <span className="text-primary">Unknown</span>
+                        <span className="text-primary cursor-default">Unknown</span>
                     )}
                 </div>
              </div>
 
              <div>
-                <span className="block text-secondary mb-1 font-bold uppercase tracking-wider text-xs">Original Language</span>
-                <span className="text-primary uppercase">English</span>
+                <span className="block text-secondary mb-1 font-bold uppercase tracking-wider text-xs cursor-default">Original Language</span>
+                <span className="text-primary uppercase cursor-default">English</span>
              </div>
              <div>
-                <span className="block text-secondary mb-1 font-bold uppercase tracking-wider text-xs">Status</span>
-                <span className="text-primary uppercase">Released</span>
+                <span className="block text-secondary mb-1 font-bold uppercase tracking-wider text-xs cursor-default">Status</span>
+                <span className="text-primary uppercase cursor-default">Released</span>
              </div>
          </div>
       </div>
+
+      {/* Stacked Row Content (Moved from main grid to full width bottom) */}
+      
+      {/* Collection Section */}
+      {data.belongs_to_collection && collectionParts.length > 0 && (
+            <ContentRow title={`Collection: ${data.belongs_to_collection.name}`} items={collectionParts} />
+      )}
+
+      {/* More from Leading Actor */}
+      {moreFromActor.length > 0 && (
+          <ContentRow title={`More from ${actorName}`} items={moreFromActor} />
+      )}
+
+      {/* More from Creator */}
+      {moreFromCreator.length > 0 && (
+          <ContentRow title={`More from ${creatorName}`} items={moreFromCreator} />
+      )}
 
       {/* Full Width More Like This Section */}
       {data.similar && data.similar.results.length > 0 && (
@@ -581,7 +583,7 @@ const DetailsSkeleton = () => {
             <div className="h-20 w-full bg-black/50 fixed top-0 z-50"></div>
             
             {/* Hero Skeleton */}
-            <div className="relative h-[55vh] md:h-[70vh] w-full bg-surface animate-pulse overflow-hidden">
+            <div className="relative h-[65vh] md:h-[80vh] w-full bg-surface animate-pulse overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
                 <div className="absolute bottom-0 left-0 w-full px-4 md:px-12 pb-12">
                     <div className="h-10 md:h-16 w-2/3 md:w-1/3 bg-white/10 rounded mb-4"></div>
