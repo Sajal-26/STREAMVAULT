@@ -21,10 +21,6 @@ const Watch: React.FC = () => {
         detailsRef.current = details;
         
         // Initial add (without progress) only if not already present with progress
-        // We defer this logic to the backend/context usually, but here we just ensure we have the metadata ready.
-        // We'll trigger the first save when we get the first time update or if we unmount.
-        
-        // However, to show it immediately in "Continue Watching" even if they watch 0 seconds:
         addToContinueWatching({
           mediaId: parseInt(id),
           mediaType: type as 'movie' | 'tv',
@@ -36,7 +32,8 @@ const Watch: React.FC = () => {
           episode: episode ? parseInt(episode) : undefined,
           watchedAt: Date.now(),
           progress: 0,
-          watchedDuration: 0
+          watchedDuration: 0,
+          totalDuration: 0
         });
       } catch (error) {
         console.error("Failed to fetch details", error);
@@ -97,7 +94,8 @@ const Watch: React.FC = () => {
                           episode: episode ? parseInt(episode) : undefined,
                           watchedAt: Date.now(),
                           progress: progressPercent,
-                          watchedDuration: currentTime
+                          watchedDuration: currentTime,
+                          totalDuration: duration
                       });
                   }
               }

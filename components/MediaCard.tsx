@@ -33,8 +33,10 @@ const MediaCard: React.FC<MediaCardProps> = ({ item, onRemove }) => {
     if (mediaType === 'movie') {
         navigate(`/watch/movie/${item.id}`);
     } else {
-        // Default to S1 E1
-        navigate(`/watch/tv/${item.id}/1/1`);
+        // If continue watching data exists, use it, otherwise default to S1 E1
+        const s = item.season || 1;
+        const e = item.episode || 1;
+        navigate(`/watch/tv/${item.id}/${s}/${e}`);
     }
   };
 
@@ -44,17 +46,38 @@ const MediaCard: React.FC<MediaCardProps> = ({ item, onRemove }) => {
       if (onRemove) onRemove(item.id);
   };
 
-  const formatWatchedTime = (seconds: number) => {
-      if (!seconds) return '';
-      const mins = Math.floor(seconds / 60);
-      if (mins < 1) return '< 1 min';
-      return `${mins} min${mins !== 1 ? 's' : ''}`;
+  const formatRemainingTime = () => {
+      // If we have totalDuration, use it.
+      // If not (legacy data), try to estimate from progress (less accurate but fallback)
+      let total = item.totalDuration;
+      if (!total && item.progress && item.progress > 0 && item.watchedDuration) {
+          total = item.watchedDuration / (item.progress / 100);
+      }
+  
+      if (!total || !item.watchedDuration) return '';
+      
+      const remainingSeconds = total - item.watchedDuration;
+      const minutesLeft = Math.ceil(remainingSeconds / 60);
+  
+      if (minutesLeft <= 0) return 'Finished';
+      
+      if (minutesLeft < 60) {
+          return `${minutesLeft} min left`;
+      }
+      
+      const hrs = Math.floor(minutesLeft / 60);
+      const mins = minutesLeft % 60;
+      
+      if (mins === 0) return `${hrs} hr left`;
+      return `${hrs} hr ${mins} min left`;
   };
 
   // Determine link target
   let linkTarget = `/details/${mediaType}/${item.id}`;
   if (isPerson) linkTarget = `/person/${item.id}`;
   if (isCollection) linkTarget = `/collection/${item.id}`;
+
+  const remainingTimeText = formatRemainingTime();
 
   return (
     <div className="group/card relative block w-full aspect-[2/3] rounded-md bg-surface transition-all duration-300 hover:scale-110 hover:z-20 hover:shadow-[0_0_20px_rgba(0,0,0,0.5)] cursor-pointer ring-1 ring-white/5 hover:ring-white/20">
@@ -79,8 +102,13 @@ const MediaCard: React.FC<MediaCardProps> = ({ item, onRemove }) => {
       {/* Progress Bar (Visible Always if progress exists) */}
       {(item.progress !== undefined && item.progress > 0) && (
           <div className="absolute bottom-0 left-0 right-0 z-20 bg-black/80 backdrop-blur-sm px-2 py-1.5 rounded-b-md">
-              <div className="flex items-center justify-between text-[11px] text-gray-200 mb-1 font-semibold">
-                 <span>{formatWatchedTime(item.watchedDuration || 0)}</span>
+              <div className="flex items-center justify-between text-[10px] text-gray-200 mb-1 font-semibold">
+                 {item.season && item.episode ? (
+                     <span className="text-brand-primary">S{item.season} E{item.episode}</span>
+                 ) : (
+                     <span>Wait...</span>
+                 )}
+                 <span>{remainingTimeText}</span>
               </div>
               <div className="w-full h-1 bg-gray-600 rounded-full overflow-hidden">
                   <div 
@@ -119,7 +147,7 @@ const MediaCard: React.FC<MediaCardProps> = ({ item, onRemove }) => {
                     onClick={handlePlay}
                     className="flex-1 flex items-center justify-center bg-white text-black py-2 rounded font-bold text-xs hover:bg-gray-200 transition-colors shadow-lg"
                 >
-                    <Play className="w-3 h-3 mr-1 fill-black" /> Watch
+                    <Play className="w-3 h-3 mr-1 fill-black" /> {item.progress ? 'Resume' : 'Watch'}
                 </button>
             )}
             

@@ -14,6 +14,7 @@ export interface ContinueWatchingItem extends WatchlistItem {
   watchedAt: number;
   progress?: number; // Percentage (0-100)
   watchedDuration?: number; // Seconds watched
+  totalDuration?: number; // Total duration in seconds
 }
 
 export interface LikedItem extends WatchlistItem {
@@ -38,6 +39,9 @@ export interface MediaItem {
   job?: string; // For crew credits
   progress?: number; // Optional progress for UI
   watchedDuration?: number; // Optional duration for UI
+  totalDuration?: number; // Optional total duration for UI
+  season?: number; // Optional season for Continue Watching context
+  episode?: number; // Optional episode for Continue Watching context
 }
 
 export interface Episode {

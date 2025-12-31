@@ -105,7 +105,10 @@ const Home: React.FC = () => {
     release_date: item.releaseDate,
     first_air_date: item.releaseDate,
     progress: item.progress,
-    watchedDuration: item.watchedDuration
+    watchedDuration: item.watchedDuration,
+    totalDuration: item.totalDuration,
+    season: item.season,
+    episode: item.episode
   }));
 
   if (initialLoading) {
