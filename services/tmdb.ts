@@ -2,18 +2,21 @@ import { TMDB_API_KEY, TMDB_BASE_URL } from '../constants';
 import { MediaItem, MediaDetails, Genre, SeasonDetails, PersonDetails } from '../types';
 
 // PROXY CONFIGURATION
-// We rotate through these if one fails or times out.
-// 'raw' endpoints are preferred to avoid JSON parsing issues.
+// Strategy: Try Direct Access first. If that fails (CORS/Network), rotate through proxies.
 const PROXY_GENERATORS = [
-    // Primary: Very reliable, good for bypassing blocks (Slower but works)
-    (url: string) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-    // Secondary: Usually fastest, but often blocks cloud IPs (403)
+    // 1. Direct Access (Best performance, works if no CORS/Network blocks)
+    (url: string) => url,
+    // 2. CorsProxy.io (Fast, reliable)
     (url: string) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
-    // Tertiary: Backup
+    // 3. AllOrigins (Reliable backup)
+    (url: string) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+    // 4. CodeTabs (Backup)
+    (url: string) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+    // 5. ThingProxy (Last resort)
     (url: string) => `https://thingproxy.freeboard.io/fetch/${url}`,
 ];
 
-// Helper: Fetch with a robust timeout to prevent mobile hanging but allow for slow networks
+// Helper: Fetch with a robust timeout
 const fetchWithTimeout = async (url: string, timeoutMs: number = 15000): Promise<Response> => {
     const controller = new AbortController();
     const id = setTimeout(() => controller.abort(), timeoutMs);
@@ -39,38 +42,37 @@ const fetchFromTMDB = async <T>(endpoint: string, params: Record<string, string>
   
   let lastError: any;
 
-  // Attempt Loop: Try proxies in order
+  // Attempt Loop: Try Direct -> Proxies
   for (const generateProxyUrl of PROXY_GENERATORS) {
-      const proxyUrl = generateProxyUrl(targetUrl);
+      const isDirect = generateProxyUrl(targetUrl) === targetUrl;
+      const fetchUrl = generateProxyUrl(targetUrl);
       
       try {
-          // 15s timeout: Mobile networks can be slow. 
-          const response = await fetchWithTimeout(proxyUrl, 15000); 
+          // Use a shorter timeout for direct to fail fast if blocked, longer for proxies
+          const timeout = isDirect ? 10000 : 20000;
+          const response = await fetchWithTimeout(fetchUrl, timeout); 
           
           if (!response.ok) {
-              // 404 is a real error (not found), 401 is bad key. Return immediately.
+              // 404/401 are logical errors, not network/proxy errors. Stop trying.
               if (response.status === 404) throw new Error('Resource not found (404)');
               if (response.status === 401) throw new Error('TMDB API Key is invalid.');
               
-              // 403 (Forbidden) usually means the Proxy blocked us.
-              // 429 (Too Many Requests) means rate limit.
-              // 5xx means proxy server error.
-              // In all these cases, we try the next proxy.
-              console.warn(`Proxy ${proxyUrl} failed with status ${response.status}`);
+              // If it's a 403/429/500, it might be a block or temporary issue.
+              // If Direct failed with 403 (often CORS/WAF), we proceed to proxy.
+              console.warn(`${isDirect ? 'Direct' : 'Proxy'} attempt failed: ${response.status}`);
               continue; 
           }
           
           return await response.json();
 
       } catch (error: any) {
-          // Timeout or Network Error (TypeError: Failed to fetch) -> Try next proxy
-          console.warn(`Proxy ${proxyUrl} failed:`, error.message);
+          console.warn(`${isDirect ? 'Direct' : 'Proxy'} attempt error:`, error.message);
           lastError = error;
       }
   }
 
-  console.error(`All proxies failed for URL: ${targetUrl}`, lastError);
-  throw lastError || new Error('Failed to fetch data from TMDB via any proxy.');
+  console.error(`All fetch attempts failed for URL: ${targetUrl}`, lastError);
+  throw lastError || new Error('Failed to fetch data from TMDB.');
 };
 
 export const tmdbService = {

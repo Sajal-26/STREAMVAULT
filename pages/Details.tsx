@@ -342,6 +342,26 @@ const Details: React.FC = () => {
               </div>
             </div>
 
+            {/* Official Trailer Section - NEW */}
+            {trailerKey && (
+                <div className="mb-10 md:mb-12">
+                    <h2 className="text-lg md:text-2xl font-bold text-primary mb-4 flex items-center">
+                        <span className="w-1 h-5 md:h-6 bg-brand-primary mr-3 rounded-full"></span>
+                        Official Trailer
+                    </h2>
+                    <div className="relative w-full aspect-video bg-black rounded-xl overflow-hidden shadow-[0_0_30px_rgba(0,0,0,0.5)] ring-1 ring-white/10">
+                         <iframe 
+                            src={`https://www.youtube.com/embed/${trailerKey}?rel=0&showinfo=0&autoplay=0&modestbranding=1`}
+                            title="Official Trailer"
+                            className="absolute inset-0 w-full h-full"
+                            allowFullScreen
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            loading="lazy"
+                         ></iframe>
+                    </div>
+                </div>
+            )}
+
             {/* Trailers & Extras Section */}
             {videos.length > 0 && (
                 <div className="mb-8">
