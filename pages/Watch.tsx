@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 const Watch: React.FC = () => {
   const { type, id, season, episode } = useParams();
   const navigate = useNavigate();
+  const { accentColor } = useAuth();
   const [showUI, setShowUI] = useState(true);
 
   // Auto-hide UI (Back button) after inactivity
@@ -27,7 +29,7 @@ const Watch: React.FC = () => {
 
   // Construct Player URL
   const baseUrl = "https://player.videasy.net";
-  const color = "E50914"; // Brand Red
+  const color = accentColor.replace('#', '');
   const commonParams = `?color=${color}&overlay=true&autoplayNextEpisode=true&episodeSelector=true`;
 
   let src = "";

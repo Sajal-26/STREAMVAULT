@@ -258,6 +258,29 @@ const Details: React.FC = () => {
                      </div>
                 </div>
             )}
+
+            {/* Cast Section Moved Here */}
+            <div className="mb-8">
+              <h2 className="text-lg md:text-2xl font-bold text-primary mb-4 flex items-center">
+                <span className="w-1 h-5 md:h-6 bg-brand-primary mr-3 rounded-full"></span>
+                Top Cast
+              </h2>
+              <div className="flex space-x-4 overflow-x-auto hide-scrollbar pb-4 scroll-smooth">
+                  {data.credits?.cast.slice(0, 15).map(person => (
+                      <Link to={`/person/${person.id}`} key={person.id} className="group min-w-[100px] w-[100px] sm:min-w-[120px] sm:w-[120px] text-center flex-shrink-0">
+                          <div className="w-full aspect-square rounded-full overflow-hidden mb-3 bg-surface border-2 border-transparent group-hover:border-brand-primary transition-all duration-300">
+                              {person.profile_path ? (
+                                  <img src={`${IMAGE_BASE_URL}/w185${person.profile_path}`} alt={person.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                              ) : (
+                                  <div className="w-full h-full bg-gray-800 flex items-center justify-center text-xs">N/A</div>
+                              )}
+                          </div>
+                          <p className="text-sm font-bold text-primary truncate group-hover:text-brand-primary transition-colors">{person.name}</p>
+                          <p className="text-xs text-secondary truncate">{person.character}</p>
+                      </Link>
+                  ))}
+              </div>
+            </div>
          </div>
 
          {/* Right Sidebar Metadata */}
@@ -283,29 +306,6 @@ const Details: React.FC = () => {
                 <span className="text-primary uppercase">Released</span>
              </div>
          </div>
-      </div>
-
-      {/* Full Width Cast Section */}
-      <div className="px-4 md:px-12 mb-12">
-        <h2 className="text-lg md:text-2xl font-bold text-primary mb-4 flex items-center">
-          <span className="w-1 h-5 md:h-6 bg-brand-primary mr-3 rounded-full"></span>
-          Top Cast
-        </h2>
-        <div className="flex space-x-4 overflow-x-auto hide-scrollbar pb-4 scroll-smooth">
-            {data.credits?.cast.slice(0, 15).map(person => (
-                <Link to={`/person/${person.id}`} key={person.id} className="group min-w-[100px] w-[100px] sm:min-w-[120px] sm:w-[120px] text-center flex-shrink-0">
-                    <div className="w-full aspect-square rounded-full overflow-hidden mb-3 bg-surface border-2 border-transparent group-hover:border-brand-primary transition-all duration-300">
-                        {person.profile_path ? (
-                            <img src={`${IMAGE_BASE_URL}/w185${person.profile_path}`} alt={person.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-                        ) : (
-                            <div className="w-full h-full bg-gray-800 flex items-center justify-center text-xs">N/A</div>
-                        )}
-                    </div>
-                    <p className="text-sm font-bold text-primary truncate group-hover:text-brand-primary transition-colors">{person.name}</p>
-                    <p className="text-xs text-secondary truncate">{person.character}</p>
-                </Link>
-            ))}
-        </div>
       </div>
 
       {/* Full Width More Like This Section */}

@@ -10,6 +10,9 @@ const COLORS = [
   { name: 'Purple', value: '#9333ea' },
   { name: 'Green', value: '#16a34a' },
   { name: 'Orange', value: '#ea580c' },
+  { name: 'Pink', value: '#ec4899' },
+  { name: 'Yellow', value: '#eab308' },
+  { name: 'Cyan', value: '#06b6d4' },
 ];
 
 const Settings: React.FC = () => {
