@@ -10,8 +10,9 @@ const fetchFromTMDB = async <T>(endpoint: string, params: Record<string, string>
 
   const url = `${TMDB_BASE_URL}${endpoint}?${queryParams}`;
   
-  // Using corsproxy.io to bypass ISP blocks (e.g., in India)
-  const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(url)}`;
+  // Using api.allorigins.win/raw as a fallback proxy since corsproxy.io is often rate-limited/blocked by TMDB.
+  // This acts as a transparent proxy to bypass CORS/ISP blocks.
+  const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
 
   try {
     const response = await fetch(proxyUrl);
