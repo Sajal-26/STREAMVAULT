@@ -34,6 +34,7 @@ const Browse: React.FC<BrowseProps> = ({ type }) => {
   // Initial Data Load & Genre Change
   useEffect(() => {
     const fetchInitial = async () => {
+      setItems([]); // Clear stale data immediately to show skeleton
       setLoading(true);
       setPage(1);
       setHasMore(true);

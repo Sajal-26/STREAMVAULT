@@ -156,6 +156,7 @@ const Details: React.FC = () => {
   useEffect(() => {
     const fetchSeason = async () => {
         if (type === 'tv' && id && data && !error) {
+            setSeasonData(null); // Clear stale data immediately
             try {
                 const sData = await tmdbService.getSeasonDetails(parseInt(id), selectedSeasonNumber);
                 setSeasonData(sData);
