@@ -9,8 +9,35 @@ const Watch: React.FC = () => {
   const navigate = useNavigate();
   const { accentColor, addToContinueWatching } = useAuth();
   const [showUI, setShowUI] = useState(true);
+  const [playerUrl, setPlayerUrl] = useState<string>('');
+  
   const detailsRef = useRef<any>(null);
   const lastUpdateRef = useRef<number>(0);
+  
+  // Track current episode state locally to handle internal player navigation updates
+  const currentSeasonRef = useRef(season ? parseInt(season) : 1);
+  const currentEpisodeRef = useRef(episode ? parseInt(episode) : 1);
+
+  // Initialize Player URL
+  // IMPORTANT: We only run this when ID or Type changes. 
+  // We do NOT run this when season/episode changes in the URL, otherwise the iframe reloads 
+  // and interrupts playback when we try to sync the URL with the player.
+  useEffect(() => {
+      const baseUrl = "https://player.videasy.net";
+      const color = accentColor.replace('#', '');
+      const commonParams = `?color=${color}&overlay=true&autoplayNextEpisode=true&episodeSelector=true&autoplay=true`;
+
+      let src = "";
+      if (type === 'movie') {
+          src = `${baseUrl}/movie/${id}${commonParams}`;
+      } else if (type === 'tv') {
+          // Use initial params or default to 1
+          const s = season || 1;
+          const e = episode || 1;
+          src = `${baseUrl}/tv/${id}/${s}/${e}${commonParams}&nextEpisode=true`;
+      }
+      setPlayerUrl(src);
+  }, [type, id, accentColor]); // Intentionally exclude season/episode
 
   // Fetch initial details needed for Continue Watching entry
   useEffect(() => {
@@ -20,7 +47,7 @@ const Watch: React.FC = () => {
         const details = await tmdbService.getDetails(type as 'movie' | 'tv', parseInt(id));
         detailsRef.current = details;
         
-        // Initial add (without progress) only if not already present with progress
+        // Initial add (without progress) only if not already present
         addToContinueWatching({
           mediaId: parseInt(id),
           mediaType: type as 'movie' | 'tv',
@@ -28,8 +55,8 @@ const Watch: React.FC = () => {
           posterPath: details.poster_path,
           voteAverage: details.vote_average,
           releaseDate: details.release_date || details.first_air_date,
-          season: season ? parseInt(season) : undefined,
-          episode: episode ? parseInt(episode) : undefined,
+          season: currentSeasonRef.current,
+          episode: currentEpisodeRef.current,
           watchedAt: Date.now(),
           progress: 0,
           watchedDuration: 0,
@@ -40,7 +67,7 @@ const Watch: React.FC = () => {
       }
     };
     fetchDetails();
-  }, [id, type, season, episode]); 
+  }, [id, type]); 
 
   // Listen for progress messages from Videasy
   useEffect(() => {
@@ -48,31 +75,40 @@ const Watch: React.FC = () => {
           try {
               let data = event.data;
               
-              // Handle stringified JSON (common in postMessage)
               if (typeof data === "string") {
                   try {
                       data = JSON.parse(data);
-                  } catch (e) {
-                      // If it's just a regular string message, ignore
-                      return;
-                  }
+                  } catch (e) { return; }
               }
 
               if (!data) return;
 
-              // Sometimes players wrap the payload in a 'data' or 'payload' property
               const payload = data.data || data.payload || data;
 
-              // normalize keys
+              // 1. Detect Episode Change (If supported by player)
+              // Some players send metadata in the payload
+              if (type === 'tv' && payload.season && payload.episode) {
+                   const newSeason = parseInt(payload.season);
+                   const newEpisode = parseInt(payload.episode);
+
+                   if (newSeason !== currentSeasonRef.current || newEpisode !== currentEpisodeRef.current) {
+                       currentSeasonRef.current = newSeason;
+                       currentEpisodeRef.current = newEpisode;
+                       
+                       // Silently update URL without triggering React Router navigation (which would reload iframe)
+                       const newPath = `/watch/tv/${id}/${newSeason}/${newEpisode}`;
+                       window.history.replaceState(null, '', '#' + newPath);
+                   }
+              }
+
+              // 2. Handle Progress
               const currentTime = payload.currentTime ?? payload.time ?? payload.position;
               const duration = payload.duration ?? payload.total ?? payload.length ?? payload.videoLength;
 
-              // Check if valid numbers
               if (typeof currentTime === 'number' && typeof duration === 'number' && duration > 0) {
                   const now = Date.now();
                   
-                  // Throttle updates: Save max once every 2 seconds
-                  // Also allow update if it's the very first progress (>0) we see
+                  // Throttle updates
                   const isFirstProgress = lastUpdateRef.current === 0 && currentTime > 0;
                   if (!isFirstProgress && (now - lastUpdateRef.current < 2000)) {
                       return;
@@ -90,8 +126,8 @@ const Watch: React.FC = () => {
                           posterPath: detailsRef.current.poster_path,
                           voteAverage: detailsRef.current.vote_average,
                           releaseDate: detailsRef.current.release_date || detailsRef.current.first_air_date,
-                          season: season ? parseInt(season) : undefined,
-                          episode: episode ? parseInt(episode) : undefined,
+                          season: currentSeasonRef.current,
+                          episode: currentEpisodeRef.current,
                           watchedAt: Date.now(),
                           progress: progressPercent,
                           watchedDuration: currentTime,
@@ -106,9 +142,9 @@ const Watch: React.FC = () => {
 
       window.addEventListener('message', handleMessage);
       return () => window.removeEventListener('message', handleMessage);
-  }, [id, type, season, episode, addToContinueWatching]);
+  }, [id, type, addToContinueWatching]);
 
-  // Auto-hide UI (Back button) after inactivity
+  // Auto-hide UI
   useEffect(() => {
     let timeout: ReturnType<typeof setTimeout>;
     const handleMouseMove = () => {
@@ -126,27 +162,18 @@ const Watch: React.FC = () => {
     };
   }, []);
 
-  // Construct Player URL
-  const baseUrl = "https://player.videasy.net";
-  const color = accentColor.replace('#', '');
-  // Added origin to help with potential CORS/Message issues
-  const commonParams = `?color=${color}&overlay=true&autoplayNextEpisode=true&episodeSelector=true&autoplay=true`;
-
-  let src = "";
-  if (type === 'movie') {
-      src = `${baseUrl}/movie/${id}${commonParams}`;
-  } else if (type === 'tv') {
-      const s = season || 1;
-      const e = episode || 1;
-      src = `${baseUrl}/tv/${id}/${s}/${e}${commonParams}&nextEpisode=true`;
-  }
+  const handleBack = () => {
+      // Navigate explicitly to details page instead of using -1 (history.back)
+      // This ensures we land on a useful page even if the history stack is messy
+      navigate(`/details/${type}/${id}`);
+  };
 
   return (
     <div className="fixed inset-0 z-[100] bg-black overflow-hidden">
       {/* Back Button */}
       <div className={`absolute top-0 left-0 w-full p-4 z-50 transition-opacity duration-300 ${showUI ? 'opacity-100' : 'opacity-0'}`}>
         <button
-          onClick={() => navigate(-1)}
+          onClick={handleBack}
           className="flex items-center justify-center w-12 h-12 rounded-full bg-black/50 hover:bg-black/80 text-white backdrop-blur-sm transition-all transform hover:scale-110"
         >
           <ArrowLeft className="w-6 h-6" />
@@ -154,13 +181,15 @@ const Watch: React.FC = () => {
       </div>
 
       {/* Video Player */}
-      <iframe
-        src={src}
-        className="w-full h-full border-0"
-        allowFullScreen
-        allow="encrypted-media; autoplay; picture-in-picture"
-        title="StreamVault Player"
-      />
+      {playerUrl && (
+          <iframe
+            src={playerUrl}
+            className="w-full h-full border-0"
+            allowFullScreen
+            allow="encrypted-media; autoplay; picture-in-picture"
+            title="StreamVault Player"
+          />
+      )}
     </div>
   );
 };
