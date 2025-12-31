@@ -4,7 +4,7 @@ import { Play, Plus, Star, ThumbsUp, ChevronDown, Check, X, PlayCircle } from 'l
 import { tmdbService } from '../services/tmdb';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { MediaDetails, SeasonDetails } from '../types';
+import { MediaDetails, SeasonDetails, MediaItem } from '../types';
 import { IMAGE_BASE_URL } from '../constants';
 import ContentRow from '../components/ContentRow';
 import Navbar from '../components/Navbar';
@@ -21,6 +21,13 @@ const Details: React.FC = () => {
   const [data, setData] = useState<MediaDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+
+  // Extra Data States
+  const [collectionParts, setCollectionParts] = useState<MediaItem[]>([]);
+  const [moreFromActor, setMoreFromActor] = useState<MediaItem[]>([]);
+  const [moreFromCreator, setMoreFromCreator] = useState<MediaItem[]>([]);
+  const [actorName, setActorName] = useState("");
+  const [creatorName, setCreatorName] = useState("");
 
   // TV Specific State
   const [selectedSeasonNumber, setSelectedSeasonNumber] = useState(1);
@@ -43,6 +50,11 @@ const Details: React.FC = () => {
     if (!type || !id) return;
     setLoading(true);
     setError(false);
+    // Reset extra states on id change
+    setCollectionParts([]);
+    setMoreFromActor([]);
+    setMoreFromCreator([]);
+
     try {
       const res = await tmdbService.getDetails(type, parseInt(id));
       setData(res);
@@ -73,13 +85,85 @@ const Details: React.FC = () => {
     window.scrollTo(0,0);
   }, [type, id]);
 
+  // Fetch Extras (Collection, Actor, Creator) once main data is loaded
+  useEffect(() => {
+      if (!data) return;
+
+      const fetchExtras = async () => {
+          // 1. Collection
+          if (data.belongs_to_collection) {
+              try {
+                  const colRes = await tmdbService.getCollectionDetails(data.belongs_to_collection.id);
+                  // Sort by release date to show in order
+                  const sortedParts = colRes.parts.sort((a, b) => {
+                      if (!a.release_date) return 1;
+                      if (!b.release_date) return -1;
+                      return new Date(a.release_date).getTime() - new Date(b.release_date).getTime();
+                  });
+                  setCollectionParts(sortedParts.map(p => ({...p, media_type: 'movie'})));
+              } catch (e) { console.error("Error fetching collection", e); }
+          }
+
+          // 2. More from Top Actor
+          const topActor = data.credits?.cast?.[0];
+          if (topActor) {
+              setActorName(topActor.name);
+              try {
+                  const creditsRes = await tmdbService.getPersonCredits(topActor.id);
+                  // Filter out current item and sort by popularity
+                  const filtered = creditsRes.cast
+                      .filter(i => i.id !== data.id && i.poster_path)
+                      .sort((a, b) => (b.vote_average || 0) - (a.vote_average || 0))
+                      .slice(0, 15);
+                  setMoreFromActor(filtered);
+              } catch (e) { console.error("Error fetching actor credits", e); }
+          }
+
+          // 3. More from Creator/Director
+          let creatorId: number | null = null;
+          let cName = "";
+
+          if (type === 'movie') {
+              const director = data.credits?.crew?.find(c => c.job === 'Director');
+              if (director) {
+                  creatorId = director.id;
+                  cName = director.name;
+              }
+          } else if (type === 'tv' && data.created_by && data.created_by.length > 0) {
+              creatorId = data.created_by[0].id;
+              cName = data.created_by[0].name;
+          }
+
+          if (creatorId) {
+              setCreatorName(cName);
+              try {
+                  const creditsRes = await tmdbService.getPersonCredits(creatorId);
+                  // Combined credits (cast or crew? usually crew for director, but we want works they were involved in)
+                  // Let's use combined_credits (which the service calls) but maybe look at crew mostly? 
+                  // Actually combined is fine, allows seeing if they acted too. 
+                  // Let's prioritize items where they had a significant role? Simpler: Just sort by popularity/vote.
+                  const items = [...creditsRes.crew, ...creditsRes.cast];
+                  const unique = Array.from(new Map(items.map(item => [item.id, item])).values());
+                  
+                  const filtered = unique
+                      .filter(i => i.id !== data.id && i.poster_path)
+                      .sort((a, b) => (b.vote_average || 0) - (a.vote_average || 0))
+                      .slice(0, 15);
+
+                  setMoreFromCreator(filtered);
+              } catch (e) { console.error("Error fetching creator credits", e); }
+          }
+      };
+
+      fetchExtras();
+  }, [data]);
+
   useEffect(() => {
     const fetchSeason = async () => {
         if (type === 'tv' && id && data && !error) {
             try {
                 const sData = await tmdbService.getSeasonDetails(parseInt(id), selectedSeasonNumber);
                 setSeasonData(sData);
-                // Note: We are strictly using show-level videos, so we do not update videos/trailers based on season data here.
             } catch (err) {
                 console.error("Failed to fetch season", err);
             }
@@ -130,6 +214,11 @@ const Details: React.FC = () => {
 
   const isInWatchlist = watchlist.some(w => w.mediaId === data.id);
   const isLiked = likedItems.some(l => l.mediaId === data.id);
+
+  // Creator Logic for Metadata Side panel
+  const creators = type === 'tv' 
+    ? data.created_by 
+    : data.credits?.crew.filter(person => person.job === 'Director');
 
   const handleWatchlistToggle = () => {
       if (isInWatchlist) {
@@ -222,7 +311,6 @@ const Details: React.FC = () => {
                     >
                         <Play className="w-4 h-4 md:w-5 md:h-5 mr-2 fill-black" /> Play
                     </button>
-                    {/* Trailer Button Removed per request */}
                      <button 
                         onClick={handleWatchlistToggle}
                         className="flex items-center px-4 py-2 md:py-3 bg-gray-600/60 backdrop-blur text-white font-bold rounded hover:bg-gray-600 transition text-sm md:text-base border border-white/10"
@@ -316,6 +404,11 @@ const Details: React.FC = () => {
                 </div>
             )}
 
+            {/* Collection Section */}
+            {data.belongs_to_collection && collectionParts.length > 0 && (
+                 <ContentRow title={`Collection: ${data.belongs_to_collection.name}`} items={collectionParts} />
+            )}
+
             {/* Cast Section */}
             <div className="mb-10">
               <h2 className="text-lg md:text-2xl font-bold text-primary mb-4 flex items-center">
@@ -394,6 +487,17 @@ const Details: React.FC = () => {
                     </div>
                 </div>
             )}
+
+            {/* More from Leading Actor */}
+            {moreFromActor.length > 0 && (
+                <ContentRow title={`More from ${actorName}`} items={moreFromActor} />
+            )}
+
+            {/* More from Creator */}
+            {moreFromCreator.length > 0 && (
+                <ContentRow title={`More from ${creatorName}`} items={moreFromCreator} />
+            )}
+
          </div>
 
          {/* Right Sidebar Metadata */}
@@ -406,10 +510,28 @@ const Details: React.FC = () => {
                      ))}
                  </div>
              </div>
+             
+             {/* Updated Created By / Directed By Section */}
              <div>
-                <span className="block text-secondary mb-1 font-bold uppercase tracking-wider text-xs">Created By</span>
-                <span className="text-primary">StreamVault Originals</span>
+                <span className="block text-secondary mb-1 font-bold uppercase tracking-wider text-xs">
+                    {type === 'movie' ? 'Directed By' : 'Created By'}
+                </span>
+                <div className="flex flex-wrap gap-2">
+                    {creators && creators.length > 0 ? (
+                        creators.map((c, i) => (
+                             <React.Fragment key={c.id}>
+                                <Link to={`/person/${c.id}`} className="text-primary hover:text-brand-primary transition-colors hover:underline">
+                                    {c.name}
+                                </Link>
+                                {i < creators.length - 1 && <span className="text-secondary">, </span>}
+                             </React.Fragment>
+                        ))
+                    ) : (
+                        <span className="text-primary">Unknown</span>
+                    )}
+                </div>
              </div>
+
              <div>
                 <span className="block text-secondary mb-1 font-bold uppercase tracking-wider text-xs">Original Language</span>
                 <span className="text-primary uppercase">English</span>

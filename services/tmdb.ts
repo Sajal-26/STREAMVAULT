@@ -1,5 +1,5 @@
 import { TMDB_API_KEY, TMDB_BASE_URL } from '../constants';
-import { MediaItem, MediaDetails, Genre, SeasonDetails, PersonDetails } from '../types';
+import { MediaItem, MediaDetails, Genre, SeasonDetails, PersonDetails, CollectionDetails } from '../types';
 
 // PROXY CONFIGURATION
 // Strategy: Try Direct Access first. If that fails (CORS/Network), rotate through proxies.
@@ -105,6 +105,11 @@ export const tmdbService = {
     return fetchFromTMDB<{ results: MediaItem[] }>('/search/multi', { query });
   },
 
+  // Added: Search specifically for collections to merge into search results if needed
+  searchCollections: async (query: string) => {
+    return fetchFromTMDB<{ results: MediaItem[] }>('/search/collection', { query });
+  },
+
   getGenres: async (type: 'movie' | 'tv') => {
     return fetchFromTMDB<{ genres: Genre[] }>(`/genre/${type}/list`);
   },
@@ -129,5 +134,15 @@ export const tmdbService = {
       return fetchFromTMDB<PersonDetails>(`/person/${personId}`, {
           append_to_response: 'combined_credits'
       });
+  },
+
+  // Added: Fetch Collection Details
+  getCollectionDetails: async (collectionId: number) => {
+      return fetchFromTMDB<CollectionDetails>(`/collection/${collectionId}`);
+  },
+
+  // Added: Get combined credits for a person (for "More from X" section)
+  getPersonCredits: async (personId: number) => {
+      return fetchFromTMDB<{cast: MediaItem[], crew: MediaItem[]}>(`/person/${personId}/combined_credits`);
   }
 };

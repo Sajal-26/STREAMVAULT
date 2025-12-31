@@ -25,12 +25,13 @@ export interface MediaItem {
   title?: string;
   name?: string;
   poster_path: string | null;
+  profile_path?: string | null; // For People
   backdrop_path: string | null;
   overview: string;
   vote_average: number;
   release_date?: string;
   first_air_date?: string;
-  media_type: 'movie' | 'tv';
+  media_type: 'movie' | 'tv' | 'person' | 'collection';
   genre_ids?: number[];
   character?: string; // For cast credits
   job?: string; // For crew credits
@@ -69,6 +70,20 @@ export interface Image {
   iso_639_1: string | null;
 }
 
+export interface BelongsToCollection {
+  id: number;
+  name: string;
+  poster_path: string | null;
+  backdrop_path: string | null;
+}
+
+export interface CollectionDetails {
+  id: number;
+  name: string;
+  overview: string;
+  parts: MediaItem[];
+}
+
 export interface MediaDetails extends MediaItem {
   genres: { id: number; name: string }[];
   runtime?: number;
@@ -89,6 +104,8 @@ export interface MediaDetails extends MediaItem {
   similar?: {
     results: MediaItem[];
   };
+  created_by?: { id: number; name: string }[];
+  belongs_to_collection?: BelongsToCollection | null;
 }
 
 export interface PersonDetails {

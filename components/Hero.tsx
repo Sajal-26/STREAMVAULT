@@ -16,9 +16,14 @@ const Hero: React.FC<HeroProps> = ({ item }) => {
   useEffect(() => {
     const fetchHeroDetails = async () => {
       if (item) {
+        // Fix: Ensure we only fetch details for movies or tv shows.
+        // item.media_type can be 'person' or 'collection' which are not supported by getDetails.
+        const mediaType = item.media_type;
+        if (mediaType !== 'movie' && mediaType !== 'tv') return;
+
         try {
            // Fetch full details to get the logo
-           const res = await tmdbService.getDetails(item.media_type || 'movie', item.id);
+           const res = await tmdbService.getDetails(mediaType, item.id);
            
            // Find Logo (prefer English PNG)
            const logos = res.images?.logos || [];
@@ -43,10 +48,16 @@ const Hero: React.FC<HeroProps> = ({ item }) => {
       const type = item.media_type || 'movie';
       if (type === 'tv') {
           navigate(`/watch/tv/${item.id}/1/1`);
-      } else {
+      } else if (type === 'movie') {
           navigate(`/watch/movie/${item.id}`);
       }
+      // If person or collection, do nothing or handle gracefully (Hero shouldn't ideally be person)
   };
+
+  // Determine correct info link
+  const linkTarget = item.media_type === 'person' 
+     ? `/person/${item.id}`
+     : `/details/${item.media_type || 'movie'}/${item.id}`;
 
   return (
     <div className="relative h-[60vh] md:h-[85vh] w-full overflow-hidden group">
@@ -93,7 +104,7 @@ const Hero: React.FC<HeroProps> = ({ item }) => {
           </button>
           
           <Link 
-            to={`/details/${item.media_type || 'movie'}/${item.id}`}
+            to={linkTarget}
             className="flex items-center px-4 md:px-6 py-2 md:py-3 bg-gray-600/70 backdrop-blur-sm text-white rounded-md font-bold hover:bg-gray-600 transition transform hover:scale-105 text-sm md:text-base"
           >
             <Info className="w-4 h-4 md:w-5 md:h-5 mr-2" />
