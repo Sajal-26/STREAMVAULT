@@ -8,7 +8,8 @@ if (!rootElement) {
   throw new Error("Could not find root element to mount to");
 }
 
-// Register Service Worker for PWA
+// Service Worker temporarily disabled to prevent MIME type security errors on mobile
+/*
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js')
@@ -20,6 +21,7 @@ if ('serviceWorker' in navigator) {
       });
   });
 }
+*/
 
 const root = ReactDOM.createRoot(rootElement);
 root.render(

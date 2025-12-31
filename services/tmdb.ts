@@ -1,13 +1,32 @@
 import { TMDB_API_KEY, TMDB_BASE_URL } from '../constants';
 import { MediaItem, MediaDetails, Genre, SeasonDetails, PersonDetails } from '../types';
 
-// List of proxies to rotate through if one fails
+// PROXY CONFIGURATION
+// We rotate through these if one fails or times out.
+// 'raw' endpoints are preferred to avoid JSON parsing issues.
 const PROXY_GENERATORS = [
-    (url: string) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
-    (url: string) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+    // Primary: Very reliable, good for bypassing blocks (Slower but works)
     (url: string) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-    (url: string) => `https://thingproxy.freeboard.io/fetch/${encodeURIComponent(url)}`
+    // Secondary: Usually fastest, but often blocks cloud IPs (403)
+    (url: string) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+    // Tertiary: Backup
+    (url: string) => `https://thingproxy.freeboard.io/fetch/${url}`,
 ];
+
+// Helper: Fetch with a robust timeout to prevent mobile hanging but allow for slow networks
+const fetchWithTimeout = async (url: string, timeoutMs: number = 15000): Promise<Response> => {
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), timeoutMs);
+
+    try {
+        const response = await fetch(url, { signal: controller.signal });
+        clearTimeout(id);
+        return response;
+    } catch (error) {
+        clearTimeout(id);
+        throw error;
+    }
+};
 
 const fetchFromTMDB = async <T>(endpoint: string, params: Record<string, string> = {}): Promise<T> => {
   const queryParams = new URLSearchParams({
@@ -20,31 +39,37 @@ const fetchFromTMDB = async <T>(endpoint: string, params: Record<string, string>
   
   let lastError: any;
 
-  // Try proxies in sequence
+  // Attempt Loop: Try proxies in order
   for (const generateProxyUrl of PROXY_GENERATORS) {
       const proxyUrl = generateProxyUrl(targetUrl);
       
       try {
-          const response = await fetch(proxyUrl);
+          // 15s timeout: Mobile networks can be slow. 
+          const response = await fetchWithTimeout(proxyUrl, 15000); 
           
           if (!response.ok) {
+              // 404 is a real error (not found), 401 is bad key. Return immediately.
               if (response.status === 404) throw new Error('Resource not found (404)');
-              if (response.status === 401) throw new Error('TMDB API Key is invalid or expired.');
+              if (response.status === 401) throw new Error('TMDB API Key is invalid.');
               
-              if (response.status === 403 || response.status === 429 || response.status >= 500) {
-                  continue; // Try next proxy
-              }
-              throw new Error(`TMDB API Error: ${response.status} ${response.statusText}`);
+              // 403 (Forbidden) usually means the Proxy blocked us.
+              // 429 (Too Many Requests) means rate limit.
+              // 5xx means proxy server error.
+              // In all these cases, we try the next proxy.
+              console.warn(`Proxy ${proxyUrl} failed with status ${response.status}`);
+              continue; 
           }
           
-          return response.json();
+          return await response.json();
 
       } catch (error: any) {
+          // Timeout or Network Error (TypeError: Failed to fetch) -> Try next proxy
+          console.warn(`Proxy ${proxyUrl} failed:`, error.message);
           lastError = error;
       }
   }
 
-  console.error("All proxies failed for URL:", targetUrl);
+  console.error(`All proxies failed for URL: ${targetUrl}`, lastError);
   throw lastError || new Error('Failed to fetch data from TMDB via any proxy.');
 };
 

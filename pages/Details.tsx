@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { Play, Plus, Star, ThumbsUp, ChevronDown, Check } from 'lucide-react';
+import { Play, Plus, Star, ThumbsUp, ChevronDown, Check, X, Youtube, PlayCircle } from 'lucide-react';
 import { tmdbService } from '../services/tmdb';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -28,6 +28,10 @@ const Details: React.FC = () => {
 
   // Media Assets State
   const [logoPath, setLogoPath] = useState<string | null>(null);
+  const [videos, setVideos] = useState<{ key: string; name: string; type: string }[]>([]);
+  const [trailerKey, setTrailerKey] = useState<string | null>(null);
+  const [showTrailerModal, setShowTrailerModal] = useState(false);
+  const [playingVideoKey, setPlayingVideoKey] = useState<string | null>(null);
 
   const fetchDetails = async () => {
     if (!type || !id) return;
@@ -41,6 +45,14 @@ const Details: React.FC = () => {
       const logos = res.images?.logos || [];
       const englishLogo = logos.find(l => l.iso_639_1 === 'en');
       setLogoPath(englishLogo ? englishLogo.file_path : (logos[0]?.file_path || null));
+
+      // Process Videos
+      const youtubeVideos = res.videos?.results.filter(v => v.site === 'YouTube') || [];
+      setVideos(youtubeVideos);
+      
+      // Find Official Trailer (Priority: Trailer > Teaser > First Video)
+      const officialTrailer = youtubeVideos.find(v => v.type === 'Trailer') || youtubeVideos.find(v => v.type === 'Teaser') || youtubeVideos[0];
+      setTrailerKey(officialTrailer ? officialTrailer.key : null);
 
       if (type === 'tv') {
           setSelectedSeasonNumber(1);
@@ -71,6 +83,16 @@ const Details: React.FC = () => {
     };
     fetchSeason();
   }, [type, id, selectedSeasonNumber, data, error]);
+
+  const openTrailer = (key: string) => {
+      setPlayingVideoKey(key);
+      setShowTrailerModal(true);
+  };
+
+  const closeTrailer = () => {
+      setShowTrailerModal(false);
+      setPlayingVideoKey(null);
+  };
 
   if (loading) return <DetailsSkeleton />;
   
@@ -189,16 +211,24 @@ const Details: React.FC = () => {
                     <span className="border border-gray-500 px-2 rounded text-[10px] md:text-xs py-0.5">HD</span>
                 </div>
 
-                <div className="flex items-center space-x-3 mb-6">
+                <div className="flex items-center space-x-3 mb-6 flex-wrap gap-y-3">
                     <button 
                         onClick={handlePlay}
                         className="flex items-center px-6 py-2 md:py-3 bg-white text-black font-bold rounded hover:bg-opacity-90 transition text-sm md:text-base"
                     >
                         <Play className="w-4 h-4 md:w-5 md:h-5 mr-2 fill-black" /> Play
                     </button>
+                    {trailerKey && (
+                        <button
+                            onClick={() => openTrailer(trailerKey!)}
+                            className="flex items-center px-6 py-2 md:py-3 bg-gray-600/60 backdrop-blur text-white font-bold rounded hover:bg-gray-600 transition text-sm md:text-base border border-white/10"
+                        >
+                            <Youtube className="w-4 h-4 md:w-5 md:h-5 mr-2" /> Trailer
+                        </button>
+                    )}
                      <button 
                         onClick={handleWatchlistToggle}
-                        className="flex items-center px-4 py-2 md:py-3 bg-gray-600/60 backdrop-blur text-white font-bold rounded hover:bg-gray-600 transition text-sm md:text-base"
+                        className="flex items-center px-4 py-2 md:py-3 bg-gray-600/60 backdrop-blur text-white font-bold rounded hover:bg-gray-600 transition text-sm md:text-base border border-white/10"
                     >
                         {isInWatchlist ? (
                              <><Check className="w-4 h-4 md:w-5 md:h-5 mr-2" /> My List</>
@@ -228,6 +258,7 @@ const Details: React.FC = () => {
                <p className="text-gray-300 text-sm leading-relaxed">{data.overview}</p>
             </div>
 
+            {/* Episodes Section */}
             {type === 'tv' && (
                 <div className="mb-12">
                      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
@@ -289,7 +320,7 @@ const Details: React.FC = () => {
             )}
 
             {/* Cast Section */}
-            <div className="mb-8">
+            <div className="mb-10">
               <h2 className="text-lg md:text-2xl font-bold text-primary mb-4 flex items-center">
                 <span className="w-1 h-5 md:h-6 bg-brand-primary mr-3 rounded-full"></span>
                 Top Cast
@@ -310,6 +341,40 @@ const Details: React.FC = () => {
                   ))}
               </div>
             </div>
+
+            {/* Trailers & Extras Section */}
+            {videos.length > 0 && (
+                <div className="mb-8">
+                    <h2 className="text-lg md:text-2xl font-bold text-primary mb-4 flex items-center">
+                        <span className="w-1 h-5 md:h-6 bg-brand-primary mr-3 rounded-full"></span>
+                        Trailers & Extras
+                    </h2>
+                    <div className="flex space-x-4 overflow-x-auto hide-scrollbar pb-4 scroll-smooth">
+                        {videos.map((video) => (
+                            <div 
+                                key={video.key} 
+                                onClick={() => openTrailer(video.key)}
+                                className="flex-shrink-0 w-[240px] md:w-[320px] cursor-pointer group"
+                            >
+                                <div className="relative aspect-video rounded-md overflow-hidden bg-surface mb-2 border border-white/5 group-hover:border-brand-primary/50 transition-all">
+                                    <img 
+                                        src={`https://img.youtube.com/vi/${video.key}/mqdefault.jpg`} 
+                                        alt={video.name}
+                                        className="w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500"
+                                    />
+                                    <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/0 transition">
+                                        <PlayCircle className="w-10 h-10 text-white fill-black/50 group-hover:scale-125 transition-transform duration-300" />
+                                    </div>
+                                    <div className="absolute bottom-2 right-2 bg-black/80 text-white text-[10px] px-2 py-0.5 rounded uppercase font-bold tracking-wider">
+                                        {video.type}
+                                    </div>
+                                </div>
+                                <h3 className="text-sm font-medium text-gray-200 group-hover:text-white line-clamp-2">{video.name}</h3>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
          </div>
 
          {/* Right Sidebar Metadata */}
@@ -340,6 +405,28 @@ const Details: React.FC = () => {
       {/* Full Width More Like This Section */}
       {data.similar && data.similar.results.length > 0 && (
           <ContentRow title="More Like This" items={data.similar.results.map(i => ({...i, media_type: type as 'movie' | 'tv'}))} />
+      )}
+
+      {/* Video Modal Overlay */}
+      {showTrailerModal && playingVideoKey && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-4 backdrop-blur-md animate-in fade-in duration-300" onClick={closeTrailer}>
+              <div className="relative w-full max-w-6xl aspect-video bg-black rounded-xl overflow-hidden shadow-2xl ring-1 ring-white/10" onClick={e => e.stopPropagation()}>
+                  <button 
+                      onClick={closeTrailer}
+                      className="absolute top-4 right-4 z-20 p-2 bg-black/60 hover:bg-red-600 text-white rounded-full transition-colors backdrop-blur-md group"
+                      title="Close Trailer"
+                  >
+                      <X className="w-6 h-6 group-hover:scale-110 transition-transform" />
+                  </button>
+                  <iframe
+                      src={`https://www.youtube.com/embed/${playingVideoKey}?autoplay=1&rel=0&modestbranding=1&showinfo=0`}
+                      title="Trailer Player"
+                      className="w-full h-full"
+                      allowFullScreen
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  ></iframe>
+              </div>
+          </div>
       )}
     </div>
   );

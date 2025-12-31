@@ -36,7 +36,8 @@ const Hero: React.FC<HeroProps> = ({ item }) => {
 
   if (!item) return <div className="h-[60vh] md:h-[85vh] bg-gray-900 animate-pulse" />;
 
-  const backdrop = item.backdrop_path ? `${IMAGE_BASE_URL}/original${item.backdrop_path}` : 'https://picsum.photos/1920/1080';
+  // Optimization: Use w1280 instead of original
+  const backdrop = item.backdrop_path ? `${IMAGE_BASE_URL}/w1280${item.backdrop_path}` : 'https://picsum.photos/1920/1080';
   
   const handlePlay = () => {
       const type = item.media_type || 'movie';

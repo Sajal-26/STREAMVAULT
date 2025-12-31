@@ -12,7 +12,8 @@ interface MediaCardProps {
 const MediaCard: React.FC<MediaCardProps> = ({ item, onRemove }) => {
   const navigate = useNavigate();
   const title = item.title || item.name;
-  const imagePath = item.poster_path ? `${IMAGE_BASE_URL}/w500${item.poster_path}` : 'https://picsum.photos/300/450?grayscale';
+  // Optimization: Use w342 instead of w500. Much lighter for mobile grids.
+  const imagePath = item.poster_path ? `${IMAGE_BASE_URL}/w342${item.poster_path}` : 'https://picsum.photos/300/450?grayscale';
   const mediaType = item.media_type || 'movie';
 
   const handlePlay = (e: React.MouseEvent) => {
