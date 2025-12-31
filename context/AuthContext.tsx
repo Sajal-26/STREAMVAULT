@@ -25,26 +25,26 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [accentColor, setAccentColorState] = useState<string>('#E50914');
-  const [watchlist, setWatchlist] = useState<WatchlistItem[]>([]);
-  const [likedItems, setLikedItems] = useState<LikedItem[]>([]);
-  const [continueWatching, setContinueWatching] = useState<ContinueWatchingItem[]>([]);
+  // Initialize from API (localStorage) immediately to render with data if available
+  const [accentColor, setAccentColorState] = useState<string>(() => localStorage.getItem('sv_accent_color') || '#E50914');
+  const [watchlist, setWatchlist] = useState<WatchlistItem[]>(() => api.getWatchlist());
+  const [likedItems, setLikedItems] = useState<LikedItem[]>(() => api.getLikes());
+  const [continueWatching, setContinueWatching] = useState<ContinueWatchingItem[]>(() => api.getContinueWatching());
 
-  useEffect(() => {
-    // Initial Load of Local Data
-    setWatchlist(api.getWatchlist());
-    setLikedItems(api.getLikes());
-    setContinueWatching(api.getContinueWatching());
-
-    const storedColor = localStorage.getItem('sv_accent_color');
-    if (storedColor) setAccentColorState(storedColor);
-  }, []);
+  // Effect only needed if we want to sync with external changes (e.g. multi-tab), 
+  // but keeping it simple for now, we just rely on the internal state updates + api calls.
 
   const setAccentColor = (color: string) => {
     setAccentColorState(color);
     localStorage.setItem('sv_accent_color', color);
     document.documentElement.style.setProperty('--color-primary', color);
   };
+
+  useEffect(() => {
+     // Apply initial color
+     const storedColor = localStorage.getItem('sv_accent_color');
+     if(storedColor) document.documentElement.style.setProperty('--color-primary', storedColor);
+  }, []);
 
   const addToWatchlist = (item: WatchlistItem) => {
       const updated = api.addToWatchlist(item);

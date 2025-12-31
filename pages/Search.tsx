@@ -21,6 +21,8 @@ const SearchPage: React.FC = () => {
         });
       }, 500); // Debounce
       return () => clearTimeout(timer);
+    } else {
+        setResults([]);
     }
   }, [query]);
 
@@ -33,7 +35,11 @@ const SearchPage: React.FC = () => {
         </h1>
         
         {loading ? (
-          <div className="text-center text-secondary mt-20">Searching...</div>
+           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-6">
+                {[...Array(12)].map((_, i) => (
+                    <div key={i} className="aspect-[2/3] bg-surface rounded-md animate-pulse border border-white/5" />
+                ))}
+           </div>
         ) : results.length > 0 ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-6">
             {results.map(item => (
@@ -42,8 +48,14 @@ const SearchPage: React.FC = () => {
           </div>
         ) : (
           <div className="text-center text-secondary mt-20">
-            <p className="text-xl">No results found.</p>
-            <p className="text-sm mt-2">Try searching for movies, TV shows, or people.</p>
+            {query ? (
+                <>
+                    <p className="text-xl">No results found.</p>
+                    <p className="text-sm mt-2">Try searching for movies, TV shows, or people.</p>
+                </>
+            ) : (
+                <p className="text-xl">Enter a search term.</p>
+            )}
           </div>
         )}
       </div>

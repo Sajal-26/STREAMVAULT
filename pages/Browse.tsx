@@ -70,8 +70,12 @@ const Browse: React.FC<BrowseProps> = ({ type }) => {
       
       <div className="px-4 md:px-12 py-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
-            <h1 className="text-2xl md:text-3xl font-bold text-primary">
-                {type === 'movie' ? 'Movies' : 'TV Shows'}
+            <h1 className="text-2xl md:text-3xl font-bold text-primary animate-pulse">
+                {loading && items.length === 0 ? (
+                    <div className="h-8 w-32 bg-white/10 rounded"></div>
+                ) : (
+                    type === 'movie' ? 'Movies' : 'TV Shows'
+                )}
             </h1>
             
             <div className="flex space-x-2 overflow-x-auto hide-scrollbar pb-2 md:pb-0 w-full md:w-auto">
@@ -97,24 +101,34 @@ const Browse: React.FC<BrowseProps> = ({ type }) => {
             </div>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-6">
-            {items.map((item, index) => {
-                if (index === items.length - 1) {
-                    return <div ref={lastElementRef} key={item.id + index}><MediaCard item={{...item, media_type: type}} /></div>;
-                }
-                return <MediaCard key={item.id} item={{...item, media_type: type}} />;
-            })}
-        </div>
+        {items.length === 0 && loading ? (
+             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-6">
+                {[...Array(18)].map((_, i) => (
+                    <div key={i} className="aspect-[2/3] bg-surface rounded-md animate-pulse border border-white/5" />
+                ))}
+             </div>
+        ) : (
+            <>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-6">
+                    {items.map((item, index) => {
+                        if (index === items.length - 1) {
+                            return <div ref={lastElementRef} key={item.id + index}><MediaCard item={{...item, media_type: type}} /></div>;
+                        }
+                        return <MediaCard key={item.id} item={{...item, media_type: type}} />;
+                    })}
+                </div>
 
-        {loading && (
-           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-6 mt-6">
-              {[...Array(6)].map((_, i) => (
-                  <div key={i} className="aspect-[2/3] bg-surface rounded-md animate-pulse" />
-              ))}
-           </div>
+                {loading && (
+                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-6 mt-6">
+                      {[...Array(6)].map((_, i) => (
+                          <div key={i} className="aspect-[2/3] bg-surface rounded-md animate-pulse border border-white/5" />
+                      ))}
+                   </div>
+                )}
+            </>
         )}
         
-        {!hasMore && items.length > 0 && (
+        {!hasMore && items.length > 0 && !loading && (
             <div className="text-center py-10 text-secondary">
                 You've reached the end of the list.
             </div>

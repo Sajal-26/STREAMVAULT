@@ -75,10 +75,23 @@ const Networks: React.FC = () => {
              </div>
 
              {loading ? (
-                <div className="flex space-x-4 overflow-hidden">
-                    {[1,2,3,4,5].map(i => (
-                        <div key={i} className="min-w-[140px] h-[210px] md:min-w-[180px] md:h-[270px] bg-surface rounded-md animate-pulse" />
-                    ))}
+                <div className="space-y-12">
+                    <div className="space-y-4">
+                        <div className="h-6 w-32 bg-white/10 rounded"></div>
+                        <div className="flex space-x-3 md:space-x-4 overflow-hidden">
+                            {[1, 2, 3, 4, 5, 6].map((i) => (
+                                <div key={i} className="min-w-[130px] w-[130px] sm:min-w-[160px] sm:w-[160px] md:min-w-[200px] md:w-[200px] aspect-[2/3] bg-surface rounded-md animate-pulse border border-white/5" />
+                            ))}
+                        </div>
+                    </div>
+                    <div className="space-y-4">
+                        <div className="h-6 w-32 bg-white/10 rounded"></div>
+                        <div className="flex space-x-3 md:space-x-4 overflow-hidden">
+                            {[1, 2, 3, 4, 5, 6].map((i) => (
+                                <div key={i} className="min-w-[130px] w-[130px] sm:min-w-[160px] sm:w-[160px] md:min-w-[200px] md:w-[200px] aspect-[2/3] bg-surface rounded-md animate-pulse border border-white/5" />
+                            ))}
+                        </div>
+                    </div>
                 </div>
              ) : (
                 <>

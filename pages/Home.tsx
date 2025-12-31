@@ -92,7 +92,7 @@ const Home: React.FC = () => {
     fetchInitial();
   }, []);
 
-  // Convert ContinueWatchingItems to MediaItems for ContentRow, properly mapping release date
+  // Convert ContinueWatchingItems to MediaItems for ContentRow
   const continueWatchingItems: MediaItem[] = continueWatching.map(item => ({
     id: item.mediaId,
     media_type: item.mediaType,
@@ -102,7 +102,7 @@ const Home: React.FC = () => {
     backdrop_path: null, 
     overview: '',
     vote_average: item.voteAverage,
-    release_date: item.releaseDate, // Map stored release date
+    release_date: item.releaseDate,
     first_air_date: item.releaseDate
   }));
 
@@ -152,20 +152,20 @@ const HomeSkeleton: React.FC = () => {
             <div className="h-20 w-full bg-black/50 fixed top-0 z-50"></div>
             
             {/* Hero Skeleton */}
-            <div className="relative h-[60vh] md:h-[85vh] w-full bg-surface animate-pulse">
+            <div className="relative h-[60vh] md:h-[85vh] w-full bg-surface animate-pulse overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-t from-[#141414] via-transparent to-transparent" />
                 <div className="absolute bottom-0 left-0 p-12 w-full max-w-4xl space-y-4">
-                    <div className="h-16 w-2/3 bg-white/10 rounded"></div>
-                    <div className="h-24 w-full bg-white/5 rounded"></div>
-                    <div className="flex gap-4">
-                        <div className="h-12 w-32 bg-white/20 rounded"></div>
-                        <div className="h-12 w-32 bg-white/10 rounded"></div>
+                    <div className="h-10 md:h-16 w-2/3 bg-white/10 rounded"></div>
+                    <div className="h-20 md:h-24 w-full bg-white/5 rounded hidden md:block"></div>
+                    <div className="flex gap-4 pt-4">
+                        <div className="h-10 md:h-12 w-28 md:w-32 bg-white/20 rounded"></div>
+                        <div className="h-10 md:h-12 w-28 md:w-32 bg-white/10 rounded"></div>
                     </div>
                 </div>
             </div>
 
             {/* Rows Skeleton */}
-            <div className="-mt-32 relative z-10 space-y-12 pb-20">
+            <div className="-mt-16 md:-mt-32 relative z-10 space-y-12 pb-20">
                 <RowSkeleton title="Trending Now" />
                 <RowSkeleton title="Popular Movies" />
                 <RowSkeleton title="Bingeworthy TV Shows" />
@@ -177,12 +177,13 @@ const HomeSkeleton: React.FC = () => {
 const RowSkeleton: React.FC<{ title: string }> = ({ title }) => {
     return (
         <div className="px-4 md:px-12 mb-8">
-            <h2 className="text-lg md:text-2xl font-bold mb-4 flex items-center opacity-50">
-                <span className="w-1 h-6 bg-white/20 mr-3 rounded-full"></span>
+            <h2 className="text-lg md:text-2xl font-bold mb-3 md:mb-4 flex items-center opacity-50">
+                <span className="w-1 h-5 md:h-6 bg-white/20 mr-3 rounded-full"></span>
                 {title}
             </h2>
-            <div className="flex space-x-4 overflow-hidden">
-                {[1, 2, 3, 4, 5, 6].map((i) => (
+            {/* Matches ContentRow flex gap: space-x-3 md:space-x-4 */}
+            <div className="flex space-x-3 md:space-x-4 overflow-hidden">
+                {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
                     <div key={i} className="min-w-[130px] w-[130px] sm:min-w-[160px] sm:w-[160px] md:min-w-[200px] md:w-[200px] aspect-[2/3] bg-surface rounded-md animate-pulse border border-white/5" />
                 ))}
             </div>
