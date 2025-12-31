@@ -17,7 +17,6 @@ const Hero: React.FC<HeroProps> = ({ item }) => {
     const fetchHeroDetails = async () => {
       if (item) {
         // Fix: Ensure we only fetch details for movies or tv shows.
-        // item.media_type can be 'person' or 'collection' which are not supported by getDetails.
         const mediaType = item.media_type;
         if (mediaType !== 'movie' && mediaType !== 'tv') return;
 
@@ -41,8 +40,7 @@ const Hero: React.FC<HeroProps> = ({ item }) => {
 
   if (!item) return <div className="h-[60vh] md:h-[85vh] bg-gray-900 animate-pulse" />;
 
-  // Optimization: Use w1280 instead of original
-  const backdrop = item.backdrop_path ? `${IMAGE_BASE_URL}/w1280${item.backdrop_path}` : 'https://picsum.photos/1920/1080';
+  const backdrop = item.backdrop_path ? `${IMAGE_BASE_URL}/w1280${item.backdrop_path}` : null;
   
   const handlePlay = () => {
       const type = item.media_type || 'movie';
@@ -51,7 +49,6 @@ const Hero: React.FC<HeroProps> = ({ item }) => {
       } else if (type === 'movie') {
           navigate(`/watch/movie/${item.id}`);
       }
-      // If person or collection, do nothing or handle gracefully (Hero shouldn't ideally be person)
   };
 
   // Determine correct info link
@@ -60,14 +57,18 @@ const Hero: React.FC<HeroProps> = ({ item }) => {
      : `/details/${item.media_type || 'movie'}/${item.id}`;
 
   return (
-    <div className="relative h-[60vh] md:h-[85vh] w-full overflow-hidden group">
+    <div className="relative h-[60vh] md:h-[85vh] w-full overflow-hidden group bg-gray-900">
       {/* Background Image */}
       <div className="absolute inset-0">
-        <img 
-          src={backdrop} 
-          alt={item.title} 
-          className="w-full h-full object-cover"
-        />
+        {backdrop ? (
+            <img 
+              src={backdrop} 
+              alt={item.title} 
+              className="w-full h-full object-cover"
+            />
+        ) : (
+            <div className="w-full h-full bg-gradient-to-br from-gray-900 to-black" />
+        )}
       </div>
 
       {/* Gradient Overlays for readability */}
