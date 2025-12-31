@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Play, Info } from 'lucide-react';
-import { MediaItem, MediaDetails } from '../types';
+import { MediaItem } from '../types';
 import { tmdbService } from '../services/tmdb';
 import { IMAGE_BASE_URL } from '../constants';
 
@@ -11,7 +11,6 @@ interface HeroProps {
 
 const Hero: React.FC<HeroProps> = ({ item }) => {
   const navigate = useNavigate();
-  const [details, setDetails] = useState<MediaDetails | null>(null);
   const [logoPath, setLogoPath] = useState<string | null>(null);
 
   useEffect(() => {
@@ -20,8 +19,7 @@ const Hero: React.FC<HeroProps> = ({ item }) => {
         try {
            // Fetch full details to get the logo
            const res = await tmdbService.getDetails(item.media_type || 'movie', item.id);
-           setDetails(res);
-
+           
            // Find Logo (prefer English PNG)
            const logos = res.images?.logos || [];
            const englishLogo = logos.find(l => l.iso_639_1 === 'en');
