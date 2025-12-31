@@ -4,6 +4,7 @@ import Hero from '../components/Hero';
 import ContentRow from '../components/ContentRow';
 import { tmdbService } from '../services/tmdb';
 import { MediaItem } from '../types';
+import { useAuth } from '../context/AuthContext';
 
 interface RowData {
   title: string;
@@ -15,6 +16,8 @@ const Home: React.FC = () => {
   const [rows, setRows] = useState<RowData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  
+  const { continueWatching } = useAuth();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -62,6 +65,18 @@ const Home: React.FC = () => {
     fetchData();
   }, []);
 
+  // Convert ContinueWatchingItems to MediaItems for ContentRow
+  const continueWatchingItems: MediaItem[] = continueWatching.map(item => ({
+    id: item.mediaId,
+    media_type: item.mediaType,
+    title: item.title,
+    name: item.title,
+    poster_path: item.posterPath,
+    backdrop_path: null, // Optional for card
+    overview: '',
+    vote_average: item.voteAverage
+  }));
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -91,6 +106,11 @@ const Home: React.FC = () => {
       <Hero item={heroItem} />
       
       <div className="-mt-16 md:-mt-32 relative z-10 pb-20">
+        {/* Continue Watching Row */}
+        {continueWatchingItems.length > 0 && (
+          <ContentRow title="Continue Watching" items={continueWatchingItems} />
+        )}
+
         {rows.map((row, index) => (
             <ContentRow key={index} title={row.title} items={row.items} />
         ))}

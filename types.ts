@@ -6,6 +6,12 @@ export interface WatchlistItem {
   voteAverage: number;
 }
 
+export interface ContinueWatchingItem extends WatchlistItem {
+  season?: number;
+  episode?: number;
+  watchedAt: number;
+}
+
 export interface LikedItem extends WatchlistItem {
   likedAt?: string;
 }

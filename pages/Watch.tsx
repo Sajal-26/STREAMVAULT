@@ -2,12 +2,39 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { tmdbService } from '../services/tmdb';
 
 const Watch: React.FC = () => {
   const { type, id, season, episode } = useParams();
   const navigate = useNavigate();
-  const { accentColor } = useAuth();
+  const { accentColor, addToContinueWatching } = useAuth();
   const [showUI, setShowUI] = useState(true);
+
+  // Track History / Continue Watching
+  useEffect(() => {
+    const trackHistory = async () => {
+      if (!id || !type) return;
+      try {
+        // Fetch minimal details to save for history
+        const details = await tmdbService.getDetails(type as 'movie' | 'tv', parseInt(id));
+        
+        addToContinueWatching({
+          mediaId: parseInt(id),
+          mediaType: type as 'movie' | 'tv',
+          title: details.title || details.name || 'Unknown',
+          posterPath: details.poster_path,
+          voteAverage: details.vote_average,
+          season: season ? parseInt(season) : undefined,
+          episode: episode ? parseInt(episode) : undefined,
+          watchedAt: Date.now()
+        });
+      } catch (error) {
+        console.error("Failed to track history", error);
+      }
+    };
+
+    trackHistory();
+  }, [id, type, season, episode]);
 
   // Auto-hide UI (Back button) after inactivity
   useEffect(() => {

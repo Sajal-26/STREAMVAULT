@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { WatchlistItem, LikedItem, User, Profile } from '../types';
+import { WatchlistItem, LikedItem, ContinueWatchingItem, User, Profile } from '../types';
 import { api } from '../services/api';
 import { mockBackend } from '../services/mockBackend';
 import { AVATARS } from '../constants';
@@ -30,6 +30,9 @@ interface AuthContextType {
   likedItems: LikedItem[];
   addToLikes: (item: LikedItem) => void;
   removeFromLikes: (mediaId: number) => void;
+
+  continueWatching: ContinueWatchingItem[];
+  addToContinueWatching: (item: ContinueWatchingItem) => void;
   
   clearData: () => void;
 }
@@ -44,11 +47,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [accentColor, setAccentColorState] = useState<string>('#E50914');
   const [watchlist, setWatchlist] = useState<WatchlistItem[]>([]);
   const [likedItems, setLikedItems] = useState<LikedItem[]>([]);
+  const [continueWatching, setContinueWatching] = useState<ContinueWatchingItem[]>([]);
 
   useEffect(() => {
     // Initial Load - Local Guest Data
     setWatchlist(api.getWatchlist());
     setLikedItems(api.getLikes());
+    setContinueWatching(api.getContinueWatching());
 
     const storedColor = localStorage.getItem('sv_accent_color');
     if (storedColor) setAccentColor(storedColor);
@@ -125,10 +130,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLikedItems(updated);
   };
 
+  const addToContinueWatching = (item: ContinueWatchingItem) => {
+      const updated = api.addToContinueWatching(item);
+      setContinueWatching(updated);
+  };
+
   const clearData = () => {
       api.clearAllData();
       setWatchlist([]);
       setLikedItems([]);
+      setContinueWatching([]);
   };
 
   return (
@@ -138,6 +149,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       accentColor, setAccentColor,
       watchlist, addToWatchlist, removeFromWatchlist,
       likedItems, addToLikes, removeFromLikes,
+      continueWatching, addToContinueWatching,
       clearData
     }}>
       {children}
