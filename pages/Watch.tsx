@@ -57,7 +57,8 @@ const Watch: React.FC = () => {
   // Construct Player URL
   const baseUrl = "https://player.videasy.net";
   const color = accentColor.replace('#', '');
-  const commonParams = `?color=${color}&overlay=true&autoplayNextEpisode=true&episodeSelector=true`;
+  // Added autoplay=true here
+  const commonParams = `?color=${color}&overlay=true&autoplayNextEpisode=true&episodeSelector=true&autoplay=true`;
 
   let src = "";
   if (type === 'movie') {
