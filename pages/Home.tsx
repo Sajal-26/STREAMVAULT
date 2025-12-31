@@ -34,7 +34,7 @@ const Home: React.FC = () => {
   const [loadedRows, setLoadedRows] = useState<Record<string, MediaItem[]>>({});
   const [initialLoading, setInitialLoading] = useState(true);
   
-  const { continueWatching } = useAuth();
+  const { continueWatching, removeFromContinueWatching } = useAuth();
   const hasFetchedRows = useRef(false);
 
   useEffect(() => {
@@ -103,7 +103,9 @@ const Home: React.FC = () => {
     overview: '',
     vote_average: item.voteAverage,
     release_date: item.releaseDate,
-    first_air_date: item.releaseDate
+    first_air_date: item.releaseDate,
+    progress: item.progress,
+    watchedDuration: item.watchedDuration
   }));
 
   if (initialLoading) {
@@ -118,7 +120,11 @@ const Home: React.FC = () => {
       <div className="-mt-16 md:-mt-32 relative z-10 pb-20">
         {/* Continue Watching Row */}
         {continueWatchingItems.length > 0 && (
-          <ContentRow title="Continue Watching" items={continueWatchingItems} />
+          <ContentRow 
+            title="Continue Watching" 
+            items={continueWatchingItems} 
+            onRemove={removeFromContinueWatching}
+          />
         )}
 
         {/* Trending Row (Always Loaded First) */}

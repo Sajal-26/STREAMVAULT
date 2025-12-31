@@ -6,9 +6,10 @@ import { MediaItem } from '../types';
 interface ContentRowProps {
   title: string;
   items: MediaItem[];
+  onRemove?: (id: number) => void;
 }
 
-const ContentRow: React.FC<ContentRowProps> = ({ title, items }) => {
+const ContentRow: React.FC<ContentRowProps> = ({ title, items, onRemove }) => {
   const rowRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
@@ -78,7 +79,7 @@ const ContentRow: React.FC<ContentRowProps> = ({ title, items }) => {
         >
           {items.map((item) => (
              <div key={item.id} className="min-w-[130px] w-[130px] sm:min-w-[160px] sm:w-[160px] md:min-w-[200px] md:w-[200px] flex-shrink-0">
-                <MediaCard item={item} />
+                <MediaCard item={item} onRemove={onRemove} />
              </div>
           ))}
         </div>

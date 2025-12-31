@@ -18,6 +18,7 @@ interface AuthContextType {
 
   continueWatching: ContinueWatchingItem[];
   addToContinueWatching: (item: ContinueWatchingItem) => void;
+  removeFromContinueWatching: (mediaId: number) => void;
   
   clearData: () => void;
 }
@@ -30,9 +31,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [watchlist, setWatchlist] = useState<WatchlistItem[]>(() => api.getWatchlist());
   const [likedItems, setLikedItems] = useState<LikedItem[]>(() => api.getLikes());
   const [continueWatching, setContinueWatching] = useState<ContinueWatchingItem[]>(() => api.getContinueWatching());
-
-  // Effect only needed if we want to sync with external changes (e.g. multi-tab), 
-  // but keeping it simple for now, we just rely on the internal state updates + api calls.
 
   const setAccentColor = (color: string) => {
     setAccentColorState(color);
@@ -71,6 +69,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setContinueWatching(updated);
   };
 
+  const removeFromContinueWatching = (mediaId: number) => {
+      const updated = api.removeFromContinueWatching(mediaId);
+      setContinueWatching(updated);
+  };
+
   const clearData = () => {
       api.clearAllData();
       setWatchlist([]);
@@ -83,7 +86,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       accentColor, setAccentColor,
       watchlist, addToWatchlist, removeFromWatchlist,
       likedItems, addToLikes, removeFromLikes,
-      continueWatching, addToContinueWatching,
+      continueWatching, addToContinueWatching, removeFromContinueWatching,
       clearData
     }}>
       {children}

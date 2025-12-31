@@ -66,6 +66,13 @@ export const api = {
         return updated;
     },
 
+    removeFromContinueWatching: (mediaId: number): ContinueWatchingItem[] => {
+        let list = api.getContinueWatching();
+        const updated = list.filter(i => i.mediaId !== mediaId);
+        localStorage.setItem(CONTINUE_WATCHING_KEY, JSON.stringify(updated));
+        return updated;
+    },
+
     // Clear Data (Settings)
     clearAllData: () => {
         localStorage.removeItem(WATCHLIST_KEY);

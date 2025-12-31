@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -9,15 +9,17 @@ const Watch: React.FC = () => {
   const navigate = useNavigate();
   const { accentColor, addToContinueWatching } = useAuth();
   const [showUI, setShowUI] = useState(true);
+  const detailsRef = useRef<any>(null);
 
-  // Track History / Continue Watching
+  // Fetch initial details needed for Continue Watching entry
   useEffect(() => {
-    const trackHistory = async () => {
+    const fetchDetails = async () => {
       if (!id || !type) return;
       try {
-        // Fetch minimal details to save for history
         const details = await tmdbService.getDetails(type as 'movie' | 'tv', parseInt(id));
+        detailsRef.current = details;
         
+        // Initial add (without progress)
         addToContinueWatching({
           mediaId: parseInt(id),
           mediaType: type as 'movie' | 'tv',
@@ -27,15 +29,53 @@ const Watch: React.FC = () => {
           releaseDate: details.release_date || details.first_air_date,
           season: season ? parseInt(season) : undefined,
           episode: episode ? parseInt(episode) : undefined,
-          watchedAt: Date.now()
+          watchedAt: Date.now(),
+          progress: 0,
+          watchedDuration: 0
         });
       } catch (error) {
-        console.error("Failed to track history", error);
+        console.error("Failed to fetch details", error);
       }
     };
-
-    trackHistory();
+    fetchDetails();
   }, [id, type, season, episode]);
+
+  // Listen for progress messages from Videasy
+  useEffect(() => {
+      const handleMessage = (event: MessageEvent) => {
+          try {
+              // The user specified that data might be stringified
+              const data = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
+              
+              // We expect data like { currentTime: 120, duration: 3600 } or similar
+              // Adjust based on actual payload if it differs, but this covers standard HTML5/Player events
+              if (data && typeof data.currentTime === 'number' && typeof data.duration === 'number') {
+                  if (detailsRef.current && id && type) {
+                      const progressPercent = (data.currentTime / data.duration) * 100;
+                      
+                      addToContinueWatching({
+                          mediaId: parseInt(id),
+                          mediaType: type as 'movie' | 'tv',
+                          title: detailsRef.current.title || detailsRef.current.name || 'Unknown',
+                          posterPath: detailsRef.current.poster_path,
+                          voteAverage: detailsRef.current.vote_average,
+                          releaseDate: detailsRef.current.release_date || detailsRef.current.first_air_date,
+                          season: season ? parseInt(season) : undefined,
+                          episode: episode ? parseInt(episode) : undefined,
+                          watchedAt: Date.now(),
+                          progress: progressPercent,
+                          watchedDuration: data.currentTime
+                      });
+                  }
+              }
+          } catch (e) {
+              // Ignore parse errors from other message sources
+          }
+      };
+
+      window.addEventListener('message', handleMessage);
+      return () => window.removeEventListener('message', handleMessage);
+  }, [id, type, season, episode, addToContinueWatching]);
 
   // Auto-hide UI (Back button) after inactivity
   useEffect(() => {
@@ -58,7 +98,6 @@ const Watch: React.FC = () => {
   // Construct Player URL
   const baseUrl = "https://player.videasy.net";
   const color = accentColor.replace('#', '');
-  // Added autoplay=true here
   const commonParams = `?color=${color}&overlay=true&autoplayNextEpisode=true&episodeSelector=true&autoplay=true`;
 
   let src = "";

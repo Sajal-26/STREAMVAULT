@@ -1,3 +1,4 @@
+
 export interface WatchlistItem {
   mediaId: number;
   mediaType: 'movie' | 'tv';
@@ -11,6 +12,8 @@ export interface ContinueWatchingItem extends WatchlistItem {
   season?: number;
   episode?: number;
   watchedAt: number;
+  progress?: number; // Percentage (0-100)
+  watchedDuration?: number; // Seconds watched
 }
 
 export interface LikedItem extends WatchlistItem {
@@ -31,6 +34,8 @@ export interface MediaItem {
   genre_ids?: number[];
   character?: string; // For cast credits
   job?: string; // For crew credits
+  progress?: number; // Optional progress for UI
+  watchedDuration?: number; // Optional duration for UI
 }
 
 export interface Episode {
