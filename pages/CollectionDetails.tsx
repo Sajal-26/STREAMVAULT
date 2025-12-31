@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { tmdbService } from '../services/tmdb';
-import { CollectionDetails as CollectionDetailsType, MediaItem } from '../types';
+import { CollectionDetails as CollectionDetailsType } from '../types';
 import { IMAGE_BASE_URL } from '../constants';
 import Navbar from '../components/Navbar';
 import MediaCard from '../components/MediaCard';

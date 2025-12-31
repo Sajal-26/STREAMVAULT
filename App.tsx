@@ -11,7 +11,6 @@ import SearchPage from './pages/Search';
 import Settings from './pages/Settings';
 import Watchlist from './pages/Watchlist';
 import LikedContent from './pages/LikedContent';
-import Networks from './pages/Networks';
 import Watch from './pages/Watch';
 
 const AppContent: React.FC = () => {
@@ -22,7 +21,6 @@ const AppContent: React.FC = () => {
         
         <Route path="/movies" element={<Browse type="movie" />} />
         <Route path="/tv" element={<Browse type="tv" />} />
-        <Route path="/networks" element={<Networks />} />
         
         <Route path="/search" element={<SearchPage />} />
         <Route path="/details/:type/:id" element={<Details />} />
