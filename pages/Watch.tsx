@@ -24,6 +24,7 @@ const Watch: React.FC = () => {
           title: details.title || details.name || 'Unknown',
           posterPath: details.poster_path,
           voteAverage: details.vote_average,
+          releaseDate: details.release_date || details.first_air_date,
           season: season ? parseInt(season) : undefined,
           episode: episode ? parseInt(episode) : undefined,
           watchedAt: Date.now()

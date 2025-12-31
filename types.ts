@@ -4,6 +4,7 @@ export interface WatchlistItem {
   title: string;
   posterPath: string | null;
   voteAverage: number;
+  releaseDate?: string;
 }
 
 export interface ContinueWatchingItem extends WatchlistItem {

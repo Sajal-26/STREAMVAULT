@@ -15,7 +15,9 @@ const Watchlist: React.FC = () => {
       backdrop_path: null,
       overview: '',
       vote_average: item.voteAverage,
-      media_type: item.mediaType
+      media_type: item.mediaType,
+      release_date: item.releaseDate,
+      first_air_date: item.releaseDate
   });
 
   return (

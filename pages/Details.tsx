@@ -115,7 +115,8 @@ const Details: React.FC = () => {
               mediaType: type as 'movie' | 'tv',
               title: data.title || data.name || 'Unknown',
               posterPath: data.poster_path,
-              voteAverage: data.vote_average
+              voteAverage: data.vote_average,
+              releaseDate: data.release_date || data.first_air_date
           });
           showToast(`Added to My List`, 'success');
       }
@@ -131,7 +132,8 @@ const Details: React.FC = () => {
               mediaType: type as 'movie' | 'tv',
               title: data.title || data.name || 'Unknown',
               posterPath: data.poster_path,
-              voteAverage: data.vote_average
+              voteAverage: data.vote_average,
+              releaseDate: data.release_date || data.first_air_date
           });
           showToast(`Marked as Liked`, 'success');
       }

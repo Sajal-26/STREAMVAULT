@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import Navbar from '../components/Navbar';
 import Hero from '../components/Hero';
 import ContentRow from '../components/ContentRow';
@@ -6,98 +6,108 @@ import { tmdbService } from '../services/tmdb';
 import { MediaItem } from '../types';
 import { useAuth } from '../context/AuthContext';
 
-interface RowData {
+interface RowConfig {
   title: string;
-  items: MediaItem[];
+  fetcher: () => Promise<{ results: MediaItem[] }>;
 }
+
+const ROW_CONFIGS: RowConfig[] = [
+  { title: 'Popular Movies', fetcher: () => tmdbService.getPopular('movie') },
+  { title: 'Bingeworthy TV Shows', fetcher: () => tmdbService.getPopular('tv') },
+  { title: 'Top Rated Movies', fetcher: () => tmdbService.getTopRated('movie') },
+  { title: 'Action Movies', fetcher: () => tmdbService.discover('movie', 28) },
+  { title: 'Sci-Fi & Fantasy', fetcher: () => tmdbService.discover('movie', 878) },
+  { title: 'Comedy Hits', fetcher: () => tmdbService.discover('movie', 35) },
+  { title: 'Horror Night', fetcher: () => tmdbService.discover('movie', 27) },
+  { title: 'Animated Adventures', fetcher: () => tmdbService.discover('movie', 16) },
+  { title: 'TV Action & Adventure', fetcher: () => tmdbService.discover('tv', 10759) },
+  { title: 'Sci-Fi & Fantasy TV', fetcher: () => tmdbService.discover('tv', 10765) },
+  { title: 'Documentaries', fetcher: () => tmdbService.discover('movie', 99) },
+  { title: 'Family Favorites', fetcher: () => tmdbService.discover('movie', 10751) },
+  { title: 'Thriller Movies', fetcher: () => tmdbService.discover('movie', 53) },
+  { title: 'Romance', fetcher: () => tmdbService.discover('movie', 10749) }
+];
 
 const Home: React.FC = () => {
   const [heroItem, setHeroItem] = useState<MediaItem | null>(null);
-  const [rows, setRows] = useState<RowData[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
+  const [trendingItems, setTrendingItems] = useState<MediaItem[]>([]);
+  const [loadedRows, setLoadedRows] = useState<Record<string, MediaItem[]>>({});
+  const [initialLoading, setInitialLoading] = useState(true);
   
   const { continueWatching } = useAuth();
+  const hasFetchedRows = useRef(false);
 
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchInitial = async () => {
       try {
-        const requests = [
-          { title: 'Trending Now', req: tmdbService.getTrending() },
-          { title: 'Popular Movies', req: tmdbService.getPopular('movie') },
-          { title: 'Bingeworthy TV Shows', req: tmdbService.getPopular('tv') },
-          { title: 'Top Rated Movies', req: tmdbService.getTopRated('movie') },
-          { title: 'Action Movies', req: tmdbService.discover('movie', 28) },
-          { title: 'Sci-Fi & Fantasy', req: tmdbService.discover('movie', 878) },
-          { title: 'Comedy Hits', req: tmdbService.discover('movie', 35) },
-          { title: 'Horror Night', req: tmdbService.discover('movie', 27) },
-          { title: 'Animated Adventures', req: tmdbService.discover('movie', 16) },
-          { title: 'TV Action & Adventure', req: tmdbService.discover('tv', 10759) },
-          { title: 'Sci-Fi & Fantasy TV', req: tmdbService.discover('tv', 10765) },
-          { title: 'Documentaries', req: tmdbService.discover('movie', 99) },
-          { title: 'Family Favorites', req: tmdbService.discover('movie', 10751) },
-          { title: 'Thriller Movies', req: tmdbService.discover('movie', 53) },
-          { title: 'Romance', req: tmdbService.discover('movie', 10749) }
-        ];
-
-        const responses = await Promise.all(requests.map(r => r.req));
+        // 1. Fetch Trending immediately for Hero and first row
+        const trendingRes = await tmdbService.getTrending();
+        setTrendingItems(trendingRes.results);
         
-        const newRows = responses.map((res, index) => ({
-            title: requests[index].title,
-            items: res.results
-        }));
-
-        setRows(newRows);
-        
-        // Pick random trending item for hero from the first row (Trending)
-        if (newRows[0].items.length > 0) {
-           const randomHero = newRows[0].items[Math.floor(Math.random() * Math.min(5, newRows[0].items.length))];
+        if (trendingRes.results.length > 0) {
+           const randomHero = trendingRes.results[Math.floor(Math.random() * Math.min(5, trendingRes.results.length))];
            setHeroItem(randomHero);
         }
+        
+        setInitialLoading(false);
+
+        // 2. Fetch other rows lazily if not already fetched
+        if (!hasFetchedRows.current) {
+            hasFetchedRows.current = true;
+            fetchOtherRows();
+        }
+
       } catch (error) {
-        console.error("Failed to fetch home data", error);
-        setError(true);
-      } finally {
-        setLoading(false);
+        console.error("Failed to fetch initial data", error);
+        setInitialLoading(false);
       }
     };
 
-    fetchData();
+    const fetchOtherRows = async () => {
+        // Fetch in batches of 3 to avoid hitting rate limits or overwhelming network
+        const BATCH_SIZE = 3;
+        for (let i = 0; i < ROW_CONFIGS.length; i += BATCH_SIZE) {
+            const batch = ROW_CONFIGS.slice(i, i + BATCH_SIZE);
+            const promises = batch.map(async (config) => {
+                try {
+                    const res = await config.fetcher();
+                    return { title: config.title, items: res.results };
+                } catch (e) {
+                    console.error(`Failed to fetch ${config.title}`, e);
+                    return { title: config.title, items: [] };
+                }
+            });
+
+            const results = await Promise.all(promises);
+            setLoadedRows(prev => {
+                const next = { ...prev };
+                results.forEach(r => {
+                    if (r.items.length > 0) next[r.title] = r.items;
+                });
+                return next;
+            });
+        }
+    };
+
+    fetchInitial();
   }, []);
 
-  // Convert ContinueWatchingItems to MediaItems for ContentRow
+  // Convert ContinueWatchingItems to MediaItems for ContentRow, properly mapping release date
   const continueWatchingItems: MediaItem[] = continueWatching.map(item => ({
     id: item.mediaId,
     media_type: item.mediaType,
     title: item.title,
     name: item.title,
     poster_path: item.posterPath,
-    backdrop_path: null, // Optional for card
+    backdrop_path: null, 
     overview: '',
-    vote_average: item.voteAverage
+    vote_average: item.voteAverage,
+    release_date: item.releaseDate, // Map stored release date
+    first_air_date: item.releaseDate
   }));
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="w-12 h-12 border-4 border-brand-primary border-t-transparent rounded-full animate-spin"></div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center text-center px-4">
-        <h2 className="text-2xl font-bold text-primary mb-4">Something went wrong</h2>
-        <p className="text-secondary mb-6">We couldn't load the movies. Please check your internet connection.</p>
-        <button 
-          onClick={() => window.location.reload()}
-          className="px-6 py-2 bg-brand-primary text-white rounded font-medium hover:opacity-90 transition"
-        >
-          Retry
-        </button>
-      </div>
-    );
+  if (initialLoading) {
+    return <HomeSkeleton />;
   }
 
   return (
@@ -111,8 +121,18 @@ const Home: React.FC = () => {
           <ContentRow title="Continue Watching" items={continueWatchingItems} />
         )}
 
-        {rows.map((row, index) => (
-            <ContentRow key={index} title={row.title} items={row.items} />
+        {/* Trending Row (Always Loaded First) */}
+        {trendingItems.length > 0 && (
+            <ContentRow title="Trending Now" items={trendingItems} />
+        )}
+
+        {/* Dynamic Rows */}
+        {ROW_CONFIGS.map((config) => (
+            loadedRows[config.title] ? (
+                <ContentRow key={config.title} title={config.title} items={loadedRows[config.title]} />
+            ) : (
+                <RowSkeleton key={config.title} title={config.title} />
+            )
         ))}
       </div>
       
@@ -122,6 +142,52 @@ const Home: React.FC = () => {
       </footer>
     </div>
   );
+};
+
+// Skeleton Components
+const HomeSkeleton: React.FC = () => {
+    return (
+        <div className="min-h-screen bg-background">
+            {/* Navbar Skeleton */}
+            <div className="h-20 w-full bg-black/50 fixed top-0 z-50"></div>
+            
+            {/* Hero Skeleton */}
+            <div className="relative h-[60vh] md:h-[85vh] w-full bg-surface animate-pulse">
+                <div className="absolute inset-0 bg-gradient-to-t from-[#141414] via-transparent to-transparent" />
+                <div className="absolute bottom-0 left-0 p-12 w-full max-w-4xl space-y-4">
+                    <div className="h-16 w-2/3 bg-white/10 rounded"></div>
+                    <div className="h-24 w-full bg-white/5 rounded"></div>
+                    <div className="flex gap-4">
+                        <div className="h-12 w-32 bg-white/20 rounded"></div>
+                        <div className="h-12 w-32 bg-white/10 rounded"></div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Rows Skeleton */}
+            <div className="-mt-32 relative z-10 space-y-12 pb-20">
+                <RowSkeleton title="Trending Now" />
+                <RowSkeleton title="Popular Movies" />
+                <RowSkeleton title="Bingeworthy TV Shows" />
+            </div>
+        </div>
+    );
+};
+
+const RowSkeleton: React.FC<{ title: string }> = ({ title }) => {
+    return (
+        <div className="px-4 md:px-12 mb-8">
+            <h2 className="text-lg md:text-2xl font-bold mb-4 flex items-center opacity-50">
+                <span className="w-1 h-6 bg-white/20 mr-3 rounded-full"></span>
+                {title}
+            </h2>
+            <div className="flex space-x-4 overflow-hidden">
+                {[1, 2, 3, 4, 5, 6].map((i) => (
+                    <div key={i} className="min-w-[130px] w-[130px] sm:min-w-[160px] sm:w-[160px] md:min-w-[200px] md:w-[200px] aspect-[2/3] bg-surface rounded-md animate-pulse border border-white/5" />
+                ))}
+            </div>
+        </div>
+    );
 };
 
 export default Home;
