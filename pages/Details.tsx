@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Play, Plus, Star, ThumbsUp, ChevronDown, Check, X, Youtube, PlayCircle } from 'lucide-react';
 import { tmdbService } from '../services/tmdb';
@@ -33,6 +33,12 @@ const Details: React.FC = () => {
   const [showTrailerModal, setShowTrailerModal] = useState(false);
   const [playingVideoKey, setPlayingVideoKey] = useState<string | null>(null);
 
+  // Helper to extract official trailer
+  const extractTrailerKey = useCallback((videoList: { key: string; type: string; site: string }[]) => {
+      const officialTrailer = videoList.find(v => v.type === 'Trailer') || videoList.find(v => v.type === 'Teaser') || videoList[0];
+      return officialTrailer ? officialTrailer.key : null;
+  }, []);
+
   const fetchDetails = async () => {
     if (!type || !id) return;
     setLoading(true);
@@ -46,13 +52,10 @@ const Details: React.FC = () => {
       const englishLogo = logos.find(l => l.iso_639_1 === 'en');
       setLogoPath(englishLogo ? englishLogo.file_path : (logos[0]?.file_path || null));
 
-      // Process Videos
+      // Process Videos (Initial - Series Level or Movie)
       const youtubeVideos = res.videos?.results.filter(v => v.site === 'YouTube') || [];
       setVideos(youtubeVideos);
-      
-      // Find Official Trailer (Priority: Trailer > Teaser > First Video)
-      const officialTrailer = youtubeVideos.find(v => v.type === 'Trailer') || youtubeVideos.find(v => v.type === 'Teaser') || youtubeVideos[0];
-      setTrailerKey(officialTrailer ? officialTrailer.key : null);
+      setTrailerKey(extractTrailerKey(youtubeVideos));
 
       if (type === 'tv') {
           setSelectedSeasonNumber(1);
@@ -76,13 +79,29 @@ const Details: React.FC = () => {
             try {
                 const sData = await tmdbService.getSeasonDetails(parseInt(id), selectedSeasonNumber);
                 setSeasonData(sData);
+
+                // Update Videos for Season
+                if (sData.videos && sData.videos.results) {
+                    const seasonVideos = sData.videos.results.filter((v: any) => v.site === 'YouTube');
+                    
+                    if (seasonVideos.length > 0) {
+                        // If season specific videos exist, use them
+                        setVideos(seasonVideos);
+                        setTrailerKey(extractTrailerKey(seasonVideos));
+                    } else {
+                        // Fallback to Main Series Videos if season has none
+                        const globalVideos = data.videos?.results.filter(v => v.site === 'YouTube') || [];
+                        setVideos(globalVideos);
+                        setTrailerKey(extractTrailerKey(globalVideos));
+                    }
+                }
             } catch (err) {
                 console.error("Failed to fetch season", err);
             }
         }
     };
     fetchSeason();
-  }, [type, id, selectedSeasonNumber, data, error]);
+  }, [type, id, selectedSeasonNumber, data, error, extractTrailerKey]);
 
   const openTrailer = (key: string) => {
       setPlayingVideoKey(key);
@@ -218,14 +237,7 @@ const Details: React.FC = () => {
                     >
                         <Play className="w-4 h-4 md:w-5 md:h-5 mr-2 fill-black" /> Play
                     </button>
-                    {trailerKey && (
-                        <button
-                            onClick={() => openTrailer(trailerKey!)}
-                            className="flex items-center px-6 py-2 md:py-3 bg-gray-600/60 backdrop-blur text-white font-bold rounded hover:bg-gray-600 transition text-sm md:text-base border border-white/10"
-                        >
-                            <Youtube className="w-4 h-4 md:w-5 md:h-5 mr-2" /> Trailer
-                        </button>
-                    )}
+                    {/* Trailer Button Removed per request */}
                      <button 
                         onClick={handleWatchlistToggle}
                         className="flex items-center px-4 py-2 md:py-3 bg-gray-600/60 backdrop-blur text-white font-bold rounded hover:bg-gray-600 transition text-sm md:text-base border border-white/10"
@@ -342,7 +354,7 @@ const Details: React.FC = () => {
               </div>
             </div>
 
-            {/* Official Trailer Section - NEW */}
+            {/* Official Trailer Section */}
             {trailerKey && (
                 <div className="mb-10 md:mb-12">
                     <h2 className="text-lg md:text-2xl font-bold text-primary mb-4 flex items-center">
@@ -369,7 +381,7 @@ const Details: React.FC = () => {
                 <div className="mb-8">
                     <h2 className="text-lg md:text-2xl font-bold text-primary mb-4 flex items-center">
                         <span className="w-1 h-5 md:h-6 bg-brand-primary mr-3 rounded-full"></span>
-                        Trailers & Extras
+                        {type === 'tv' && seasonData ? `Season ${selectedSeasonNumber} Extras` : 'Trailers & Extras'}
                     </h2>
                     <div className="flex space-x-4 overflow-x-auto hide-scrollbar pb-4 scroll-smooth">
                         {videos.map((video) => (

@@ -56,6 +56,9 @@ export interface SeasonDetails {
   poster_path: string | null;
   season_number: number;
   episodes: Episode[];
+  videos?: {
+    results: { key: string; type: string; site: string; name: string }[];
+  };
 }
 
 export interface Image {

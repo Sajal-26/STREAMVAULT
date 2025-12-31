@@ -96,7 +96,9 @@ export const tmdbService = {
   },
 
   getSeasonDetails: async (tvId: number, seasonNumber: number) => {
-    return fetchFromTMDB<SeasonDetails>(`/tv/${tvId}/season/${seasonNumber}`);
+    return fetchFromTMDB<SeasonDetails>(`/tv/${tvId}/season/${seasonNumber}`, {
+        append_to_response: 'videos'
+    });
   },
 
   search: async (query: string) => {
