@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { WatchlistItem, LikedItem, ContinueWatchingItem } from '../types';
 import { api } from '../services/api';
 
@@ -32,11 +32,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [likedItems, setLikedItems] = useState<LikedItem[]>(() => api.getLikes());
   const [continueWatching, setContinueWatching] = useState<ContinueWatchingItem[]>(() => api.getContinueWatching());
 
-  const setAccentColor = (color: string) => {
+  const setAccentColor = useCallback((color: string) => {
     setAccentColorState(color);
     localStorage.setItem('sv_accent_color', color);
     document.documentElement.style.setProperty('--color-primary', color);
-  };
+  }, []);
 
   useEffect(() => {
      // Apply initial color
@@ -44,42 +44,42 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
      if(storedColor) document.documentElement.style.setProperty('--color-primary', storedColor);
   }, []);
 
-  const addToWatchlist = (item: WatchlistItem) => {
+  const addToWatchlist = useCallback((item: WatchlistItem) => {
       const updated = api.addToWatchlist(item);
       setWatchlist(updated);
-  };
+  }, []);
 
-  const removeFromWatchlist = (mediaId: number) => {
+  const removeFromWatchlist = useCallback((mediaId: number) => {
       const updated = api.removeFromWatchlist(mediaId);
       setWatchlist(updated);
-  };
+  }, []);
 
-  const addToLikes = (item: LikedItem) => {
+  const addToLikes = useCallback((item: LikedItem) => {
       const updated = api.addToLikes(item);
       setLikedItems(updated);
-  };
+  }, []);
 
-  const removeFromLikes = (mediaId: number) => {
+  const removeFromLikes = useCallback((mediaId: number) => {
       const updated = api.removeFromLikes(mediaId);
       setLikedItems(updated);
-  };
+  }, []);
 
-  const addToContinueWatching = (item: ContinueWatchingItem) => {
+  const addToContinueWatching = useCallback((item: ContinueWatchingItem) => {
       const updated = api.addToContinueWatching(item);
       setContinueWatching(updated);
-  };
+  }, []);
 
-  const removeFromContinueWatching = (mediaId: number) => {
+  const removeFromContinueWatching = useCallback((mediaId: number) => {
       const updated = api.removeFromContinueWatching(mediaId);
       setContinueWatching(updated);
-  };
+  }, []);
 
-  const clearData = () => {
+  const clearData = useCallback(() => {
       api.clearAllData();
       setWatchlist([]);
       setLikedItems([]);
       setContinueWatching([]);
-  };
+  }, []);
 
   return (
     <AuthContext.Provider value={{ 

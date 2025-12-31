@@ -33,6 +33,7 @@ const MediaCard: React.FC<MediaCardProps> = ({ item, onRemove }) => {
   };
 
   const formatWatchedTime = (seconds: number) => {
+      if (!seconds) return '';
       const mins = Math.floor(seconds / 60);
       if (mins < 1) return '< 1 min';
       return `${mins} min${mins !== 1 ? 's' : ''}`;
@@ -49,12 +50,11 @@ const MediaCard: React.FC<MediaCardProps> = ({ item, onRemove }) => {
 
       {/* Progress Bar (Visible Always if progress exists) */}
       {(item.progress !== undefined && item.progress > 0) && (
-          <div className="absolute bottom-0 left-0 right-0 z-20 bg-black/60 backdrop-blur-sm p-2">
-              <div className="flex items-center justify-between text-[10px] text-gray-300 mb-1 font-medium">
-                 <span>{item.watchedDuration ? formatWatchedTime(item.watchedDuration) : ''}</span>
-                 <span>{Math.round(item.progress)}%</span>
+          <div className="absolute bottom-0 left-0 right-0 z-20 bg-black/80 backdrop-blur-sm px-2 py-1.5">
+              <div className="flex items-center justify-between text-[11px] text-gray-200 mb-1 font-semibold">
+                 <span>{formatWatchedTime(item.watchedDuration || 0)}</span>
               </div>
-              <div className="w-full h-1 bg-gray-700 rounded-full overflow-hidden">
+              <div className="w-full h-1 bg-gray-600 rounded-full overflow-hidden">
                   <div 
                     className="h-full bg-brand-primary rounded-full transition-all duration-300" 
                     style={{ width: `${item.progress}%` }}
@@ -82,7 +82,7 @@ const MediaCard: React.FC<MediaCardProps> = ({ item, onRemove }) => {
       />
 
       {/* Hover Overlay Content */}
-      <div className={`absolute inset-0 flex flex-col justify-end p-3 opacity-0 group-hover/card:opacity-100 transition-opacity duration-300 z-10 pointer-events-none bg-gradient-to-t from-black via-black/40 to-transparent ${item.progress ? 'pb-12' : ''}`}>
+      <div className={`absolute inset-0 flex flex-col justify-end p-3 opacity-0 group-hover/card:opacity-100 transition-opacity duration-300 z-10 pointer-events-none bg-gradient-to-t from-black via-black/40 to-transparent ${item.progress ? 'pb-10' : ''}`}>
         
         {/* Action Buttons - Pointer events auto to allow clicking */}
         <div className="flex gap-2 mb-3 pointer-events-auto transform translate-y-4 group-hover/card:translate-y-0 transition-transform duration-300">

@@ -10,6 +10,7 @@ const Watch: React.FC = () => {
   const { accentColor, addToContinueWatching } = useAuth();
   const [showUI, setShowUI] = useState(true);
   const detailsRef = useRef<any>(null);
+  const lastUpdateRef = useRef<number>(0);
 
   // Fetch initial details needed for Continue Watching entry
   useEffect(() => {
@@ -38,20 +39,29 @@ const Watch: React.FC = () => {
       }
     };
     fetchDetails();
-  }, [id, type, season, episode]);
+  }, [id, type, season, episode]); // Intentionally exclude addToContinueWatching to avoid init loop
 
   // Listen for progress messages from Videasy
   useEffect(() => {
       const handleMessage = (event: MessageEvent) => {
           try {
-              // The user specified that data might be stringified
+              // Parse data if it's a string
               const data = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
               
-              // We expect data like { currentTime: 120, duration: 3600 } or similar
-              // Adjust based on actual payload if it differs, but this covers standard HTML5/Player events
-              if (data && typeof data.currentTime === 'number' && typeof data.duration === 'number') {
+              if (!data) return;
+
+              // Check for standard time/duration properties
+              const currentTime = data.currentTime ?? data.time ?? data.position;
+              const duration = data.duration ?? data.total ?? data.length;
+
+              if (typeof currentTime === 'number' && typeof duration === 'number' && duration > 0) {
+                  const now = Date.now();
+                  // Throttle updates to every 2 seconds to prevent state/storage thrashing
+                  if (now - lastUpdateRef.current < 2000) return;
+                  lastUpdateRef.current = now;
+
                   if (detailsRef.current && id && type) {
-                      const progressPercent = (data.currentTime / data.duration) * 100;
+                      const progressPercent = (currentTime / duration) * 100;
                       
                       addToContinueWatching({
                           mediaId: parseInt(id),
@@ -64,7 +74,7 @@ const Watch: React.FC = () => {
                           episode: episode ? parseInt(episode) : undefined,
                           watchedAt: Date.now(),
                           progress: progressPercent,
-                          watchedDuration: data.currentTime
+                          watchedDuration: currentTime
                       });
                   }
               }
