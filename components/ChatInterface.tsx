@@ -20,6 +20,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, onSendMessage, 
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -33,8 +34,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, onSendMessage, 
 
   // Adjust initial position on mount to ensure it's visible
   useEffect(() => {
-      const maxX = window.innerWidth - 360;
-      const maxY = window.innerHeight - 520;
+      const maxX = window.innerWidth - 100;
+      const maxY = window.innerHeight - 100;
       setPosition({ 
           x: Math.max(20, Math.min(position.x, maxX)), 
           y: Math.max(20, Math.min(position.y, maxY)) 
@@ -43,7 +44,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, onSendMessage, 
 
   // Drag Handlers
   const handleMouseDown = (e: React.MouseEvent) => {
-      if (!isOpen) return;
+      // Prevent drag if clicking input or buttons inside the header (except the grip/header itself)
+      if ((e.target as HTMLElement).tagName === 'BUTTON' && (e.target as HTMLElement).title !== 'Drag') return;
+      
       setIsDragging(true);
       dragStartPos.current = {
           x: e.clientX - position.x,
@@ -58,9 +61,13 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, onSendMessage, 
           const newX = e.clientX - dragStartPos.current.x;
           const newY = e.clientY - dragStartPos.current.y;
           
-          // Boundaries
-          const maxX = window.innerWidth - (chatRef.current?.offsetWidth || 350);
-          const maxY = window.innerHeight - (chatRef.current?.offsetHeight || 500);
+          // Dynamic Boundaries based on whether open or closed
+          const currentRef = isOpen ? chatRef.current : buttonRef.current;
+          const width = currentRef?.offsetWidth || 60;
+          const height = currentRef?.offsetHeight || 60;
+          
+          const maxX = window.innerWidth - width;
+          const maxY = window.innerHeight - height;
 
           setPosition({
               x: Math.max(0, Math.min(newX, maxX)),
@@ -81,7 +88,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, onSendMessage, 
           window.removeEventListener('mousemove', handleMouseMove);
           window.removeEventListener('mouseup', handleMouseUp);
       };
-  }, [isDragging]);
+  }, [isDragging, isOpen]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -94,8 +101,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, onSendMessage, 
   if (!isOpen) {
     return (
       <button
-        onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 right-6 z-[120] bg-brand-primary text-white p-4 rounded-full shadow-2xl hover:bg-red-700 transition-all transform hover:scale-110 flex items-center justify-center group animate-in zoom-in duration-300"
+        ref={buttonRef}
+        onMouseDown={handleMouseDown}
+        onClick={(e) => {
+            // Only toggle if not dragging
+            if (!isDragging) setIsOpen(true);
+        }}
+        style={{ left: position.x, top: position.y }}
+        className={`fixed z-[120] bg-brand-primary text-white p-4 rounded-full shadow-2xl hover:bg-red-700 transition-colors transform hover:scale-110 flex items-center justify-center group animate-in zoom-in duration-300 cursor-grab active:cursor-grabbing select-none`}
       >
         <MessageSquare className="w-6 h-6" />
         <span className="absolute right-0 top-0 -mt-1 -mr-1 flex h-4 w-4">
@@ -118,6 +131,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, onSendMessage, 
       <div 
         onMouseDown={handleMouseDown}
         className={`flex items-center justify-between p-4 border-b border-white/10 bg-white/5 cursor-grab active:cursor-grabbing select-none ${isDragging ? 'bg-white/10' : ''}`}
+        title="Drag"
       >
         <div className="flex items-center gap-2 pointer-events-none">
             <GripHorizontal className="w-5 h-5 text-gray-500 mr-1" />

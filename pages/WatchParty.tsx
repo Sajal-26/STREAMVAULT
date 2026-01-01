@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Copy, Share2, Link as LinkIcon, AlertCircle, Clock } from 'lucide-react';
+import { ArrowLeft, Copy, Share2, Link as LinkIcon, AlertCircle, Clock, RefreshCw } from 'lucide-react';
 import Peer, { DataConnection } from 'peerjs';
 import { useAuth } from '../context/AuthContext';
 import { ChatMessage } from '../types';
@@ -50,7 +50,11 @@ const WatchParty: React.FC = () => {
   // Sync State
   const [localTime, setLocalTime] = useState(0);
   const [hostTime, setHostTime] = useState(0);
+  const [playerKey, setPlayerKey] = useState(0); // Used to force iframe reload
+  const [startAtTime, setStartAtTime] = useState<number | null>(null);
+  
   const lastSyncRef = useRef<number>(0);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
 
   // Media State for Guest
   const [mediaInfo, setMediaInfo] = useState<{ type: 'movie' | 'tv'; id: string; season?: string; episode?: string } | null>(null);
@@ -101,10 +105,6 @@ const WatchParty: React.FC = () => {
                       }
                   }
               }
-
-              // Guest Logic - Check Sync? 
-              // We can't easily force the iframe to seek without an API, 
-              // but we can monitor the offset.
           } catch (e) {
               // Silent error
           }
@@ -112,7 +112,7 @@ const WatchParty: React.FC = () => {
 
       window.addEventListener('message', handleMessage);
       return () => window.removeEventListener('message', handleMessage);
-  }, [role, connections]); // Depend on connections to know who to broadcast to
+  }, [role, connections]);
 
   // Initialize PeerJS
   useEffect(() => {
@@ -184,7 +184,11 @@ const WatchParty: React.FC = () => {
           
           if (payload.type === 'INIT') {
               setMediaInfo(payload.media);
-              // In a real app we might try to start at startTime here
+              if (payload.startTime > 0) {
+                  setHostTime(payload.startTime);
+                  setStartAtTime(payload.startTime);
+                  setPlayerKey(k => k + 1); // Force reload at correct time
+              }
               showToast('Joined Watch Party!', 'success');
           }
           
@@ -197,9 +201,6 @@ const WatchParty: React.FC = () => {
 
           if (payload.type === 'SYNC') {
               setHostTime(payload.currentTime);
-              // Here we could calculate drift
-              // const drift = Math.abs(localTime - payload.currentTime);
-              // if (drift > 5) { showToast("Syncing...", "info"); }
           }
       });
 
@@ -257,12 +258,24 @@ const WatchParty: React.FC = () => {
       setShowShareModal(false);
   };
 
+  const handleSyncNow = () => {
+      // Hard Sync: Set the start time to current host time and reload the iframe
+      setStartAtTime(hostTime);
+      setPlayerKey(prev => prev + 1);
+      showToast('Syncing to host...', 'info');
+  };
+
   const getPlayerUrl = () => {
       if (!mediaInfo) return '';
       const baseUrl = "https://player.videasy.net";
       const color = accentColor.replace('#', '');
-      const commonParams = `?color=${color}&autoplayNextEpisode=true&autoplay=true`;
+      let commonParams = `?color=${color}&autoplayNextEpisode=true&autoplay=true`;
       
+      // If we have a specific start time (from initial join or manual sync), add it
+      if (startAtTime !== null && startAtTime > 0) {
+          commonParams += `&start=${Math.floor(startAtTime)}`;
+      }
+
       if (mediaInfo.type === 'movie') {
           return `${baseUrl}/movie/${mediaInfo.id}${commonParams}`;
       } else {
@@ -298,10 +311,18 @@ const WatchParty: React.FC = () => {
             </button>
             
             {/* Sync Indicator for Guest */}
-            {role === 'guest' && hostTime > 0 && (
-                 <div className={`px-3 py-1.5 rounded-full backdrop-blur-md border flex items-center gap-2 text-xs font-medium ${isOutOfSync ? 'bg-red-900/50 border-red-500/50 text-red-200' : 'bg-green-900/50 border-green-500/50 text-green-200'}`}>
+            {role === 'guest' && hostTime > 0 && isOutOfSync ? (
+                 <button 
+                    onClick={handleSyncNow}
+                    className="px-4 py-2 rounded-full backdrop-blur-md border border-red-500/50 bg-red-900/60 text-white flex items-center gap-2 text-xs font-bold shadow-lg animate-pulse hover:bg-red-700 transition-colors"
+                 >
+                     <RefreshCw className="w-3 h-3" />
+                     Sync Now ({drift.toFixed(0)}s drift)
+                 </button>
+            ) : role === 'guest' && hostTime > 0 && (
+                <div className="px-3 py-1.5 rounded-full backdrop-blur-md border border-green-500/50 bg-green-900/50 text-green-200 flex items-center gap-2 text-xs font-medium">
                      <Clock className="w-3 h-3" />
-                     {isOutOfSync ? `Sync Drift: ${drift.toFixed(0)}s` : 'Synced'}
+                     Synced
                  </div>
             )}
         </div>
@@ -319,6 +340,8 @@ const WatchParty: React.FC = () => {
       {/* Video Player */}
       {mediaInfo ? (
           <iframe
+            key={playerKey} // Changing key forces React to re-mount iframe
+            ref={iframeRef}
             src={getPlayerUrl()}
             className="w-full h-full border-0 bg-black"
             allowFullScreen
