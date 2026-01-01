@@ -3,10 +3,9 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Copy, Share2, Link as LinkIcon, AlertCircle } from 'lucide-react';
 import Peer, { DataConnection } from 'peerjs';
 import { useAuth } from '../context/AuthContext';
-import { ChatMessage, PartyState } from '../types';
+import { ChatMessage } from '../types';
 import ChatInterface from '../components/ChatInterface';
 import { useToast } from '../context/ToastContext';
-import Navbar from '../components/Navbar';
 
 type PartyRole = 'host' | 'guest';
 
@@ -69,12 +68,14 @@ const WatchParty: React.FC = () => {
 
   // Initialize PeerJS
   useEffect(() => {
-    // Dynamically import PeerJS to avoid SSR/Build issues if any
-    import('peerjs').then(({ default: Peer }) => {
-        const peer = new Peer();
+    // We are now bundling peerjs via package.json, so we can instantiate it directly.
+    // However, we wrap it in a client-side check just in case of SSR, though Vite handles this well usually.
+    let peer: Peer;
+    try {
+        peer = new Peer();
         peerRef.current = peer;
 
-        peer.on('open', (id) => {
+        peer.on('open', (id: string) => {
             setPeerId(id);
             if (role === 'host') {
                 setConnectionStatus('connected');
@@ -85,16 +86,18 @@ const WatchParty: React.FC = () => {
             }
         });
 
-        peer.on('connection', (conn) => {
+        peer.on('connection', (conn: DataConnection) => {
             handleConnection(conn);
         });
 
-        peer.on('error', (err) => {
+        peer.on('error', (err: any) => {
             console.error('Peer error:', err);
             setConnectionStatus('error');
             showToast('Connection error occurred.', 'error');
         });
-    });
+    } catch (e) {
+        console.error("Failed to initialize PeerJS", e);
+    }
 
     return () => {
         peerRef.current?.destroy();
