@@ -14,7 +14,8 @@ const MediaCard: React.FC<MediaCardProps> = ({ item, onRemove }) => {
   const title = item.title || item.name;
   
   // Logic for different media types (Movie/TV uses poster_path, Person uses profile_path, Company uses logo_path)
-  let imageKey = item.poster_path;
+  // Explicitly type imageKey to allow undefined since profile_path/logo_path are optional
+  let imageKey: string | null | undefined = item.poster_path;
   if (item.media_type === 'person') imageKey = item.profile_path;
   if (item.media_type === 'company') imageKey = item.logo_path;
 
