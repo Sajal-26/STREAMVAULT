@@ -220,5 +220,13 @@ export const tmdbService = {
       res.cast = filterQualityContent(res.cast);
       res.crew = filterQualityContent(res.crew);
       return res;
+  },
+
+  // Added: Get a specific List (e.g. IMDb Top 250)
+  getList: async (listId: number | string) => {
+      const res = await fetchFromTMDB<{ items: MediaItem[], name: string }>(`/list/${listId}`);
+      // Adapt list items to standard results
+      const results = filterQualityContent(res.items);
+      return { results, name: res.name };
   }
 };

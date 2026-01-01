@@ -15,6 +15,7 @@ interface RowConfig {
 
 const ROW_CONFIGS: RowConfig[] = [
   { title: 'Popular Movies', categoryId: 'movie_popular', fetcher: () => tmdbService.getPopular('movie') },
+  { title: 'IMDb Top 250', categoryId: 'list_634', fetcher: () => tmdbService.getList(634) },
   { title: 'Bingeworthy TV Shows', categoryId: 'tv_popular', fetcher: () => tmdbService.getPopular('tv') },
   { title: 'Top Rated Movies', categoryId: 'movie_top_rated', fetcher: () => tmdbService.getTopRated('movie') },
   { title: 'Action Movies', categoryId: 'movie_genre_28', fetcher: () => tmdbService.discover('movie', 28) },

@@ -65,7 +65,18 @@ const ViewAll: React.FC = () => {
         return tmdbService.discover('movie', undefined, pageToFetch, keywordId);
     }
 
-    // 5. Standard Categories (legacy format)
+    // 5. TMDB Lists (e.g. list_634)
+    if (categoryId.startsWith('list_')) {
+        const listId = categoryId.replace('list_', '');
+        // Lists endpoint returns all items at once usually, no pagination support on v3 simple endpoint
+        if (pageToFetch > 1) return { results: [] };
+        
+        const res = await tmdbService.getList(listId);
+        setTitle(res.name || 'Curated List');
+        return res;
+    }
+
+    // 6. Standard Categories (legacy format)
     const type = parts[0] === 'tv' ? 'tv' : 'movie'; 
     
     if (categoryId.startsWith('trending')) {
