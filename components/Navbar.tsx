@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from '../services/skipService';
 import { Search, Menu, X, Settings, Star, Download, Layers, Building2, List } from 'lucide-react';
 import { tmdbService } from '../services/tmdb';
 import { MediaItem } from '../types';

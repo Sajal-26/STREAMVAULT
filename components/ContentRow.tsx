@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link } from '../services/skipService';
 import MediaCard from './MediaCard';
 import { MediaItem } from '../types';
 

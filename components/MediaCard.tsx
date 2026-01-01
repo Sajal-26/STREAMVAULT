@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from '../services/skipService';
 import { Star, Play, Info, X, User, Layers, Building2 } from 'lucide-react';
 import { MediaItem } from '../types';
 import { IMAGE_BASE_URL } from '../constants';
