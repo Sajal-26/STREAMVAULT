@@ -1,16 +1,22 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Search, Menu, X, Settings, Star, Download } from 'lucide-react';
+import { Search, Menu, X, Settings, Star, Download, Layers, Building2, List } from 'lucide-react';
 import { tmdbService } from '../services/tmdb';
 import { MediaItem } from '../types';
 import { IMAGE_BASE_URL } from '../constants';
+
+interface SuggestionGroup {
+  label: string;
+  items: MediaItem[];
+  icon: React.ReactNode;
+}
 
 const Navbar: React.FC = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isVisible, setIsVisible] = useState(true);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [suggestions, setSuggestions] = useState<MediaItem[]>([]);
+  const [suggestions, setSuggestions] = useState<SuggestionGroup[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [installPrompt, setInstallPrompt] = useState<any>(null);
   
@@ -64,11 +70,84 @@ const Navbar: React.FC = () => {
     const fetchSuggestions = async () => {
       if (searchQuery.trim().length > 1) {
         try {
-          const res = await tmdbService.search(searchQuery);
-          const filtered = res.results
-            .filter(item => item.media_type === 'movie' || item.media_type === 'tv')
-            .slice(0, 5);
-          setSuggestions(filtered);
+          // Parallel search for categorized preview
+          const [multiRes, collectionRes, companyRes, keywordRes] = await Promise.all([
+             tmdbService.search(searchQuery, 1),
+             tmdbService.searchCollections(searchQuery, 1),
+             tmdbService.searchCompanies(searchQuery, 1),
+             tmdbService.searchKeywords(searchQuery, 1)
+          ]);
+
+          const groups: SuggestionGroup[] = [];
+
+          // 1. Movies & TV (Top 3)
+          const media = multiRes.results
+             .filter(i => i.media_type === 'movie' || i.media_type === 'tv')
+             .slice(0, 3);
+          if (media.length > 0) {
+              groups.push({
+                  label: 'Movies & TV',
+                  items: media,
+                  icon: <Star className="w-3 h-3" />
+              });
+          }
+
+          // 2. Collections (Top 2)
+          const collections = collectionRes.results.slice(0, 2).map((c: any) => ({
+             ...c, media_type: 'collection' as const
+          }));
+          if (collections.length > 0) {
+              groups.push({
+                  label: 'Collections',
+                  items: collections,
+                  icon: <Layers className="w-3 h-3" />
+              });
+          }
+
+          // 3. Companies (Top 2)
+          const companies = companyRes.results.slice(0, 2).map((c: any) => ({
+             id: c.id, 
+             title: c.name, 
+             name: c.name, 
+             logo_path: c.logo_path,
+             poster_path: null, 
+             backdrop_path: null, 
+             overview: '', 
+             vote_average: 0,
+             media_type: 'company' as const
+          }));
+          if (companies.length > 0) {
+              groups.push({
+                  label: 'Companies',
+                  items: companies,
+                  icon: <Building2 className="w-3 h-3" />
+              });
+          }
+
+          // 4. Lists / Keywords (Top 2)
+          const lists = keywordRes.results.slice(0, 2).map((k: any) => ({
+             id: k.id,
+             title: k.name,
+             name: k.name,
+             poster_path: null,
+             backdrop_path: null,
+             overview: 'List',
+             vote_average: 0,
+             media_type: 'collection' as const // Treat keyword as collection for UI simplicity here, handled in click
+          }));
+          // Hack: Add a flag or handle click specifically for keywords
+          // We'll treat them as a special type for the handler
+          const finalLists = lists.map(l => ({...l, media_type: 'keyword_list' as any}));
+
+          if (finalLists.length > 0) {
+              groups.push({
+                  label: 'Lists & Themes',
+                  items: finalLists,
+                  icon: <List className="w-3 h-3" />
+              });
+          }
+
+          setSuggestions(groups);
           setShowSuggestions(true);
         } catch (e) {
           console.error(e);
@@ -92,10 +171,21 @@ const Navbar: React.FC = () => {
     }
   };
 
-  const handleSuggestionClick = (type: string, id: number) => {
-    navigate(`/details/${type}/${id}`);
+  const handleSuggestionClick = (item: MediaItem | any) => {
     setShowSuggestions(false);
     setSearchQuery('');
+    
+    if (item.media_type === 'movie' || item.media_type === 'tv') {
+        navigate(`/details/${item.media_type}/${item.id}`);
+    } else if (item.media_type === 'collection') {
+        navigate(`/collection/${item.id}`);
+    } else if (item.media_type === 'company') {
+        navigate(`/category/company_${item.id}`);
+    } else if (item.media_type === 'keyword_list') {
+        navigate(`/category/keyword_${item.id}`);
+    } else if (item.media_type === 'person') {
+        navigate(`/person/${item.id}`);
+    }
   };
 
   const handleInstallClick = () => {
@@ -160,7 +250,7 @@ const Navbar: React.FC = () => {
                     </div>
                     <input
                         type="text"
-                        placeholder="Titles, people, genres"
+                        placeholder="Search TMDB..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         onFocus={() => { if(suggestions.length > 0) setShowSuggestions(true); }}
@@ -170,37 +260,46 @@ const Navbar: React.FC = () => {
               </form>
               
               {showSuggestions && suggestions.length > 0 && (
-                  <div className="absolute top-full right-0 mt-2 w-72 bg-surface/95 backdrop-blur-xl border border-white/10 rounded-lg shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
-                      {suggestions.map((item) => (
-                          <div 
-                              key={item.id}
-                              onClick={() => handleSuggestionClick(item.media_type, item.id)}
-                              className="flex items-center p-3 hover:bg-white/10 cursor-pointer border-b border-white/5 last:border-0 transition-colors"
-                          >
-                              <div className="w-10 h-14 shrink-0 rounded bg-gray-800 overflow-hidden mr-3">
-                                  {item.poster_path ? (
-                                      <img src={`${IMAGE_BASE_URL}/w92${item.poster_path}`} alt={item.title} className="w-full h-full object-cover" />
-                                  ) : (
-                                      <div className="w-full h-full flex items-center justify-center text-xs text-gray-500">N/A</div>
-                                  )}
+                  <div className="absolute top-full right-0 mt-2 w-80 bg-surface/95 backdrop-blur-xl border border-white/10 rounded-lg shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200 max-h-[80vh] overflow-y-auto">
+                      {suggestions.map((group, gIdx) => (
+                          <div key={gIdx}>
+                              <div className="px-3 py-2 bg-white/5 text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
+                                  {group.icon} {group.label}
                               </div>
-                              <div className="flex-1 min-w-0">
-                                  <h4 className="text-sm font-medium text-white truncate">{item.title || item.name}</h4>
-                                  <div className="flex items-center text-xs text-gray-400 mt-1">
-                                      <span className="capitalize mr-2">{item.media_type === 'movie' ? 'Movie' : 'TV Show'}</span>
-                                      {item.vote_average > 0 && (
-                                          <span className="flex items-center text-green-400">
-                                              <Star className="w-3 h-3 mr-0.5 fill-current" />
-                                              {item.vote_average.toFixed(1)}
-                                          </span>
-                                      )}
-                                  </div>
-                              </div>
+                              {group.items.map((item) => (
+                                <div 
+                                    key={`${item.media_type}-${item.id}`}
+                                    onClick={() => handleSuggestionClick(item)}
+                                    className="flex items-center p-3 hover:bg-white/10 cursor-pointer border-b border-white/5 last:border-0 transition-colors"
+                                >
+                                    <div className="w-10 h-14 shrink-0 rounded bg-gray-800 overflow-hidden mr-3 flex items-center justify-center">
+                                        {item.media_type === 'company' && item.logo_path ? (
+                                             <img src={`${IMAGE_BASE_URL}/w92${item.logo_path}`} alt={item.name} className="w-full h-auto object-contain p-1" />
+                                        ) : item.poster_path ? (
+                                            <img src={`${IMAGE_BASE_URL}/w92${item.poster_path}`} alt={item.title} className="w-full h-full object-cover" />
+                                        ) : (
+                                            <div className="text-[10px] text-gray-500 text-center p-1">{item.title?.[0] || item.name?.[0]}</div>
+                                        )}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <h4 className="text-sm font-medium text-white truncate">{item.title || item.name}</h4>
+                                        <div className="flex items-center text-xs text-gray-400 mt-1">
+                                            {item.vote_average > 0 && (
+                                                <span className="flex items-center text-green-400 mr-2">
+                                                    <Star className="w-3 h-3 mr-0.5 fill-current" />
+                                                    {item.vote_average.toFixed(1)}
+                                                </span>
+                                            )}
+                                            {item.release_date && <span>{item.release_date.split('-')[0]}</span>}
+                                        </div>
+                                    </div>
+                                </div>
+                              ))}
                           </div>
                       ))}
                       <div 
                         onClick={(e) => handleSearch(e as any)}
-                        className="p-3 text-center text-xs font-medium text-brand-primary cursor-pointer hover:bg-white/5 transition-colors uppercase tracking-wider"
+                        className="p-3 text-center text-xs font-medium text-brand-primary cursor-pointer hover:bg-white/5 transition-colors uppercase tracking-wider border-t border-white/10"
                       >
                           View All Results
                       </div>

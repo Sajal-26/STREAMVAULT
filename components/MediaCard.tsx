@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Star, Play, Info, X, User, Layers } from 'lucide-react';
+import { Star, Play, Info, X, User, Layers, Building2 } from 'lucide-react';
 import { MediaItem } from '../types';
 import { IMAGE_BASE_URL } from '../constants';
 
@@ -13,20 +13,29 @@ const MediaCard: React.FC<MediaCardProps> = ({ item, onRemove }) => {
   const navigate = useNavigate();
   const title = item.title || item.name;
   
-  // Logic for different media types (Movie/TV uses poster_path, Person uses profile_path)
-  const imageKey = item.media_type === 'person' ? item.profile_path : item.poster_path;
-  const imagePath = imageKey ? `${IMAGE_BASE_URL}/w342${imageKey}` : null;
+  // Logic for different media types (Movie/TV uses poster_path, Person uses profile_path, Company uses logo_path)
+  let imageKey = item.poster_path;
+  if (item.media_type === 'person') imageKey = item.profile_path;
+  if (item.media_type === 'company') imageKey = item.logo_path;
+
+  // Use w500 for logos to ensure clarity if they are small
+  const imageSize = item.media_type === 'company' ? 'w500' : 'w342';
+  const imagePath = imageKey ? `${IMAGE_BASE_URL}/${imageSize}${imageKey}` : null;
+  
   const mediaType = item.media_type || 'movie';
 
   const isPerson = mediaType === 'person';
   const isCollection = mediaType === 'collection'; 
+  const isCompany = mediaType === 'company';
 
   const handlePlay = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (isPerson || isCollection) {
-         // Cannot play a person or collection directly, navigate to their page
-         navigate(isPerson ? `/person/${item.id}` : `/collection/${item.id}`);
+    if (isPerson || isCollection || isCompany) {
+         // Cannot play directly, navigate to their page
+         if (isPerson) navigate(`/person/${item.id}`);
+         if (isCollection) navigate(`/collection/${item.id}`);
+         if (isCompany) navigate(`/category/company_${item.id}`);
          return;
     }
 
@@ -47,8 +56,6 @@ const MediaCard: React.FC<MediaCardProps> = ({ item, onRemove }) => {
   };
 
   const formatRemainingTime = () => {
-      // If we have totalDuration, use it.
-      // If not (legacy data), try to estimate from progress (less accurate but fallback)
       let total = item.totalDuration;
       if (!total && item.progress && item.progress > 0 && item.watchedDuration) {
           total = item.watchedDuration / (item.progress / 100);
@@ -76,23 +83,25 @@ const MediaCard: React.FC<MediaCardProps> = ({ item, onRemove }) => {
   let linkTarget = `/details/${mediaType}/${item.id}`;
   if (isPerson) linkTarget = `/person/${item.id}`;
   if (isCollection) linkTarget = `/collection/${item.id}`;
+  if (isCompany) linkTarget = `/category/company_${item.id}`;
 
   const remainingTimeText = formatRemainingTime();
 
   return (
     <div className="group/card relative block w-full aspect-[2/3] rounded-md bg-surface transition-all duration-300 hover:scale-110 hover:z-20 hover:shadow-[0_0_20px_rgba(0,0,0,0.5)] cursor-pointer ring-1 ring-white/5 hover:ring-white/20">
-      <div className="absolute inset-0 overflow-hidden rounded-md bg-gray-800">
+      <div className={`absolute inset-0 overflow-hidden rounded-md bg-gray-800 ${isCompany ? 'flex items-center justify-center bg-white p-4' : ''}`}>
           {imagePath ? (
             <img
                 src={imagePath}
                 alt={title}
-                className="h-full w-full object-cover transition-opacity duration-300 group-hover/card:opacity-40"
+                className={`w-full h-full object-cover transition-opacity duration-300 group-hover/card:opacity-40 ${isCompany ? 'object-contain group-hover/card:opacity-90' : ''}`}
                 loading="lazy"
             />
           ) : (
             <div className="flex flex-col items-center justify-center h-full text-secondary p-2 text-center">
                 {isPerson ? <User className="w-12 h-12 mb-2 opacity-50" /> : 
                  isCollection ? <Layers className="w-12 h-12 mb-2 opacity-50" /> :
+                 isCompany ? <Building2 className="w-12 h-12 mb-2 opacity-50" /> :
                  <Info className="w-12 h-12 mb-2 opacity-50" />}
                 <span className="text-xs">{title}</span>
             </div>
@@ -143,7 +152,7 @@ const MediaCard: React.FC<MediaCardProps> = ({ item, onRemove }) => {
         
         {/* Action Buttons */}
         <div className="flex gap-2 mb-3 pointer-events-auto transform translate-y-4 group-hover/card:translate-y-0 transition-transform duration-300">
-            {!isPerson && !isCollection && (
+            {!isPerson && !isCollection && !isCompany && (
                 <button 
                     onClick={handlePlay}
                     className="flex-1 flex items-center justify-center bg-white text-black py-2 rounded font-bold text-xs hover:bg-gray-200 transition-colors shadow-lg"
@@ -155,15 +164,15 @@ const MediaCard: React.FC<MediaCardProps> = ({ item, onRemove }) => {
             <Link 
                 to={linkTarget}
                 className={`flex-1 flex items-center justify-center ${
-                    (isPerson || isCollection) ? 'bg-brand-primary text-white hover:opacity-90' : 'bg-gray-600/60 text-white hover:bg-gray-500'
+                    (isPerson || isCollection || isCompany) ? 'bg-brand-primary text-white hover:opacity-90' : 'bg-gray-600/60 text-white hover:bg-gray-500'
                 } py-2 rounded font-bold text-xs transition-colors backdrop-blur-sm shadow-lg border border-white/10`}
             >
-                {(isPerson || isCollection) ? 'View' : 'Info'}
+                {(isPerson || isCollection || isCompany) ? 'View' : 'Info'}
             </Link>
         </div>
 
         <h3 className="text-white font-bold text-sm line-clamp-2 leading-tight mb-1 drop-shadow-md">{title}</h3>
-        {!isPerson && !isCollection && (
+        {!isPerson && !isCollection && !isCompany && (
             <div className="flex items-center justify-between text-xs text-gray-300">
             <span className="flex items-center text-green-400 font-medium drop-shadow-md">
                 <Star className="w-3 h-3 mr-1 fill-current" />
@@ -176,6 +185,7 @@ const MediaCard: React.FC<MediaCardProps> = ({ item, onRemove }) => {
         )}
         {isPerson && <p className="text-xs text-gray-300">Person</p>}
         {isCollection && <p className="text-xs text-gray-300">Collection</p>}
+        {isCompany && <p className="text-xs text-gray-300">Company</p>}
       </div>
     </div>
   );

@@ -115,22 +115,29 @@ export const tmdbService = {
     return fetchFromTMDB<{ results: { id: number, name: string }[] }>('/search/keyword', { query, page: page.toString() });
   },
 
+  // Search companies (e.g. T-Series, Marvel)
+  searchCompanies: async (query: string, page: number = 1) => {
+    return fetchFromTMDB<{ results: { id: number, name: string, logo_path: string | null }[] }>('/search/company', { query, page: page.toString() });
+  },
+
   getGenres: async (type: 'movie' | 'tv') => {
     return fetchFromTMDB<{ genres: Genre[] }>(`/genre/${type}/list`);
   },
   
-  discover: async (type: 'movie' | 'tv', genreId?: number, page: number = 1, keywordId?: number) => {
+  discover: async (type: 'movie' | 'tv', genreId?: number, page: number = 1, keywordId?: number, companyId?: number) => {
       const params: Record<string, string> = {
           page: page.toString(),
           sort_by: 'popularity.desc'
       };
       if (genreId) params.with_genres = genreId.toString();
       if (keywordId) params.with_keywords = keywordId.toString();
+      if (companyId) params.with_companies = companyId.toString();
       
       return fetchFromTMDB<{ results: MediaItem[] }>(`/discover/${type}`, params);
   },
 
   discoverByProvider: async (providerId: number, type: 'movie' | 'tv', page: number = 1) => {
+      // Default to US region
       return fetchFromTMDB<{ results: MediaItem[] }>(`/discover/${type}`, {
           with_watch_providers: providerId.toString(),
           watch_region: 'US',
@@ -145,10 +152,12 @@ export const tmdbService = {
       });
   },
 
+  // Added: Fetch Collection Details
   getCollectionDetails: async (collectionId: number) => {
       return fetchFromTMDB<CollectionDetails>(`/collection/${collectionId}`);
   },
 
+  // Added: Get combined credits for a person (for "More from X" section)
   getPersonCredits: async (personId: number) => {
       return fetchFromTMDB<{cast: MediaItem[], crew: MediaItem[]}>(`/person/${personId}/combined_credits`);
   }

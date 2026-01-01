@@ -28,12 +28,13 @@ export interface MediaItem {
   name?: string;
   poster_path: string | null;
   profile_path?: string | null; // For People
+  logo_path?: string | null; // For Companies
   backdrop_path: string | null;
   overview: string;
   vote_average: number;
   release_date?: string;
   first_air_date?: string;
-  media_type: 'movie' | 'tv' | 'person' | 'collection';
+  media_type: 'movie' | 'tv' | 'person' | 'collection' | 'company';
   original_language?: string;
   genre_ids?: number[];
   character?: string; // For cast credits

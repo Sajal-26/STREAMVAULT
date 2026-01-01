@@ -19,52 +19,66 @@ const SearchPage: React.FC = () => {
 
       const timer = setTimeout(() => {
         // Parallel fetch for:
-        // 1. Multi Search (Direct matches)
+        // 1. Multi Search (Movies/TV/People)
         // 2. Collections (Franchises)
-        // 3. Keywords (Themes/Lists like "Oscar", "Anime", "Superhero")
+        // 3. Keywords (Themes/Lists)
+        // 4. Companies (Studios/Networks)
         Promise.all([
             tmdbService.search(query),
             tmdbService.searchCollections(query),
-            tmdbService.searchKeywords(query)
-        ]).then(async ([multiRes, collectionRes, keywordRes]) => {
+            tmdbService.searchKeywords(query),
+            tmdbService.searchCompanies(query)
+        ]).then(async ([multiRes, collectionRes, keywordRes, companyRes]) => {
           
           let allResults: MediaItem[] = [];
 
-          // 1. Process Collections
+          // 1. Process Companies
+          const companies: MediaItem[] = companyRes.results.map((c: any) => ({
+             id: c.id,
+             title: c.name,
+             name: c.name,
+             logo_path: c.logo_path,
+             poster_path: null,
+             backdrop_path: null,
+             overview: 'Production Company',
+             vote_average: 0,
+             media_type: 'company' as const
+          }));
+          allResults = [...companies];
+
+          // 2. Process Collections
           const collections: MediaItem[] = collectionRes.results.map((c: any) => ({
              ...c,
              title: c.name,
-             media_type: 'collection',
+             media_type: 'collection' as const,
              vote_average: 0,
              overview: 'Collection'
           }));
-          allResults = [...collections];
+          allResults = [...allResults, ...collections];
 
-          // 2. Process Keywords (Smart List Discovery)
-          // If we find a strong keyword match (e.g. "Oscar"), fetch content for that keyword
-          // This simulates finding "Lists"
+          // 3. Process Keywords (Smart List Discovery)
           if (keywordRes.results.length > 0) {
               const topKeyword = keywordRes.results[0];
-              // Only fetch if the keyword is somewhat relevant or exact
-              // Fetch movies with this keyword
               try {
                   const keywordMovies = await tmdbService.discover('movie', undefined, 1, topKeyword.id);
                   if (keywordMovies.results.length > 0) {
                       setKeywordResult(topKeyword.name);
-                      // Add distinct items from keyword search to the top (or mixed in)
                       const taggedItems = keywordMovies.results.map(m => ({...m, media_type: 'movie' as const}));
                       allResults = [...allResults, ...taggedItems];
                   }
               } catch (e) { console.error("Keyword fetch failed", e); }
           }
 
-          // 3. Process Standard Multi Search
+          // 4. Process Standard Multi Search (Movies/TV/People)
           allResults = [...allResults, ...multiRes.results];
           
-          // Remove duplicates based on ID
-          const uniqueResults = Array.from(new Map(allResults.map(item => [item.id, item])).values());
-
-          setResults(uniqueResults);
+          // Remove duplicates based on ID AND media_type (since ID collisions can occur across types)
+          const uniqueMap = new Map();
+          allResults.forEach(item => {
+              uniqueMap.set(`${item.media_type}-${item.id}`, item);
+          });
+          
+          setResults(Array.from(uniqueMap.values()));
           setLoading(false);
         }).catch(err => {
             console.error(err);
@@ -99,7 +113,6 @@ const SearchPage: React.FC = () => {
         ) : results.length > 0 ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-6 mt-6">
             {results.map((item, index) => (
-              // Add index to key because sometimes collections and movies might have same ID but different types
               <MediaCard key={`${item.id}-${item.media_type}-${index}`} item={item} />
             ))}
           </div>
@@ -108,7 +121,7 @@ const SearchPage: React.FC = () => {
             {query ? (
                 <>
                     <p className="text-xl">No results found.</p>
-                    <p className="text-sm mt-2">Try searching for movies, TV shows, people, or collections.</p>
+                    <p className="text-sm mt-2">Try searching for movies, TV shows, people, companies or collections.</p>
                 </>
             ) : (
                 <p className="text-xl">Enter a search term.</p>

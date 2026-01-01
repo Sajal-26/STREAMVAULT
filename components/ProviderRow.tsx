@@ -45,6 +45,10 @@ const ProviderRow: React.FC<ProviderRowProps> = ({ type, titlePrefix }) => {
     return () => { isMounted = false; };
   }, [selectedProvider, type]);
 
+  // Construct category ID for View All page
+  // Format: provider_[type]_[providerId] e.g., provider_movie_8
+  const categoryId = `provider_${type}_${selectedProvider.id}`;
+
   return (
     <div className="mb-8 md:mb-12 relative">
       {/* Custom Header with Tabs */}
@@ -88,7 +92,7 @@ const ProviderRow: React.FC<ProviderRowProps> = ({ type, titlePrefix }) => {
       ) : (
         /* Adjusted margin to -mt-4 since we removed the empty title space in ContentRow */
         <div className="-mt-4 relative z-10">
-             <ContentRow title="" items={items} />
+             <ContentRow title="" items={items} categoryId={categoryId} />
         </div>
       )}
     </div>

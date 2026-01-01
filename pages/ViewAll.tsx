@@ -22,10 +22,39 @@ const ViewAll: React.FC = () => {
     if (!categoryId) return { results: [] };
 
     const parts = categoryId.split('_');
-    const type = parts[0] === 'tv' ? 'tv' : 'movie'; // Default to movie if unspecified or complex
+    // parts[0] is the type (trending, movie, tv, provider, company, keyword)
     
-    // Logic to map ID to Service Call
-    // Format: [type]_[source]_[id] e.g. movie_genre_28, movie_popular, trending_week
+    // 1. Providers
+    if (categoryId.startsWith('provider')) {
+        // Format: provider_[type]_[id]
+        const type = parts[1] as 'movie' | 'tv';
+        const providerId = parseInt(parts[2]);
+        const providerNames: Record<number, string> = { 
+            8: 'Netflix', 9: 'Prime Video', 337: 'Disney+', 188: 'Max', 2: 'Apple TV' 
+        };
+        setTitle(`${type === 'movie' ? 'Movies' : 'TV Shows'} on ${providerNames[providerId] || 'Streaming'}`);
+        return tmdbService.discoverByProvider(providerId, type, pageToFetch);
+    }
+
+    // 2. Companies
+    if (categoryId.startsWith('company')) {
+        // Format: company_[id]
+        const companyId = parseInt(parts[1]);
+        setTitle('Production Company'); // Generic title, hard to fetch name without extra call
+        // Default to movies for company view
+        return tmdbService.discover('movie', undefined, pageToFetch, undefined, companyId);
+    }
+
+    // 3. Keywords (Lists)
+    if (categoryId.startsWith('keyword')) {
+        // Format: keyword_[id]
+        const keywordId = parseInt(parts[1]);
+        setTitle('Curated Collection');
+        return tmdbService.discover('movie', undefined, pageToFetch, keywordId);
+    }
+    
+    // 4. Standard Categories
+    const type = parts[0] === 'tv' ? 'tv' : 'movie'; 
     
     if (categoryId.startsWith('trending')) {
         setTitle("Trending Now");
@@ -45,13 +74,10 @@ const ViewAll: React.FC = () => {
     if (categoryId.includes('genre')) {
         // Expected: movie_genre_28
         const genreId = parseInt(parts[2]);
-        // We can't easily get Genre Name here without a separate fetch, but we can set a generic title
-        // Or mapping if we wanted to be fancy.
         setTitle(`${type === 'movie' ? 'Movie' : 'TV'} Collection`);
         return tmdbService.discover(type, genreId, pageToFetch);
     }
 
-    // Fallback for custom provider lists if we were to add them later
     return { results: [] };
   };
 
