@@ -22,7 +22,8 @@ const Watch: React.FC = () => {
   useEffect(() => {
       const baseUrl = "https://player.videasy.net";
       const color = accentColor.replace('#', '');
-      const commonParams = `?color=${color}&overlay=true&autoplayNextEpisode=true&episodeSelector=true&autoplay=true`;
+      // Removed overlay=true and episodeSelector=true to remove the external player's custom buttons
+      const commonParams = `?color=${color}&autoplayNextEpisode=true&autoplay=true`;
 
       let src = "";
       if (type === 'movie') {
