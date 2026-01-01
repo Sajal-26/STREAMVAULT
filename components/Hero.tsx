@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Play, Info, ChevronLeft, ChevronRight, Star, Calendar } from 'lucide-react';
+import { Play, Info, ChevronLeft, ChevronRight, Star, Calendar, Clock } from 'lucide-react';
 import { MediaItem } from '../types';
 import { tmdbService } from '../services/tmdb';
 import { IMAGE_BASE_URL } from '../constants';
@@ -155,6 +155,13 @@ const Hero: React.FC<HeroProps> = ({ items }) => {
                     <div className="flex items-center text-gray-200 bg-white/10 px-2 py-1 rounded backdrop-blur-md">
                         <Calendar className="w-3.5 h-3.5 mr-1.5" />
                         {year}
+                    </div>
+                )}
+                
+                {runtime && (
+                    <div className="flex items-center text-gray-200 bg-white/10 px-2 py-1 rounded backdrop-blur-md">
+                        <Clock className="w-3.5 h-3.5 mr-1.5" />
+                        {formatRuntime(runtime)}
                     </div>
                 )}
                 
