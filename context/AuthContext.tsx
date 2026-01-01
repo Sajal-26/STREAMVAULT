@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { WatchlistItem, LikedItem, ContinueWatchingItem } from '../types';
+import { WatchlistItem, LikedItem, ContinueWatchingItem, WatchHistoryItem } from '../types';
 import { api } from '../services/api';
 
 interface AuthContextType {
@@ -19,6 +19,10 @@ interface AuthContextType {
   continueWatching: ContinueWatchingItem[];
   addToContinueWatching: (item: ContinueWatchingItem) => void;
   removeFromContinueWatching: (mediaId: number) => void;
+
+  watchHistory: WatchHistoryItem[];
+  addToWatchHistory: (item: WatchHistoryItem) => void;
+  removeFromWatchHistory: (mediaId: number) => void;
   
   clearData: () => void;
 }
@@ -31,6 +35,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [watchlist, setWatchlist] = useState<WatchlistItem[]>(() => api.getWatchlist());
   const [likedItems, setLikedItems] = useState<LikedItem[]>(() => api.getLikes());
   const [continueWatching, setContinueWatching] = useState<ContinueWatchingItem[]>(() => api.getContinueWatching());
+  const [watchHistory, setWatchHistory] = useState<WatchHistoryItem[]>(() => api.getWatchHistory());
 
   const setAccentColor = useCallback((color: string) => {
     setAccentColorState(color);
@@ -74,11 +79,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setContinueWatching(updated);
   }, []);
 
+  const addToWatchHistory = useCallback((item: WatchHistoryItem) => {
+      const updated = api.addToWatchHistory(item);
+      setWatchHistory(updated);
+  }, []);
+
+  const removeFromWatchHistory = useCallback((mediaId: number) => {
+      const updated = api.removeFromWatchHistory(mediaId);
+      setWatchHistory(updated);
+  }, []);
+
   const clearData = useCallback(() => {
       api.clearAllData();
       setWatchlist([]);
       setLikedItems([]);
       setContinueWatching([]);
+      setWatchHistory([]);
   }, []);
 
   return (
@@ -87,6 +103,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       watchlist, addToWatchlist, removeFromWatchlist,
       likedItems, addToLikes, removeFromLikes,
       continueWatching, addToContinueWatching, removeFromContinueWatching,
+      watchHistory, addToWatchHistory, removeFromWatchHistory,
       clearData
     }}>
       {children}

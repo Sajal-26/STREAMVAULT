@@ -18,6 +18,10 @@ export interface ContinueWatchingItem extends WatchlistItem {
   totalDuration?: number; // Total duration in seconds
 }
 
+export interface WatchHistoryItem extends WatchlistItem {
+  watchedAt: number;
+}
+
 export interface LikedItem extends WatchlistItem {
   likedAt?: string;
 }

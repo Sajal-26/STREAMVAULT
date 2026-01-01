@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { tmdbService } from '../services/tmdb';
 import { MediaItem } from '../types';
 import ContentRow from './ContentRow';
+import { Link } from 'react-router-dom';
+import { ArrowRight } from 'lucide-react';
 
 // User defined provider map
 const PROVIDER_CONFIG = [
@@ -54,11 +56,21 @@ const ProviderRow: React.FC<ProviderRowProps> = ({ type, titlePrefix }) => {
       {/* Custom Header with Tabs */}
       <div className="relative z-20 px-4 md:px-12 flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
           
-          {/* Title Area */}
-          <h2 className="text-lg md:text-2xl font-bold text-white flex items-center">
-            <span className="w-1 h-5 md:h-6 bg-brand-primary mr-3 rounded-full"></span>
-            {titlePrefix} <span className="ml-2 text-brand-primary">{selectedProvider.name}</span>
-          </h2>
+          {/* Title Area + Explore All */}
+          <div className="flex items-center gap-4">
+              <h2 className="text-lg md:text-2xl font-bold text-white flex items-center">
+                <span className="w-1 h-5 md:h-6 bg-brand-primary mr-3 rounded-full"></span>
+                {titlePrefix} <span className="ml-2 text-brand-primary">{selectedProvider.name}</span>
+              </h2>
+
+              <Link 
+                to={`/category/${slug}`}
+                className="group/link flex items-center text-xs md:text-sm font-semibold text-brand-primary hover:text-white transition-colors"
+              >
+                Explore All 
+                <ArrowRight className="w-4 h-4 ml-1 transform group-hover/link:translate-x-1 transition-transform" />
+              </Link>
+          </div>
 
           {/* Provider Tabs */}
           <div className="flex items-center space-x-4 md:space-x-6 overflow-x-auto hide-scrollbar pb-2 md:pb-0">
@@ -88,7 +100,8 @@ const ProviderRow: React.FC<ProviderRowProps> = ({ type, titlePrefix }) => {
       ) : (
         /* Adjusted margin to -mt-4 since we removed the empty title space in ContentRow */
         <div className="-mt-4 relative z-10">
-             <ContentRow title="" items={items} categoryId={slug} />
+             {/* Note: ContentRow also has a title/explore mechanism, but we suppress it here by passing empty title and no categoryId to ContentRow itself, as we built a custom header above */}
+             <ContentRow title="" items={items} />
         </div>
       )}
     </div>

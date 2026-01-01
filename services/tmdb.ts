@@ -133,6 +133,12 @@ export const tmdbService = {
     });
   },
 
+  getRecommendations: async (type: 'movie' | 'tv', id: number, page: number = 1) => {
+      const res = await fetchFromTMDB<{ results: MediaItem[] }>(`/${type}/${id}/recommendations`, { page: page.toString() });
+      res.results = filterQualityContent(res.results);
+      return res;
+  },
+
   search: async (query: string, page: number = 1) => {
     const res = await fetchFromTMDB<{ results: MediaItem[] }>('/search/multi', { query, page: page.toString() });
     res.results = filterQualityContent(res.results);

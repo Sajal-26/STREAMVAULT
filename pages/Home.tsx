@@ -36,7 +36,11 @@ const Home: React.FC = () => {
   const [loadedRows, setLoadedRows] = useState<Record<string, MediaItem[]>>({});
   const [initialLoading, setInitialLoading] = useState(true);
   
-  const { continueWatching, removeFromContinueWatching, watchlist } = useAuth();
+  // Recommendation States
+  const [likedRecommendations, setLikedRecommendations] = useState<{title: string, items: MediaItem[]} | null>(null);
+  const [watchedRecommendations, setWatchedRecommendations] = useState<{title: string, items: MediaItem[]} | null>(null);
+  
+  const { continueWatching, removeFromContinueWatching, watchlist, likedItems, watchHistory } = useAuth();
   const hasFetchedRows = useRef(false);
 
   useEffect(() => {
@@ -94,6 +98,40 @@ const Home: React.FC = () => {
 
     fetchInitial();
   }, []);
+
+  // Effect to fetch "Because you liked"
+  useEffect(() => {
+      if (likedItems.length > 0) {
+          const lastLiked = likedItems[0];
+          tmdbService.getRecommendations(lastLiked.mediaType, lastLiked.mediaId)
+             .then(res => {
+                 if (res.results.length > 0) {
+                     setLikedRecommendations({
+                         title: `Because you liked ${lastLiked.title}`,
+                         items: res.results.map(i => ({...i, media_type: lastLiked.mediaType}))
+                     });
+                 }
+             })
+             .catch(err => console.error("Recs error", err));
+      }
+  }, [likedItems]);
+
+  // Effect to fetch "Because you watched"
+  useEffect(() => {
+      if (watchHistory.length > 0) {
+          const lastWatched = watchHistory[0];
+          tmdbService.getRecommendations(lastWatched.mediaType, lastWatched.mediaId)
+             .then(res => {
+                 if (res.results.length > 0) {
+                     setWatchedRecommendations({
+                         title: `Because you watched ${lastWatched.title}`,
+                         items: res.results.map(i => ({...i, media_type: lastWatched.mediaType}))
+                     });
+                 }
+             })
+             .catch(err => console.error("Recs error", err));
+      }
+  }, [watchHistory]);
 
   // Convert ContinueWatchingItems to MediaItems for ContentRow
   const continueWatchingItems: MediaItem[] = continueWatching.map(item => ({
@@ -158,17 +196,33 @@ const Home: React.FC = () => {
                 items={watchlistItems}
             />
         )}
+        
+        {/* 3. Because you liked... */}
+        {likedRecommendations && (
+            <ContentRow
+                title={likedRecommendations.title}
+                items={likedRecommendations.items}
+            />
+        )}
 
-        {/* 3. Trending Row */}
+         {/* 4. Because you watched... */}
+        {watchedRecommendations && (
+            <ContentRow
+                title={watchedRecommendations.title}
+                items={watchedRecommendations.items}
+            />
+        )}
+
+        {/* 5. Trending Row */}
         {trendingItems.length > 0 && (
             <ContentRow title="Trending Now" items={trendingItems} categoryId="trending_week" />
         )}
 
-        {/* 4. Provider Rows (New Feature) */}
+        {/* 6. Provider Rows (New Feature) */}
         <ProviderRow type="tv" titlePrefix="Series on" />
         <ProviderRow type="movie" titlePrefix="Movies on" />
 
-        {/* 5. Dynamic Rows */}
+        {/* 7. Dynamic Rows */}
         {ROW_CONFIGS.map((config) => (
             loadedRows[config.title] ? (
                 <ContentRow 

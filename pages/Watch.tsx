@@ -7,13 +7,14 @@ import { tmdbService } from '../services/tmdb';
 const Watch: React.FC = () => {
   const { type, id, season, episode } = useParams();
   const navigate = useNavigate();
-  const { accentColor, addToContinueWatching } = useAuth();
+  const { accentColor, addToContinueWatching, removeFromContinueWatching, addToWatchHistory } = useAuth();
   const [showUI, setShowUI] = useState(true);
   const [playerUrl, setPlayerUrl] = useState<string>('');
   
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const detailsRef = useRef<any>(null);
   const lastUpdateRef = useRef<number>(0);
+  const addedToHistoryRef = useRef<boolean>(false);
   
   const currentSeasonRef = useRef(season ? parseInt(season) : 1);
   const currentEpisodeRef = useRef(episode ? parseInt(episode) : 1);
@@ -34,6 +35,8 @@ const Watch: React.FC = () => {
           src = `${baseUrl}/tv/${id}/${s}/${e}${commonParams}&nextEpisode=true`;
       }
       setPlayerUrl(src);
+      // Reset history flag on navigation
+      addedToHistoryRef.current = false;
   }, [type, id, accentColor, season, episode]); 
 
   // Fetch Metadata
@@ -92,6 +95,8 @@ const Watch: React.FC = () => {
                    if (newSeason !== currentSeasonRef.current || newEpisode !== currentEpisodeRef.current) {
                        currentSeasonRef.current = newSeason;
                        currentEpisodeRef.current = newEpisode;
+                       // Reset history flag for new episode
+                       addedToHistoryRef.current = false;
                        // Trigger internal navigation
                        navigate(`/watch/tv/${id}/${newSeason}/${newEpisode}`, { replace: true });
                    }
@@ -103,10 +108,29 @@ const Watch: React.FC = () => {
 
               if (typeof currentTime === 'number' && typeof duration === 'number' && duration > 0) {
                   const now = Date.now();
-                  if (now - lastUpdateRef.current > 5000) { // Update every 5s
+                  const progressPercent = (currentTime / duration) * 100;
+                  
+                  // Logic: > 90% -> Add to Watch History (Completed)
+                  if (progressPercent > 90 && !addedToHistoryRef.current && detailsRef.current) {
+                      addToWatchHistory({
+                          mediaId: parseInt(id!),
+                          mediaType: type as 'movie' | 'tv',
+                          title: detailsRef.current.title || detailsRef.current.name || 'Unknown',
+                          posterPath: detailsRef.current.poster_path,
+                          voteAverage: detailsRef.current.vote_average,
+                          releaseDate: detailsRef.current.release_date || detailsRef.current.first_air_date,
+                          watchedAt: Date.now()
+                      });
+                      addedToHistoryRef.current = true;
+                  }
+
+                  // Logic: > 95% -> Remove from Continue Watching
+                  if (progressPercent > 95) {
+                      removeFromContinueWatching(parseInt(id!));
+                  } else if (now - lastUpdateRef.current > 5000) { 
+                      // Only update continue watching every 5s if under 95%
                       lastUpdateRef.current = now;
                       if (detailsRef.current && id && type) {
-                          const progressPercent = (currentTime / duration) * 100;
                           addToContinueWatching({
                               mediaId: parseInt(id),
                               mediaType: type as 'movie' | 'tv',
@@ -131,7 +155,7 @@ const Watch: React.FC = () => {
 
       window.addEventListener('message', handleMessage);
       return () => window.removeEventListener('message', handleMessage);
-  }, [id, type, addToContinueWatching, navigate]);
+  }, [id, type, addToContinueWatching, removeFromContinueWatching, addToWatchHistory, navigate]);
 
   // Auto-hide UI
   useEffect(() => {
