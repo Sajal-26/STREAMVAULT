@@ -47,9 +47,10 @@ const ProviderRow: React.FC<ProviderRowProps> = ({ type, titlePrefix }) => {
   }, [selectedProvider, type]);
 
   return (
-    <div className="mb-8 md:mb-12">
+    <div className="mb-8 md:mb-12 relative">
       {/* Custom Header with Tabs */}
-      <div className="px-4 md:px-12 flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+      {/* Added relative z-20 to ensure this sits ABOVE the content row so buttons are clickable */}
+      <div className="relative z-20 px-4 md:px-12 flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
           
           {/* Title Area */}
           <h2 className="text-lg md:text-2xl font-bold text-white flex items-center">
@@ -80,14 +81,14 @@ const ProviderRow: React.FC<ProviderRowProps> = ({ type, titlePrefix }) => {
 
       {/* Content Area */}
       {loading ? (
-        <div className="px-4 md:px-12 flex space-x-4 overflow-hidden">
+        <div className="px-4 md:px-12 flex space-x-4 overflow-hidden relative z-10">
              {[1, 2, 3, 4, 5, 6].map((i) => (
                 <div key={i} className="min-w-[150px] w-[150px] sm:min-w-[180px] sm:w-[180px] md:min-w-[220px] md:w-[220px] aspect-[2/3] bg-surface rounded-md animate-pulse border border-white/5" />
             ))}
         </div>
       ) : (
-        /* Passing an Empty Title to ContentRow because we built our own custom header above */
-        <div className="-mt-12"> {/* Negative margin to pull the row up into our custom header space */}
+        /* Adjusted margin to -mt-4 since we removed the empty title space in ContentRow */
+        <div className="-mt-4 relative z-10">
              <ContentRow title="" items={items} />
         </div>
       )}

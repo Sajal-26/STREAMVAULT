@@ -57,10 +57,12 @@ const ContentRow: React.FC<ContentRowProps> = ({ title, items, onRemove }) => {
 
   return (
     <div className="mb-8 md:mb-12 px-4 md:px-12 relative group/row">
-      <h2 className="text-lg md:text-2xl font-bold text-primary mb-3 md:mb-4 flex items-center">
-        <span className="w-1 h-5 md:h-6 bg-brand-primary mr-3 rounded-full"></span>
-        {title}
-      </h2>
+      {title && (
+        <h2 className="text-lg md:text-2xl font-bold text-primary mb-3 md:mb-4 flex items-center">
+          <span className="w-1 h-5 md:h-6 bg-brand-primary mr-3 rounded-full"></span>
+          {title}
+        </h2>
+      )}
       
       <div className="relative">
         {canScrollLeft && (
