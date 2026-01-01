@@ -103,7 +103,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, onSendMessage, 
       <button
         ref={buttonRef}
         onMouseDown={handleMouseDown}
-        onClick={(e) => {
+        onClick={() => {
             // Only toggle if not dragging
             if (!isDragging) setIsOpen(true);
         }}

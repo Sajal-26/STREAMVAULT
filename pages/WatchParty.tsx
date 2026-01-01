@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { ChatMessage } from '../types';
 import ChatInterface from '../components/ChatInterface';
 import { useToast } from '../context/ToastContext';
+import { tmdbService } from '../services/tmdb';
 
 type PartyRole = 'host' | 'guest';
 
@@ -37,7 +38,7 @@ const WatchParty: React.FC = () => {
   const { action, type, id, season, episode, roomId } = useParams();
   const navigate = useNavigate();
   const { showToast } = useToast();
-  const { accentColor } = useAuth();
+  const { accentColor, addToContinueWatching } = useAuth();
   
   const [role, setRole] = useState<PartyRole>('guest');
   const [peerId, setPeerId] = useState<string>('');
@@ -54,10 +55,12 @@ const WatchParty: React.FC = () => {
   const [startAtTime, setStartAtTime] = useState<number | null>(null);
   
   const lastSyncRef = useRef<number>(0);
+  const lastProgressUpdateRef = useRef<number>(0);
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
   // Media State for Guest
   const [mediaInfo, setMediaInfo] = useState<{ type: 'movie' | 'tv'; id: string; season?: string; episode?: string } | null>(null);
+  const [mediaDetails, setMediaDetails] = useState<any>(null); // Full TMDB details for history
   
   const peerRef = useRef<Peer | null>(null);
   const usernameRef = useRef<string>(`User-${Math.floor(Math.random() * 1000)}`);
@@ -73,7 +76,22 @@ const WatchParty: React.FC = () => {
     }
   }, [action, type, id, season, episode]);
 
-  // Player Communication Logic (Sync Detection)
+  // Fetch full media details when mediaInfo is available (needed for Continue Watching)
+  useEffect(() => {
+      const fetchDetails = async () => {
+          if (mediaInfo?.id && mediaInfo?.type) {
+              try {
+                  const details = await tmdbService.getDetails(mediaInfo.type, parseInt(mediaInfo.id));
+                  setMediaDetails(details);
+              } catch (e) {
+                  console.error("Failed to fetch details for watch history", e);
+              }
+          }
+      };
+      fetchDetails();
+  }, [mediaInfo]);
+
+  // Player Communication Logic (Sync Detection + Continue Watching)
   useEffect(() => {
       const handleMessage = (event: MessageEvent) => {
           try {
@@ -89,18 +107,43 @@ const WatchParty: React.FC = () => {
 
               // Extract Time
               const currentTime = payload.currentTime ?? payload.time ?? payload.position;
+              const duration = payload.duration ?? payload.total ?? payload.length ?? payload.videoLength;
               
               if (typeof currentTime === 'number') {
                   setLocalTime(currentTime);
 
-                  // If HOST, broadcast this time to guests periodically
+                  const now = Date.now();
+
+                  // 1. Host Sync Broadcast
                   if (role === 'host') {
-                      const now = Date.now();
                       if (now - lastSyncRef.current > 2000) { // Broadcast every 2s
                           lastSyncRef.current = now;
                           broadcast(null, { 
                               type: 'SYNC', 
                               currentTime: currentTime 
+                          });
+                      }
+                  }
+
+                  // 2. Continue Watching Tracking (For BOTH Host and Guest)
+                  if (typeof duration === 'number' && duration > 0 && mediaDetails && mediaInfo) {
+                      if (now - lastProgressUpdateRef.current > 5000) { // Update history every 5s
+                          lastProgressUpdateRef.current = now;
+                          const progressPercent = (currentTime / duration) * 100;
+                          
+                          addToContinueWatching({
+                              mediaId: parseInt(mediaInfo.id),
+                              mediaType: mediaInfo.type,
+                              title: mediaDetails.title || mediaDetails.name || 'Unknown',
+                              posterPath: mediaDetails.poster_path,
+                              voteAverage: mediaDetails.vote_average,
+                              releaseDate: mediaDetails.release_date || mediaDetails.first_air_date,
+                              season: mediaInfo.season ? parseInt(mediaInfo.season) : undefined,
+                              episode: mediaInfo.episode ? parseInt(mediaInfo.episode) : undefined,
+                              watchedAt: Date.now(),
+                              progress: progressPercent,
+                              watchedDuration: currentTime,
+                              totalDuration: duration
                           });
                       }
                   }
@@ -112,7 +155,7 @@ const WatchParty: React.FC = () => {
 
       window.addEventListener('message', handleMessage);
       return () => window.removeEventListener('message', handleMessage);
-  }, [role, connections]);
+  }, [role, connections, mediaInfo, mediaDetails, addToContinueWatching]);
 
   // Initialize PeerJS
   useEffect(() => {
