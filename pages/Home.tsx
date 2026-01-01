@@ -29,7 +29,7 @@ const ROW_CONFIGS: RowConfig[] = [
 ];
 
 const Home: React.FC = () => {
-  const [heroItem, setHeroItem] = useState<MediaItem | null>(null);
+  const [heroItems, setHeroItems] = useState<MediaItem[]>([]);
   const [trendingItems, setTrendingItems] = useState<MediaItem[]>([]);
   const [loadedRows, setLoadedRows] = useState<Record<string, MediaItem[]>>({});
   const [initialLoading, setInitialLoading] = useState(true);
@@ -45,8 +45,8 @@ const Home: React.FC = () => {
         setTrendingItems(trendingRes.results);
         
         if (trendingRes.results.length > 0) {
-           const randomHero = trendingRes.results[Math.floor(Math.random() * Math.min(5, trendingRes.results.length))];
-           setHeroItem(randomHero);
+           // Use top 10 items for the hero carousel
+           setHeroItems(trendingRes.results.slice(0, 10));
         }
         
         setInitialLoading(false);
@@ -118,7 +118,7 @@ const Home: React.FC = () => {
   return (
     <div className="min-h-screen bg-background text-primary">
       <Navbar />
-      <Hero item={heroItem} />
+      <Hero items={heroItems} />
       
       <div className="-mt-16 md:-mt-32 relative z-10 pb-20">
         {/* Continue Watching Row */}

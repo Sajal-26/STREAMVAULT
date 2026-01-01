@@ -1,4 +1,5 @@
 
+
 export interface WatchlistItem {
   mediaId: number;
   mediaType: 'movie' | 'tv';
@@ -94,6 +95,7 @@ export interface CollectionDetails {
 export interface MediaDetails extends MediaItem {
   genres: { id: number; name: string }[];
   runtime?: number;
+  episode_run_time?: number[];
   number_of_seasons?: number;
   seasons?: { season_number: number; name: string; episode_count: number }[];
   tagline?: string;
