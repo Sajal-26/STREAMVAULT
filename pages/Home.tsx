@@ -2,7 +2,6 @@ import React, { useEffect, useState, useRef } from 'react';
 import Navbar from '../components/Navbar';
 import Hero from '../components/Hero';
 import ContentRow from '../components/ContentRow';
-import Top10Row from '../components/Top10Row';
 import { tmdbService } from '../services/tmdb';
 import { MediaItem } from '../types';
 import { useAuth } from '../context/AuthContext';
@@ -32,25 +31,19 @@ const ROW_CONFIGS: RowConfig[] = [
 const Home: React.FC = () => {
   const [heroItems, setHeroItems] = useState<MediaItem[]>([]);
   const [trendingItems, setTrendingItems] = useState<MediaItem[]>([]);
-  const [top10Items, setTop10Items] = useState<MediaItem[]>([]);
   const [loadedRows, setLoadedRows] = useState<Record<string, MediaItem[]>>({});
   const [initialLoading, setInitialLoading] = useState(true);
   
-  const { continueWatching, removeFromContinueWatching } = useAuth();
+  const { continueWatching, removeFromContinueWatching, watchlist } = useAuth();
   const hasFetchedRows = useRef(false);
 
   useEffect(() => {
     const fetchInitial = async () => {
       try {
-        // 1. Fetch Trending (Week) for Hero and "Trending Now" row
-        // 2. Fetch Trending (Day) for "Top 10 Today"
-        const [trendingWeek, trendingDay] = await Promise.all([
-             tmdbService.getTrending('all', 'week'),
-             tmdbService.getTrending('all', 'day')
-        ]);
+        // Fetch Trending (Week) for Hero and "Trending Now" row
+        const trendingWeek = await tmdbService.getTrending('all', 'week');
         
         setTrendingItems(trendingWeek.results);
-        setTop10Items(trendingDay.results);
         
         if (trendingWeek.results.length > 0) {
            // Use top 10 items for the hero carousel
@@ -59,7 +52,7 @@ const Home: React.FC = () => {
         
         setInitialLoading(false);
 
-        // 3. Fetch other rows lazily if not already fetched
+        // Fetch other rows lazily if not already fetched
         if (!hasFetchedRows.current) {
             hasFetchedRows.current = true;
             fetchOtherRows();
@@ -119,6 +112,20 @@ const Home: React.FC = () => {
     episode: item.episode
   }));
 
+  // Convert WatchlistItems to MediaItems for ContentRow
+  const watchlistItems: MediaItem[] = watchlist.map(item => ({
+    id: item.mediaId,
+    media_type: item.mediaType,
+    title: item.title,
+    name: item.title,
+    poster_path: item.posterPath,
+    backdrop_path: null,
+    overview: '',
+    vote_average: item.voteAverage,
+    release_date: item.releaseDate,
+    first_air_date: item.releaseDate,
+  }));
+
   if (initialLoading) {
     return <HomeSkeleton />;
   }
@@ -129,17 +136,11 @@ const Home: React.FC = () => {
       <Hero items={heroItems} />
       
       {/* 
-        Removed negative margin to ensure the large TOP 10 text starts 
-        cleanly below the Hero section without overlapping the dots.
+        Content Rows Area
       */}
-      <div className="relative z-10 pb-20 space-y-4 md:space-y-8">
+      <div className="-mt-8 md:-mt-16 relative z-10 pb-20 space-y-4 md:space-y-8">
         
-        {/* Top 10 Row (New) */}
-        {top10Items.length > 0 && (
-            <Top10Row items={top10Items} />
-        )}
-
-        {/* Continue Watching Row */}
+        {/* 1. Continue Watching Row (Moved to Top) */}
         {continueWatchingItems.length > 0 && (
           <ContentRow 
             title="Continue Watching" 
@@ -148,12 +149,20 @@ const Home: React.FC = () => {
           />
         )}
 
-        {/* Trending Row (Always Loaded First) */}
+        {/* 2. Watchlist Row (Added Below Continue Watching) */}
+        {watchlistItems.length > 0 && (
+            <ContentRow 
+                title="My List" 
+                items={watchlistItems}
+            />
+        )}
+
+        {/* 3. Trending Row */}
         {trendingItems.length > 0 && (
             <ContentRow title="Trending Now" items={trendingItems} />
         )}
 
-        {/* Dynamic Rows */}
+        {/* 4. Dynamic Rows */}
         {ROW_CONFIGS.map((config) => (
             loadedRows[config.title] ? (
                 <ContentRow key={config.title} title={config.title} items={loadedRows[config.title]} />
