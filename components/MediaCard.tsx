@@ -103,10 +103,11 @@ const MediaCard: React.FC<MediaCardProps> = ({ item, onRemove }) => {
       {(item.progress !== undefined && item.progress > 0) && (
           <div className="absolute bottom-0 left-0 right-0 z-20 bg-black/80 backdrop-blur-sm px-2 py-1.5 rounded-b-md">
               <div className="flex items-center justify-between text-[10px] text-gray-200 mb-1 font-semibold">
-                 {item.season && item.episode ? (
+                 {/* Only show S/E info for TV Shows */}
+                 {mediaType === 'tv' && item.season && item.episode ? (
                      <span className="text-brand-primary">S{item.season} E{item.episode}</span>
                  ) : (
-                     <span>Wait...</span>
+                     <span className="text-gray-400 text-[9px] uppercase tracking-wider">Resume</span>
                  )}
                  <span>{remainingTimeText}</span>
               </div>

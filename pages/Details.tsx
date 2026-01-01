@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { Play, Plus, Star, ThumbsUp, ChevronDown, Check, X, PlayCircle } from 'lucide-react';
+import { Play, Plus, Star, ThumbsUp, ChevronDown, Check, X, PlayCircle, Share2, Copy } from 'lucide-react';
 import { tmdbService } from '../services/tmdb';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -39,6 +39,9 @@ const Details: React.FC = () => {
   const [trailerKey, setTrailerKey] = useState<string | null>(null);
   const [showTrailerModal, setShowTrailerModal] = useState(false);
   const [playingVideoKey, setPlayingVideoKey] = useState<string | null>(null);
+  
+  // Share State
+  const [isSharing, setIsSharing] = useState(false);
 
   // Helper to extract official trailer
   const extractTrailerKey = useCallback((videoList: { key: string; type: string; site: string }[]) => {
@@ -187,6 +190,35 @@ const Details: React.FC = () => {
     }
   };
 
+  const handleShare = async () => {
+      if (isSharing || !id || !type) return;
+      setIsSharing(true);
+      
+      try {
+          // Generate CLIENT-SIDE Short Link (No backend required)
+          // Format: /#/s/[typeChar][Base36ID]
+          // Example: Movie 550 -> /#/s/mf10
+          
+          const prefix = type === 'movie' ? 'm' : 't';
+          const idBase36 = parseInt(id).toString(36);
+          const shortCode = `${prefix}${idBase36}`;
+          
+          // Construct absolute URL (handling HashRouter structure)
+          // HashRouter urls look like: domain.com/#/s/code
+          const origin = window.location.origin + window.location.pathname;
+          // Ensure no double slash if pathname is just /
+          const baseUrl = origin.endsWith('/') ? origin : origin + '/';
+          const shortUrl = `${baseUrl}#/s/${shortCode}`;
+
+          await navigator.clipboard.writeText(shortUrl);
+          showToast(`Link copied: ${shortUrl}`, 'success');
+      } catch (e) {
+          showToast('Failed to copy link', 'error');
+      } finally {
+          setIsSharing(false);
+      }
+  };
+
   if (loading) return <DetailsSkeleton />;
   
   if (error || !data) {
@@ -329,8 +361,18 @@ const Details: React.FC = () => {
                      <button 
                         onClick={handleLikeToggle}
                         className={`flex items-center p-2 md:p-3 border rounded-full transition text-white ${isLiked ? 'bg-white/20 border-white' : 'border-gray-500 hover:border-white'}`}
+                        title={isLiked ? "Unlike" : "Like"}
                     >
                         <ThumbsUp className={`w-4 h-4 md:w-5 md:h-5 ${isLiked ? 'fill-white' : ''}`} />
+                    </button>
+                    <button 
+                        onClick={handleShare}
+                        className="flex items-center px-4 py-2 md:py-3 bg-gray-600/30 backdrop-blur text-white font-bold rounded hover:bg-gray-600 transition text-sm md:text-base border border-white/10 group"
+                        title="Share this title"
+                        disabled={isSharing}
+                    >
+                        <span className="mr-2">Share</span>
+                        <Share2 className={`w-4 h-4 md:w-5 md:h-5 ${isSharing ? 'animate-pulse text-brand-primary' : ''}`} />
                     </button>
                 </div>
 

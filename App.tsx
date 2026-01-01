@@ -12,6 +12,7 @@ import Settings from './pages/Settings';
 import Watchlist from './pages/Watchlist';
 import LikedContent from './pages/LikedContent';
 import Watch from './pages/Watch';
+import SharedRedirect from './pages/SharedRedirect';
 
 const AppContent: React.FC = () => {
   return (
@@ -26,6 +27,9 @@ const AppContent: React.FC = () => {
         <Route path="/details/:type/:id" element={<Details />} />
         <Route path="/person/:id" element={<PersonDetails />} />
         <Route path="/collection/:id" element={<CollectionDetails />} />
+        
+        {/* Custom Short Link Handler */}
+        <Route path="/s/:code" element={<SharedRedirect />} />
         
         <Route path="/watch/:type/:id" element={<Watch />} />
         <Route path="/watch/:type/:id/:season/:episode" element={<Watch />} />
