@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { Play, Plus, Star, ThumbsUp, ChevronDown, Check, X, PlayCircle, Share2, Calendar, Clock } from 'lucide-react';
+import { Play, Plus, Star, ThumbsUp, ChevronDown, Check, X, Share2, Calendar } from 'lucide-react';
 import { tmdbService } from '../services/tmdb';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -35,7 +35,6 @@ const Details: React.FC = () => {
 
   // Media Assets State
   const [logoPath, setLogoPath] = useState<string | null>(null);
-  const [videos, setVideos] = useState<{ key: string; name: string; type: string }[]>([]);
   const [trailerKey, setTrailerKey] = useState<string | null>(null);
   const [showTrailerModal, setShowTrailerModal] = useState(false);
   const [playingVideoKey, setPlayingVideoKey] = useState<string | null>(null);
@@ -69,7 +68,6 @@ const Details: React.FC = () => {
 
       // Process Videos (Initial - Series Level or Movie)
       const youtubeVideos = res.videos?.results.filter(v => v.site === 'YouTube') || [];
-      setVideos(youtubeVideos);
       setTrailerKey(extractTrailerKey(youtubeVideos));
 
       if (type === 'tv') {
@@ -176,11 +174,6 @@ const Details: React.FC = () => {
     };
     fetchSeason();
   }, [type, id, selectedSeasonNumber, data, error]);
-
-  const openTrailer = (key: string) => {
-      setPlayingVideoKey(key);
-      setShowTrailerModal(true);
-  };
 
   const closeTrailer = () => {
       setShowTrailerModal(false);
