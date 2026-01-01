@@ -7,9 +7,8 @@ import ContentRow from './ContentRow';
 const PROVIDER_CONFIG = [
   { key: 'netflix', name: 'Netflix', id: 8, color: '#E50914' },
   { key: 'prime_video', name: 'Prime', id: 9, color: '#00A8E1' },
-  { key: 'disney_hotstar', name: 'Disney+', id: 122, color: '#113CCF' }, // Using 122 (Hotstar) as per request, generic Disney+ is 337 usually
-  { key: 'zee5', name: 'Zee5', id: 232, color: '#FF0000' },
-  { key: 'sony_liv', name: 'Sony LIV', id: 237, color: '#F89406' },
+  { key: 'disney_hotstar', name: 'Disney+', id: 337, color: '#113CCF' }, // Updated to 337 (Disney+)
+  { key: 'max', name: 'Max', id: 188, color: '#002BE7' }, // Added Max
   { key: 'apple_tv', name: 'Apple TV', id: 2, color: '#A3AAAE' },
 ];
 
