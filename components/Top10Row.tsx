@@ -13,11 +13,10 @@ const Top10Row: React.FC<Top10RowProps> = ({ items }) => {
   const [canScrollRight, setCanScrollRight] = useState(false);
 
   const checkScroll = () => {
-    if (rowRef.current) {
-      const { scrollLeft, scrollWidth, clientWidth } = rowRef.current;
-      setCanScrollLeft(scrollLeft > 0);
-      setCanScrollRight(Math.ceil(scrollLeft + clientWidth) < scrollWidth);
-    }
+    if (!rowRef.current) return;
+    const { scrollLeft, scrollWidth, clientWidth } = rowRef.current;
+    setCanScrollLeft(scrollLeft > 0);
+    setCanScrollRight(Math.ceil(scrollLeft + clientWidth) < scrollWidth);
   };
 
   useEffect(() => {
@@ -29,84 +28,108 @@ const Top10Row: React.FC<Top10RowProps> = ({ items }) => {
     return () => observer.disconnect();
   }, [items]);
 
-  const scroll = (direction: 'left' | 'right') => {
-    if (rowRef.current) {
-      const { current } = rowRef;
-      const scrollAmount = direction === 'left' ? -(current.clientWidth * 0.8) : (current.clientWidth * 0.8);
-      current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
-      setTimeout(checkScroll, 500);
-    }
+  const scroll = (dir: 'left' | 'right') => {
+    if (!rowRef.current) return;
+    const amount =
+      dir === 'left'
+        ? -rowRef.current.clientWidth * 0.85
+        : rowRef.current.clientWidth * 0.85;
+
+    rowRef.current.scrollBy({ left: amount, behavior: 'smooth' });
+    setTimeout(checkScroll, 400);
   };
 
-  if (!items || items.length === 0) return null;
-
+  if (!items?.length) return null;
   const top10Items = items.slice(0, 10);
 
   return (
-    <div className="mb-16 relative group/row">
-      {/* Header Section */}
-      <div className="px-4 md:px-12 flex items-center gap-3 mb-6 md:mb-8 select-none">
-        <h2 
-            className="text-6xl md:text-8xl font-black tracking-tighter text-transparent transition-colors duration-300"
-            style={{ WebkitTextStroke: '2px var(--color-primary)' }}
+    <div className="mb-20 relative group/row">
+      {/* HEADER */}
+      <div className="px-6 md:px-14 flex items-center gap-4 mb-10 select-none">
+        <h2
+          className="text-[5rem] md:text-[7rem] font-black tracking-tight text-transparent transition-colors duration-300"
+          style={{ WebkitTextStroke: '2.5px var(--color-primary)' }}
         >
-            TOP 10
+          TOP 10
         </h2>
-        <div className="flex flex-col justify-center space-y-1 mt-2">
-            <span className="text-sm md:text-lg font-bold text-white uppercase tracking-widest leading-none">
-                CONTENT
-            </span>
-            <span className="text-sm md:text-lg font-bold text-white uppercase tracking-widest leading-none">
-                TODAY
-            </span>
+        <div className="flex flex-col leading-tight mt-3">
+          <span className="text-white font-bold tracking-[0.35em] text-sm md:text-lg">
+            CONTENT
+          </span>
+          <span className="text-white font-bold tracking-[0.35em] text-sm md:text-lg">
+            TODAY
+          </span>
         </div>
       </div>
-      
+
       <div className="relative">
+        {/* LEFT ARROW */}
         {canScrollLeft && (
-          <button 
+          <button
             onClick={() => scroll('left')}
-            className="absolute left-0 top-0 bottom-0 z-20 w-12 bg-gradient-to-r from-background to-transparent flex items-center justify-center opacity-0 group-hover/row:opacity-100 transition-opacity duration-300 cursor-pointer"
+            className="absolute left-0 top-0 bottom-0 z-30 w-14
+              bg-gradient-to-r from-black/90 to-transparent
+              flex items-center justify-center
+              opacity-0 group-hover/row:opacity-100 transition"
           >
-            <ChevronLeft className="w-10 h-10 text-white hover:scale-125 transition-transform drop-shadow-lg" />
+            <ChevronLeft className="w-12 h-12 text-white hover:scale-125 transition" />
           </button>
         )}
 
-        <div 
+        {/* ROW */}
+        <div
           ref={rowRef}
           onScroll={checkScroll}
-          className="flex space-x-0 overflow-x-auto hide-scrollbar pb-12 pt-8 px-4 md:px-12"
+          className="flex overflow-x-auto hide-scrollbar
+            px-6 md:px-14 pt-10 pb-16"
         >
           {top10Items.map((item, index) => (
-             <div key={item.id} className="relative flex-shrink-0 pr-6 group cursor-pointer">
-                 <div className="flex items-end relative">
-                     {/* The Number */}
-                     {/* 
-                        Using font-bold instead of font-black to ensure counters (holes in 4, 0, etc) are visible.
-                        Reduced stroke width to 3px for cleaner hollow look.
-                     */}
-                     <span 
-                        className="text-[10rem] sm:text-[12rem] md:text-[15rem] font-bold leading-none tracking-tighter select-none scale-y-110 origin-bottom transform translate-y-4 z-0 transition-all duration-300 text-transparent group-hover:text-[var(--color-primary)]"
-                        style={{ WebkitTextStroke: '3px var(--color-primary)' }}
-                     >
-                        {index + 1}
-                     </span>
-                     
-                     {/* The Card Container */}
-                     <div className="min-w-[130px] w-[130px] sm:min-w-[150px] sm:w-[150px] md:min-w-[180px] md:w-[180px] z-10 -ml-2 sm:-ml-4 md:-ml-8 mb-2 transition-transform duration-300 group-hover:scale-105 origin-center">
-                        <MediaCard item={item} />
-                     </div>
-                 </div>
-             </div>
+            <div
+              key={item.id}
+              className="relative flex-shrink-0 pr-8 group"
+            >
+              <div className="flex items-end relative">
+                {/* NUMBER */}
+                <span
+                  className="
+                    absolute -left-6 md:-left-10 bottom-0
+                    text-[11rem] sm:text-[13rem] md:text-[16rem]
+                    font-bold leading-none tracking-tighter
+                    text-transparent select-none
+                    scale-y-110
+                    transition-all duration-300
+                    group-hover:text-[var(--color-primary)]"
+                  style={{ WebkitTextStroke: '4px var(--color-primary)' }}
+                >
+                  {index + 1}
+                </span>
+
+                {/* CARD */}
+                <div
+                  className="
+                    relative z-10
+                    min-w-[140px] sm:min-w-[165px] md:min-w-[190px]
+                    transition-transform duration-300
+                    group-hover:scale-105
+                  "
+                >
+                  <MediaCard item={item} />
+                </div>
+              </div>
+            </div>
           ))}
         </div>
 
+        {/* RIGHT ARROW */}
         {canScrollRight && (
-          <button 
+          <button
             onClick={() => scroll('right')}
-            className="absolute right-0 top-0 bottom-0 z-20 w-12 bg-gradient-to-l from-background to-transparent flex items-center justify-center opacity-0 group-hover/row:opacity-100 transition-opacity duration-300 cursor-pointer"
+            className="absolute right-0 top-0 bottom-0 z-30 w-14
+              bg-gradient-to-l from-black/90 to-transparent
+              flex items-center justify-center
+              opacity-0 group-hover/row:opacity-100 transition"
           >
-            <ChevronRight className="w-10 h-10 text-white hover:scale-125 transition-transform drop-shadow-lg" />
+            <ChevronRight className="w-12 h-12 text-white hover:scale-125 transition" />
           </button>
         )}
       </div>
