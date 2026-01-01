@@ -54,6 +54,7 @@ export interface Episode {
   still_path: string | null;
   air_date: string;
   episode_number: number;
+  season_number?: number; // Added for next_episode context
   vote_average: number;
   runtime?: number;
 }
@@ -65,6 +66,7 @@ export interface SeasonDetails {
   poster_path: string | null;
   season_number: number;
   episodes: Episode[];
+  vote_average?: number; // Some endpoints provide this
   videos?: {
     results: { key: string; type: string; site: string; name: string }[];
   };
@@ -94,13 +96,32 @@ export interface CollectionDetails {
   parts: MediaItem[];
 }
 
+export interface Company {
+  id: number;
+  logo_path: string | null;
+  name: string;
+  origin_country: string;
+}
+
+export interface Network {
+  id: number;
+  name: string;
+  logo_path: string | null;
+  origin_country: string;
+}
+
 export interface MediaDetails extends MediaItem {
   genres: { id: number; name: string }[];
   runtime?: number;
   episode_run_time?: number[];
   number_of_seasons?: number;
-  seasons?: { season_number: number; name: string; episode_count: number }[];
+  seasons?: { season_number: number; name: string; episode_count: number; air_date?: string }[];
   tagline?: string;
+  status?: string; // Added
+  last_air_date?: string; // Added
+  next_episode_to_air?: Episode | null; // Added
+  production_companies?: Company[]; // Added
+  networks?: Network[]; // Added
   videos?: {
     results: { key: string; type: string; site: string; name: string }[];
   };

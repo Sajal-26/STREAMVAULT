@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { Play, Plus, Star, ThumbsUp, ChevronDown, Check, X, PlayCircle, Share2 } from 'lucide-react';
+import { Play, Plus, Star, ThumbsUp, ChevronDown, Check, X, PlayCircle, Share2, Calendar, Clock } from 'lucide-react';
 import { tmdbService } from '../services/tmdb';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -73,7 +73,13 @@ const Details: React.FC = () => {
       setTrailerKey(extractTrailerKey(youtubeVideos));
 
       if (type === 'tv') {
-          setSelectedSeasonNumber(1);
+          // If we have next episode to air, select that season by default, otherwise season 1
+          const nextEp = res.next_episode_to_air;
+          if (nextEp && nextEp.season_number) {
+            setSelectedSeasonNumber(nextEp.season_number);
+          } else {
+            setSelectedSeasonNumber(1);
+          }
       }
     } catch (error) {
       console.error(error);
@@ -190,23 +196,20 @@ const Details: React.FC = () => {
     }
   };
 
+  const formatDate = (dateString?: string) => {
+      if (!dateString) return 'N/A';
+      return new Date(dateString).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+  };
+
   const handleShare = async () => {
       if (isSharing || !id || !type) return;
       setIsSharing(true);
       
       try {
-          // Generate CLIENT-SIDE Short Link (No backend required)
-          // Format: /#/s/[typeChar][Base36ID]
-          // Example: Movie 550 -> /#/s/mf10
-          
           const prefix = type === 'movie' ? 'm' : 't';
           const idBase36 = parseInt(id).toString(36);
           const shortCode = `${prefix}${idBase36}`;
-          
-          // Construct absolute URL (handling HashRouter structure)
-          // HashRouter urls look like: domain.com/#/s/code
           const origin = window.location.origin + window.location.pathname;
-          // Ensure no double slash if pathname is just /
           const baseUrl = origin.endsWith('/') ? origin : origin + '/';
           const shortUrl = `${baseUrl}#/s/${shortCode}`;
 
@@ -252,7 +255,6 @@ const Details: React.FC = () => {
   const isInWatchlist = watchlist.some(w => w.mediaId === data.id);
   const isLiked = likedItems.some(l => l.mediaId === data.id);
 
-  // Creator Logic for Metadata Side panel
   const creators = type === 'tv' 
     ? data.created_by 
     : data.credits?.crew.filter(person => person.job === 'Director');
@@ -295,7 +297,8 @@ const Details: React.FC = () => {
     if (type === 'movie') {
         navigate(`/watch/movie/${id}`);
     } else {
-        navigate(`/watch/tv/${id}/1/1`);
+        // If next episode logic set a season, use it, else 1
+        navigate(`/watch/tv/${id}/${selectedSeasonNumber}/1`);
     }
   };
 
@@ -309,18 +312,15 @@ const Details: React.FC = () => {
 
       {/* Hero Section */}
       <div className="relative h-[65vh] md:h-[80vh] w-full bg-black overflow-hidden group">
-        {/* Background Image */}
         <div className="absolute inset-0">
           <img src={backdrop} alt={data.title} className="w-full h-full object-cover" />
         </div>
         
-        {/* Gradient Overlays */}
         <div className="absolute inset-0 bg-gradient-to-t from-background via-black/40 to-transparent" />
         <div className="absolute inset-0 bg-gradient-to-r from-black via-black/30 to-transparent" />
         
         <div className="absolute bottom-0 left-0 w-full px-4 md:px-12 pb-8 md:pb-12 flex flex-col md:flex-row items-end gap-8">
-            <div className="flex-1 w-full pt-20 md:pt-0"> {/* Added padding top for mobile safeguard */}
-                
+            <div className="flex-1 w-full pt-20 md:pt-0">
                 {logoPath ? (
                    <img 
                      src={`${IMAGE_BASE_URL}/w500${logoPath}`} 
@@ -339,6 +339,11 @@ const Details: React.FC = () => {
                     {runtime && <span>{runtime}</span>}
                     {data.number_of_seasons && <span>{data.number_of_seasons} Seasons</span>}
                     <span className="border border-gray-500 px-2 rounded text-[10px] md:text-xs py-0.5">HD</span>
+                    {data.status && (
+                        <span className={`px-2 py-0.5 rounded text-[10px] md:text-xs uppercase border ${data.status === 'Ended' || data.status === 'Canceled' ? 'border-red-500/50 text-red-400' : 'border-green-500/50 text-green-400'}`}>
+                            {data.status}
+                        </span>
+                    )}
                 </div>
 
                 <div className="flex items-center space-x-3 mb-6 flex-wrap gap-y-3">
@@ -389,6 +394,29 @@ const Details: React.FC = () => {
                <p className="text-gray-300 text-sm leading-relaxed cursor-default">{data.overview}</p>
             </div>
 
+            {/* Next Episode Banner (TV Only) */}
+            {data.next_episode_to_air && (
+                <div className="mb-8 p-4 bg-gradient-to-r from-brand-primary/20 to-transparent border-l-4 border-brand-primary rounded-r-md">
+                    <h3 className="text-lg font-bold text-white mb-2 flex items-center">
+                        <Calendar className="w-5 h-5 mr-2" /> Next Episode Airing
+                    </h3>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div>
+                            <p className="text-xl font-bold text-white">{data.next_episode_to_air.name}</p>
+                            <p className="text-sm text-gray-300 mt-1">
+                                Season {data.next_episode_to_air.season_number} • Episode {data.next_episode_to_air.episode_number}
+                            </p>
+                        </div>
+                        <div className="text-left sm:text-right">
+                            <p className="text-brand-primary font-bold text-lg">
+                                {new Date(data.next_episode_to_air.air_date).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+                            </p>
+                            <p className="text-xs text-gray-400 mt-1 uppercase tracking-wider">Mark your calendar</p>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Episodes Section */}
             {type === 'tv' && (
                 <div className="mb-12">
@@ -429,12 +457,22 @@ const Details: React.FC = () => {
                                          </div>
                                      </div>
                                      <div className="flex-1 flex flex-col justify-center">
-                                         <div className="flex justify-between items-baseline mb-2">
-                                             <h4 className="font-bold text-base md:text-lg text-primary">{ep.episode_number}. {ep.name}</h4>
-                                             <span className="text-xs md:text-sm text-secondary cursor-default">{ep.runtime ? `${ep.runtime}m` : ''}</span>
+                                         <div className="flex flex-wrap justify-between items-baseline mb-2">
+                                             <h4 className="font-bold text-base md:text-lg text-primary mr-2">{ep.episode_number}. {ep.name}</h4>
+                                             <div className="flex items-center text-xs md:text-sm text-secondary cursor-default">
+                                                {ep.vote_average > 0 && (
+                                                    <span className="flex items-center text-yellow-500 font-semibold mr-3">
+                                                        <Star className="w-3 h-3 mr-1 fill-current" /> {ep.vote_average.toFixed(1)}
+                                                    </span>
+                                                )}
+                                                {ep.runtime ? `${ep.runtime}m` : ''}
+                                             </div>
                                          </div>
                                          <p className="text-secondary text-xs md:text-sm line-clamp-2 md:line-clamp-3 leading-relaxed cursor-default">
                                              {ep.overview || "No description available for this episode."}
+                                         </p>
+                                         <p className="text-[10px] text-gray-500 mt-2">
+                                             Aired: {formatDate(ep.air_date)}
                                          </p>
                                      </div>
                                  </div>
@@ -494,53 +532,19 @@ const Details: React.FC = () => {
                     </div>
                 </div>
             )}
-
-            {/* Trailers & Extras Section */}
-            {videos.length > 0 && (
-                <div className="mb-8">
-                    <h2 className="text-lg md:text-2xl font-bold text-primary mb-4 flex items-center cursor-default">
-                        <span className="w-1 h-5 md:h-6 bg-brand-primary mr-3 rounded-full"></span>
-                        Trailers & Extras
-                    </h2>
-                    <div className="flex space-x-4 overflow-x-auto hide-scrollbar pb-4 scroll-smooth">
-                        {videos.map((video) => (
-                            <div 
-                                key={video.key} 
-                                onClick={() => openTrailer(video.key)}
-                                className="flex-shrink-0 w-[240px] md:w-[320px] cursor-pointer group"
-                            >
-                                <div className="relative aspect-video rounded-md overflow-hidden bg-surface mb-2 border border-white/5 group-hover:border-brand-primary/50 transition-all">
-                                    <img 
-                                        src={`https://img.youtube.com/vi/${video.key}/mqdefault.jpg`} 
-                                        alt={video.name}
-                                        className="w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500"
-                                    />
-                                    <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/0 transition">
-                                        <PlayCircle className="w-10 h-10 text-white fill-black/50 group-hover:scale-125 transition-transform duration-300" />
-                                    </div>
-                                    <div className="absolute bottom-2 right-2 bg-black/80 text-white text-[10px] px-2 py-0.5 rounded uppercase font-bold tracking-wider cursor-default">
-                                        {video.type}
-                                    </div>
-                                </div>
-                                <h3 className="text-sm font-medium text-gray-200 group-hover:text-white line-clamp-2">{video.name}</h3>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            )}
          </div>
 
          {/* Right Sidebar Metadata */}
-         <div className="space-y-6 text-sm text-secondary h-fit md:sticky md:top-24">
+         <div className="space-y-6 text-sm text-secondary h-fit md:sticky md:top-24 bg-surface/30 p-4 rounded-lg border border-white/5">
+             {/* Genres */}
              <div>
                  <span className="block text-secondary mb-2 font-bold uppercase tracking-wider text-xs cursor-default">Genres</span>
                  <div className="flex flex-wrap gap-2">
                      {data.genres.map(g => (
-                         // Make genres clickable linking to browse
                          <Link 
                             key={g.id} 
                             to={`/${type === 'movie' ? 'movies' : 'tv'}?genre=${g.id}`}
-                            className="text-primary bg-surface px-2 py-1 rounded text-xs hover:bg-brand-primary hover:text-white cursor-pointer transition"
+                            className="text-primary bg-white/10 px-2 py-1 rounded text-xs hover:bg-brand-primary hover:text-white cursor-pointer transition"
                          >
                             {g.name}
                          </Link>
@@ -548,6 +552,7 @@ const Details: React.FC = () => {
                  </div>
              </div>
              
+             {/* Credits */}
              <div>
                 <span className="block text-secondary mb-1 font-bold uppercase tracking-wider text-xs cursor-default">
                     {type === 'movie' ? 'Directed By' : 'Created By'}
@@ -568,20 +573,74 @@ const Details: React.FC = () => {
                 </div>
              </div>
 
+             {/* Dates */}
+             <div>
+                <span className="block text-secondary mb-1 font-bold uppercase tracking-wider text-xs cursor-default">
+                    {type === 'tv' ? 'First Aired' : 'Release Date'}
+                </span>
+                <span className="text-primary cursor-default block">
+                  {formatDate(data.release_date || data.first_air_date)}
+                </span>
+             </div>
+
+             {type === 'tv' && data.last_air_date && (
+                 <div>
+                    <span className="block text-secondary mb-1 font-bold uppercase tracking-wider text-xs cursor-default">Last Aired</span>
+                    <span className="text-primary cursor-default block">
+                        {formatDate(data.last_air_date)}
+                    </span>
+                 </div>
+             )}
+
+             {/* Language */}
              <div>
                 <span className="block text-secondary mb-1 font-bold uppercase tracking-wider text-xs cursor-default">Original Language</span>
-                <span className="text-primary uppercase cursor-default">
+                <span className="text-primary uppercase cursor-default block">
                   {getLanguageName(data.original_language)}
                 </span>
              </div>
+             
+             {/* Status */}
              <div>
                 <span className="block text-secondary mb-1 font-bold uppercase tracking-wider text-xs cursor-default">Status</span>
-                <span className="text-primary uppercase cursor-default">Released</span>
+                <span className={`text-primary uppercase cursor-default font-medium ${data.status === 'Ended' || data.status === 'Canceled' ? 'text-red-400' : 'text-green-400'}`}>
+                  {data.status || 'Unknown'}
+                </span>
              </div>
+
+             {/* Networks (TV) */}
+            {type === 'tv' && data.networks && data.networks.length > 0 && (
+                <div>
+                    <span className="block text-secondary mb-2 font-bold uppercase tracking-wider text-xs cursor-default">Networks</span>
+                    <div className="flex flex-wrap gap-2 bg-white/90 p-2 rounded justify-center">
+                        {data.networks.map(n => (
+                            n.logo_path ? (
+                                <img key={n.id} src={`${IMAGE_BASE_URL}/w92${n.logo_path}`} alt={n.name} title={n.name} className="h-4 object-contain" />
+                            ) : (
+                                <span key={n.id} className="text-black text-xs font-bold">{n.name}</span>
+                            )
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* Production */}
+            {data.production_companies && data.production_companies.length > 0 && (
+                <div>
+                    <span className="block text-secondary mb-2 font-bold uppercase tracking-wider text-xs cursor-default">Production</span>
+                    <div className="flex flex-col gap-1.5">
+                        {data.production_companies.slice(0, 5).map(c => (
+                            <span key={c.id} className="text-gray-300 text-xs flex items-center">
+                                {c.name}
+                            </span>
+                        ))}
+                    </div>
+                </div>
+            )}
          </div>
       </div>
 
-      {/* Stacked Row Content (Moved from main grid to full width bottom) */}
+      {/* Stacked Row Content */}
       
       {/* Collection Section */}
       {data.belongs_to_collection && collectionParts.length > 0 && (
