@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import Navbar from '../components/Navbar';
 import Hero from '../components/Hero';
 import ContentRow from '../components/ContentRow';
+import ProviderRow from '../components/ProviderRow';
 import { tmdbService } from '../services/tmdb';
 import { MediaItem } from '../types';
 import { useAuth } from '../context/AuthContext';
@@ -162,7 +163,11 @@ const Home: React.FC = () => {
             <ContentRow title="Trending Now" items={trendingItems} />
         )}
 
-        {/* 4. Dynamic Rows */}
+        {/* 4. Provider Rows (New Feature) */}
+        <ProviderRow type="tv" titlePrefix="Series on" />
+        <ProviderRow type="movie" titlePrefix="Movies on" />
+
+        {/* 5. Dynamic Rows */}
         {ROW_CONFIGS.map((config) => (
             loadedRows[config.title] ? (
                 <ContentRow key={config.title} title={config.title} items={loadedRows[config.title]} />
