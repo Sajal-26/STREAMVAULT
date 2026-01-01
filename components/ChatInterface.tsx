@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, MessageSquare, Users, Minimize2 } from 'lucide-react';
+import { Send, MessageSquare, Users, Minimize2, GripHorizontal } from 'lucide-react';
 import { ChatMessage } from '../types';
 
 interface ChatInterfaceProps {
@@ -12,7 +12,14 @@ interface ChatInterfaceProps {
 const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, onSendMessage, viewerCount, username }) => {
   const [isOpen, setIsOpen] = useState(true);
   const [inputText, setInputText] = useState('');
+  
+  // Draggable State
+  const [position, setPosition] = useState({ x: window.innerWidth - 380, y: window.innerHeight - 600 });
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStartPos = useRef({ x: 0, y: 0 });
+  
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const chatRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -23,6 +30,58 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, onSendMessage, 
         scrollToBottom();
     }
   }, [messages, isOpen]);
+
+  // Adjust initial position on mount to ensure it's visible
+  useEffect(() => {
+      const maxX = window.innerWidth - 360;
+      const maxY = window.innerHeight - 520;
+      setPosition({ 
+          x: Math.max(20, Math.min(position.x, maxX)), 
+          y: Math.max(20, Math.min(position.y, maxY)) 
+      });
+  }, []);
+
+  // Drag Handlers
+  const handleMouseDown = (e: React.MouseEvent) => {
+      if (!isOpen) return;
+      setIsDragging(true);
+      dragStartPos.current = {
+          x: e.clientX - position.x,
+          y: e.clientY - position.y
+      };
+  };
+
+  useEffect(() => {
+      const handleMouseMove = (e: MouseEvent) => {
+          if (!isDragging) return;
+          e.preventDefault();
+          const newX = e.clientX - dragStartPos.current.x;
+          const newY = e.clientY - dragStartPos.current.y;
+          
+          // Boundaries
+          const maxX = window.innerWidth - (chatRef.current?.offsetWidth || 350);
+          const maxY = window.innerHeight - (chatRef.current?.offsetHeight || 500);
+
+          setPosition({
+              x: Math.max(0, Math.min(newX, maxX)),
+              y: Math.max(0, Math.min(newY, maxY))
+          });
+      };
+
+      const handleMouseUp = () => {
+          setIsDragging(false);
+      };
+
+      if (isDragging) {
+          window.addEventListener('mousemove', handleMouseMove);
+          window.addEventListener('mouseup', handleMouseUp);
+      }
+
+      return () => {
+          window.removeEventListener('mousemove', handleMouseMove);
+          window.removeEventListener('mouseup', handleMouseUp);
+      };
+  }, [isDragging]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,7 +95,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, onSendMessage, 
     return (
       <button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 right-6 z-[120] bg-brand-primary text-white p-4 rounded-full shadow-2xl hover:bg-red-700 transition-all transform hover:scale-110 flex items-center justify-center group"
+        className="fixed bottom-6 right-6 z-[120] bg-brand-primary text-white p-4 rounded-full shadow-2xl hover:bg-red-700 transition-all transform hover:scale-110 flex items-center justify-center group animate-in zoom-in duration-300"
       >
         <MessageSquare className="w-6 h-6" />
         <span className="absolute right-0 top-0 -mt-1 -mr-1 flex h-4 w-4">
@@ -50,10 +109,18 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, onSendMessage, 
   }
 
   return (
-    <div className="fixed bottom-6 right-6 z-[120] w-[90vw] max-w-[350px] h-[500px] max-h-[70vh] flex flex-col bg-black/80 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom-5 fade-in duration-300">
-      {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-white/10 bg-white/5">
-        <div className="flex items-center gap-2">
+    <div 
+        ref={chatRef}
+        style={{ left: position.x, top: position.y }}
+        className="fixed z-[120] w-[90vw] max-w-[350px] h-[500px] max-h-[70vh] flex flex-col bg-black/80 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in duration-200"
+    >
+      {/* Header - Draggable Area */}
+      <div 
+        onMouseDown={handleMouseDown}
+        className={`flex items-center justify-between p-4 border-b border-white/10 bg-white/5 cursor-grab active:cursor-grabbing select-none ${isDragging ? 'bg-white/10' : ''}`}
+      >
+        <div className="flex items-center gap-2 pointer-events-none">
+            <GripHorizontal className="w-5 h-5 text-gray-500 mr-1" />
             <div className="flex -space-x-2">
                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-brand-primary to-purple-600 flex items-center justify-center text-xs font-bold ring-2 ring-black">
                     You
@@ -81,7 +148,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, onSendMessage, 
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-transparent">
         {messages.length === 0 && (
-            <div className="h-full flex flex-col items-center justify-center text-gray-500 text-center space-y-2 opacity-50">
+            <div className="h-full flex flex-col items-center justify-center text-gray-500 text-center space-y-2 opacity-50 select-none">
                 <MessageSquare className="w-12 h-12" />
                 <p className="text-sm">No messages yet.<br/>Say hello to your friends!</p>
             </div>
@@ -97,7 +164,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, onSendMessage, 
                 <>
                     <span className="text-[10px] text-gray-400 mb-1 ml-1">{msg.sender}</span>
                     <div 
-                        className={`max-w-[85%] px-3 py-2 rounded-2xl text-sm leading-relaxed ${
+                        className={`max-w-[85%] px-3 py-2 rounded-2xl text-sm leading-relaxed break-words ${
                             msg.sender === username 
                             ? 'bg-brand-primary text-white rounded-br-none' 
                             : 'bg-gray-800 text-gray-100 rounded-bl-none border border-white/5'

@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Copy, Share2, Link as LinkIcon, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Copy, Share2, Link as LinkIcon, AlertCircle, Clock } from 'lucide-react';
 import Peer, { DataConnection } from 'peerjs';
 import { useAuth } from '../context/AuthContext';
 import { ChatMessage } from '../types';
@@ -27,15 +27,13 @@ interface ChatPayload {
 
 interface SyncPayload {
   type: 'SYNC';
-  time: number;
+  currentTime: number;
+  // duration: number; // Optional
 }
 
 type Payload = InitData | ChatPayload | SyncPayload;
 
 const WatchParty: React.FC = () => {
-  // Routes: 
-  // Host: /watch-party/start/:type/:id/:season?/:episode?
-  // Guest: /watch-party/join/:roomId
   const { action, type, id, season, episode, roomId } = useParams();
   const navigate = useNavigate();
   const { showToast } = useToast();
@@ -48,6 +46,11 @@ const WatchParty: React.FC = () => {
   const [connections, setConnections] = useState<DataConnection[]>([]);
   const [viewerCount, setViewerCount] = useState(1);
   const [showShareModal, setShowShareModal] = useState(false);
+
+  // Sync State
+  const [localTime, setLocalTime] = useState(0);
+  const [hostTime, setHostTime] = useState(0);
+  const lastSyncRef = useRef<number>(0);
 
   // Media State for Guest
   const [mediaInfo, setMediaInfo] = useState<{ type: 'movie' | 'tv'; id: string; season?: string; episode?: string } | null>(null);
@@ -66,10 +69,53 @@ const WatchParty: React.FC = () => {
     }
   }, [action, type, id, season, episode]);
 
+  // Player Communication Logic (Sync Detection)
+  useEffect(() => {
+      const handleMessage = (event: MessageEvent) => {
+          try {
+              let data = event.data;
+              if (typeof data === "string") {
+                  try {
+                      data = JSON.parse(data);
+                  } catch (e) { return; }
+              }
+
+              if (!data) return;
+              const payload = data.data || data.payload || data;
+
+              // Extract Time
+              const currentTime = payload.currentTime ?? payload.time ?? payload.position;
+              
+              if (typeof currentTime === 'number') {
+                  setLocalTime(currentTime);
+
+                  // If HOST, broadcast this time to guests periodically
+                  if (role === 'host') {
+                      const now = Date.now();
+                      if (now - lastSyncRef.current > 2000) { // Broadcast every 2s
+                          lastSyncRef.current = now;
+                          broadcast(null, { 
+                              type: 'SYNC', 
+                              currentTime: currentTime 
+                          });
+                      }
+                  }
+              }
+
+              // Guest Logic - Check Sync? 
+              // We can't easily force the iframe to seek without an API, 
+              // but we can monitor the offset.
+          } catch (e) {
+              // Silent error
+          }
+      };
+
+      window.addEventListener('message', handleMessage);
+      return () => window.removeEventListener('message', handleMessage);
+  }, [role, connections]); // Depend on connections to know who to broadcast to
+
   // Initialize PeerJS
   useEffect(() => {
-    // We are now bundling peerjs via package.json, so we can instantiate it directly.
-    // However, we wrap it in a client-side check just in case of SSR, though Vite handles this well usually.
     let peer: Peer;
     try {
         peer = new Peer();
@@ -79,9 +125,7 @@ const WatchParty: React.FC = () => {
             setPeerId(id);
             if (role === 'host') {
                 setConnectionStatus('connected');
-                // Host is ready
             } else if (roomId) {
-                // Guest connects to Host
                 connectToHost(peer, roomId);
             }
         });
@@ -115,16 +159,14 @@ const WatchParty: React.FC = () => {
           setConnectionStatus('connected');
           setViewerCount(prev => prev + 1);
 
-          // If I am Host, send INIT data to the new Guest
           if (role === 'host' && mediaInfo) {
               const initData: InitData = {
                   type: 'INIT',
                   media: mediaInfo,
-                  startTime: 0 // In a real scenario, we'd grab current time
+                  startTime: localTime
               };
               conn.send(initData);
               
-              // System Message
               const sysMsg: ChatMessage = {
                   id: Date.now().toString(),
                   text: 'A new user joined the party!',
@@ -142,15 +184,22 @@ const WatchParty: React.FC = () => {
           
           if (payload.type === 'INIT') {
               setMediaInfo(payload.media);
+              // In a real app we might try to start at startTime here
               showToast('Joined Watch Party!', 'success');
           }
           
           if (payload.type === 'CHAT') {
               addMessage(payload.message);
-              // If Host, relay to others (simple star topology)
               if (role === 'host') {
                   broadcast(conn, payload);
               }
+          }
+
+          if (payload.type === 'SYNC') {
+              setHostTime(payload.currentTime);
+              // Here we could calculate drift
+              // const drift = Math.abs(localTime - payload.currentTime);
+              // if (drift > 5) { showToast("Syncing...", "info"); }
           }
       });
 
@@ -195,7 +244,6 @@ const WatchParty: React.FC = () => {
       if (role === 'host') {
           broadcast(null, payload);
       } else {
-          // Send to host, host will relay
           connections[0]?.send(payload);
       }
   };
@@ -209,7 +257,6 @@ const WatchParty: React.FC = () => {
       setShowShareModal(false);
   };
 
-  // Video Player URL Construction
   const getPlayerUrl = () => {
       if (!mediaInfo) return '';
       const baseUrl = "https://player.videasy.net";
@@ -234,16 +281,30 @@ const WatchParty: React.FC = () => {
       );
   }
 
+  // Calculate sync drift for display
+  const drift = role === 'guest' ? Math.abs(hostTime - localTime) : 0;
+  const isOutOfSync = drift > 5; // 5 seconds threshold
+
   return (
     <div className="fixed inset-0 z-[100] bg-black overflow-hidden group">
       {/* Top Controls */}
       <div className="absolute top-0 left-0 w-full p-4 z-50 flex justify-between items-start pointer-events-none">
-        <button
-          onClick={() => navigate('/')}
-          className="pointer-events-auto flex items-center justify-center w-10 h-10 rounded-full bg-black/40 hover:bg-black/80 text-white backdrop-blur-md transition-colors border border-white/10"
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </button>
+        <div className="pointer-events-auto flex items-center gap-4">
+             <button
+              onClick={() => navigate('/')}
+              className="flex items-center justify-center w-10 h-10 rounded-full bg-black/40 hover:bg-black/80 text-white backdrop-blur-md transition-colors border border-white/10"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+            
+            {/* Sync Indicator for Guest */}
+            {role === 'guest' && hostTime > 0 && (
+                 <div className={`px-3 py-1.5 rounded-full backdrop-blur-md border flex items-center gap-2 text-xs font-medium ${isOutOfSync ? 'bg-red-900/50 border-red-500/50 text-red-200' : 'bg-green-900/50 border-green-500/50 text-green-200'}`}>
+                     <Clock className="w-3 h-3" />
+                     {isOutOfSync ? `Sync Drift: ${drift.toFixed(0)}s` : 'Synced'}
+                 </div>
+            )}
+        </div>
 
         {role === 'host' && (
             <button
