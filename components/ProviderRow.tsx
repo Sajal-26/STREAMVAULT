@@ -5,11 +5,11 @@ import ContentRow from './ContentRow';
 
 // User defined provider map
 const PROVIDER_CONFIG = [
-  { key: 'netflix', name: 'Netflix', id: 8, color: '#E50914' },
-  { key: 'prime_video', name: 'Prime', id: 9, color: '#00A8E1' },
-  { key: 'disney_hotstar', name: 'Disney+', id: 337, color: '#113CCF' }, // Updated to 337 (Disney+)
-  { key: 'max', name: 'Max', id: 188, color: '#002BE7' }, // Added Max
-  { key: 'apple_tv', name: 'Apple TV', id: 2, color: '#A3AAAE' },
+  { key: 'netflix', name: 'Netflix', id: 8 },
+  { key: 'prime_video', name: 'Prime', id: 9 },
+  { key: 'disney_hotstar', name: 'Disney+', id: 337 }, 
+  { key: 'max', name: 'Max', id: 188 }, 
+  { key: 'apple_tv', name: 'Apple TV', id: 2 },
 ];
 
 interface ProviderRowProps {
@@ -45,23 +45,19 @@ const ProviderRow: React.FC<ProviderRowProps> = ({ type, titlePrefix }) => {
     return () => { isMounted = false; };
   }, [selectedProvider, type]);
 
-  // Construct category ID for View All page
-  // Format: provider_[type]_[providerId] e.g., provider_movie_8
-  const categoryId = `provider_${type}_${selectedProvider.id}`;
+  // Construct category ID using friendly slugs
+  // e.g., netflix-movies, netflix-shows
+  const slug = `${selectedProvider.key}-${type === 'movie' ? 'movies' : 'shows'}`;
 
   return (
     <div className="mb-8 md:mb-12 relative">
       {/* Custom Header with Tabs */}
-      {/* Added relative z-20 to ensure this sits ABOVE the content row so buttons are clickable */}
       <div className="relative z-20 px-4 md:px-12 flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
           
           {/* Title Area */}
           <h2 className="text-lg md:text-2xl font-bold text-white flex items-center">
-            <span 
-                className="w-1 h-5 md:h-6 mr-3 rounded-full transition-colors duration-300"
-                style={{ backgroundColor: selectedProvider.color }}
-            ></span>
-            {titlePrefix} <span style={{ color: selectedProvider.color }} className="ml-2 transition-colors duration-300">{selectedProvider.name}</span>
+            <span className="w-1 h-5 md:h-6 bg-brand-primary mr-3 rounded-full"></span>
+            {titlePrefix} <span className="ml-2 text-brand-primary">{selectedProvider.name}</span>
           </h2>
 
           {/* Provider Tabs */}
@@ -72,7 +68,7 @@ const ProviderRow: React.FC<ProviderRowProps> = ({ type, titlePrefix }) => {
                     onClick={() => setSelectedProvider(provider)}
                     className={`whitespace-nowrap text-sm md:text-base font-medium transition-all duration-300 border-b-2 pb-1 ${
                         selectedProvider.key === provider.key 
-                        ? 'text-white border-white scale-105' 
+                        ? 'text-white border-brand-primary scale-105' 
                         : 'text-gray-500 border-transparent hover:text-gray-300'
                     }`}
                   >
@@ -92,7 +88,7 @@ const ProviderRow: React.FC<ProviderRowProps> = ({ type, titlePrefix }) => {
       ) : (
         /* Adjusted margin to -mt-4 since we removed the empty title space in ContentRow */
         <div className="-mt-4 relative z-10">
-             <ContentRow title="" items={items} categoryId={categoryId} />
+             <ContentRow title="" items={items} categoryId={slug} />
         </div>
       )}
     </div>

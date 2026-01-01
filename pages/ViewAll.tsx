@@ -7,6 +7,14 @@ import { MediaItem } from '../types';
 import { useInfiniteScroll } from '../hooks/useInfiniteScroll';
 import { ArrowLeft } from 'lucide-react';
 
+const PROVIDER_MAP: Record<string, { id: number, name: string }> = {
+    'netflix': { id: 8, name: 'Netflix' },
+    'prime_video': { id: 9, name: 'Prime Video' },
+    'disney_hotstar': { id: 337, name: 'Disney+' },
+    'max': { id: 188, name: 'Max' },
+    'apple_tv': { id: 2, name: 'Apple TV' }
+};
+
 const ViewAll: React.FC = () => {
   const { categoryId } = useParams<{ categoryId: string }>();
   const navigate = useNavigate();
@@ -21,39 +29,43 @@ const ViewAll: React.FC = () => {
   const fetchCategoryData = async (pageToFetch: number) => {
     if (!categoryId) return { results: [] };
 
-    const parts = categoryId.split('_');
-    // parts[0] is the type (trending, movie, tv, provider, company, keyword)
-    
-    // 1. Providers
-    if (categoryId.startsWith('provider')) {
-        // Format: provider_[type]_[id]
-        const type = parts[1] as 'movie' | 'tv';
-        const providerId = parseInt(parts[2]);
-        const providerNames: Record<number, string> = { 
-            8: 'Netflix', 9: 'Prime Video', 337: 'Disney+', 188: 'Max', 2: 'Apple TV' 
-        };
-        setTitle(`${type === 'movie' ? 'Movies' : 'TV Shows'} on ${providerNames[providerId] || 'Streaming'}`);
-        return tmdbService.discoverByProvider(providerId, type, pageToFetch);
+    // 1. Friendly Provider Slugs (e.g., netflix-movies, netflix-shows)
+    for (const key of Object.keys(PROVIDER_MAP)) {
+        if (categoryId.startsWith(key)) {
+            const provider = PROVIDER_MAP[key];
+            const isMovie = categoryId.includes('movies');
+            const type = isMovie ? 'movie' : 'tv';
+            
+            setTitle(`${isMovie ? 'Movies' : 'TV Shows'} on ${provider.name}`);
+            return tmdbService.discoverByProvider(provider.id, type, pageToFetch);
+        }
     }
 
-    // 2. Companies
-    if (categoryId.startsWith('company')) {
-        // Format: company_[id]
-        const companyId = parseInt(parts[1]);
-        setTitle('Production Company'); // Generic title, hard to fetch name without extra call
-        // Default to movies for company view
+    const parts = categoryId.split('_');
+    
+    // 2. Network (e.g., network-123)
+    if (categoryId.startsWith('network-')) {
+        const networkId = parseInt(categoryId.replace('network-', ''));
+        setTitle('Network Series');
+        // Networks usually imply TV
+        return tmdbService.discover('tv', undefined, pageToFetch, undefined, undefined, networkId);
+    }
+
+    // 3. Companies (e.g., company-123)
+    if (categoryId.startsWith('company-')) {
+        const companyId = parseInt(categoryId.replace('company-', ''));
+        setTitle('Production Company');
         return tmdbService.discover('movie', undefined, pageToFetch, undefined, companyId);
     }
-
-    // 3. Keywords (Lists)
+    
+    // 4. Keywords/Lists (e.g. keyword_123)
     if (categoryId.startsWith('keyword')) {
-        // Format: keyword_[id]
         const keywordId = parseInt(parts[1]);
         setTitle('Curated Collection');
         return tmdbService.discover('movie', undefined, pageToFetch, keywordId);
     }
-    
-    // 4. Standard Categories
+
+    // 5. Standard Categories (legacy format)
     const type = parts[0] === 'tv' ? 'tv' : 'movie'; 
     
     if (categoryId.startsWith('trending')) {
@@ -72,10 +84,24 @@ const ViewAll: React.FC = () => {
     }
 
     if (categoryId.includes('genre')) {
-        // Expected: movie_genre_28
         const genreId = parseInt(parts[2]);
         setTitle(`${type === 'movie' ? 'Movie' : 'TV'} Collection`);
         return tmdbService.discover(type, genreId, pageToFetch);
+    }
+    
+    // Fallback for providers if using legacy ID format
+    if (categoryId.startsWith('provider')) {
+        const pType = parts[1] as 'movie' | 'tv';
+        const providerId = parseInt(parts[2]);
+        setTitle('Streaming');
+        return tmdbService.discoverByProvider(providerId, pType, pageToFetch);
+    }
+    
+    // Fallback for company if using legacy ID format
+    if (categoryId.startsWith('company_')) {
+        const companyId = parseInt(parts[1]);
+        setTitle('Production Company');
+        return tmdbService.discover('movie', undefined, pageToFetch, undefined, companyId);
     }
 
     return { results: [] };

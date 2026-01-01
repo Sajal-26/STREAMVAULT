@@ -59,7 +59,7 @@ const ContentRow: React.FC<ContentRowProps> = ({ title, items, categoryId, onRem
 
   return (
     <div className="mb-8 md:mb-12 px-4 md:px-12 relative group/row">
-      <div className="flex items-end justify-between mb-3 md:mb-4">
+      <div className="flex items-center gap-4 mb-3 md:mb-4">
         {title && (
             <h2 className="text-lg md:text-2xl font-bold text-primary flex items-center">
             <span className="w-1 h-5 md:h-6 bg-brand-primary mr-3 rounded-full"></span>

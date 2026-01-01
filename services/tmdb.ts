@@ -163,7 +163,7 @@ export const tmdbService = {
     return fetchFromTMDB<{ genres: Genre[] }>(`/genre/${type}/list`);
   },
   
-  discover: async (type: 'movie' | 'tv', genreId?: number, page: number = 1, keywordId?: number, companyId?: number) => {
+  discover: async (type: 'movie' | 'tv', genreId?: number, page: number = 1, keywordId?: number, companyId?: number, networkId?: number) => {
       const params: Record<string, string> = {
           page: page.toString(),
           sort_by: 'popularity.desc',
@@ -173,6 +173,7 @@ export const tmdbService = {
       if (genreId) params.with_genres = genreId.toString();
       if (keywordId) params.with_keywords = keywordId.toString();
       if (companyId) params.with_companies = companyId.toString();
+      if (networkId) params.with_networks = networkId.toString();
       
       const res = await fetchFromTMDB<{ results: MediaItem[] }>(`/discover/${type}`, params);
       

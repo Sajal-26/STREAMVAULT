@@ -415,19 +415,19 @@ const Details: React.FC = () => {
                 <div className="mb-12">
                      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
                         <h3 className="text-xl md:text-2xl font-bold text-primary cursor-default">Episodes</h3>
-                        <div className="relative w-full sm:w-auto">
+                        <div className="relative inline-block w-full sm:w-auto min-w-[200px]">
                             <select 
                                 value={selectedSeasonNumber}
                                 onChange={(e) => setSelectedSeasonNumber(Number(e.target.value))}
-                                className="w-full sm:w-auto appearance-none bg-surface border border-gray-600 text-primary py-2 pl-4 pr-10 rounded text-base font-medium focus:outline-none focus:border-brand-primary cursor-pointer"
+                                className="w-full appearance-none bg-white/10 border border-white/10 text-white py-3 pl-4 pr-10 rounded-lg text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-brand-primary cursor-pointer hover:bg-white/20 transition-all"
                             >
                                 {data.seasons?.filter(s => s.season_number > 0).map(s => (
-                                    <option key={s.season_number} value={s.season_number}>
+                                    <option key={s.season_number} value={s.season_number} className="bg-gray-800 text-white">
                                         Season {s.season_number} ({s.episode_count} Episodes)
                                     </option>
                                 ))}
                             </select>
-                            <ChevronDown className="absolute right-3 top-3 w-4 h-4 text-primary pointer-events-none" />
+                            <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                         </div>
                      </div>
 
@@ -464,7 +464,7 @@ const Details: React.FC = () => {
                                          <p className="text-secondary text-xs md:text-sm line-clamp-2 md:line-clamp-3 leading-relaxed cursor-default">
                                              {ep.overview || "No description available for this episode."}
                                          </p>
-                                         <p className="text-[10px] text-gray-500 mt-2">
+                                         <p className="text-xs text-gray-500 mt-2">
                                              Aired: {formatDate(ep.air_date)}
                                          </p>
                                      </div>
@@ -607,11 +607,13 @@ const Details: React.FC = () => {
                     <span className="block text-secondary mb-2 font-bold uppercase tracking-wider text-xs cursor-default">Networks</span>
                     <div className="flex flex-wrap gap-2 bg-white/90 p-2 rounded justify-center">
                         {data.networks.map(n => (
-                            n.logo_path ? (
-                                <img key={n.id} src={`${IMAGE_BASE_URL}/w92${n.logo_path}`} alt={n.name} title={n.name} className="h-4 object-contain" />
-                            ) : (
-                                <span key={n.id} className="text-black text-xs font-bold">{n.name}</span>
-                            )
+                            <Link to={`/category/network-${n.id}`} key={n.id} className="hover:scale-105 transition-transform">
+                                {n.logo_path ? (
+                                    <img src={`${IMAGE_BASE_URL}/w92${n.logo_path}`} alt={n.name} title={n.name} className="h-4 object-contain" />
+                                ) : (
+                                    <span className="text-black text-xs font-bold">{n.name}</span>
+                                )}
+                            </Link>
                         ))}
                     </div>
                 </div>
@@ -623,9 +625,9 @@ const Details: React.FC = () => {
                     <span className="block text-secondary mb-2 font-bold uppercase tracking-wider text-xs cursor-default">Production</span>
                     <div className="flex flex-col gap-1.5">
                         {data.production_companies.slice(0, 5).map(c => (
-                            <span key={c.id} className="text-gray-300 text-xs flex items-center">
+                            <Link to={`/category/company-${c.id}`} key={c.id} className="text-gray-300 text-xs flex items-center hover:text-brand-primary transition-colors">
                                 {c.name}
-                            </span>
+                            </Link>
                         ))}
                     </div>
                 </div>
