@@ -9,24 +9,25 @@ import { useAuth } from '../context/AuthContext';
 
 interface RowConfig {
   title: string;
+  categoryId: string; // Identifier for "View All" routing
   fetcher: () => Promise<{ results: MediaItem[] }>;
 }
 
 const ROW_CONFIGS: RowConfig[] = [
-  { title: 'Popular Movies', fetcher: () => tmdbService.getPopular('movie') },
-  { title: 'Bingeworthy TV Shows', fetcher: () => tmdbService.getPopular('tv') },
-  { title: 'Top Rated Movies', fetcher: () => tmdbService.getTopRated('movie') },
-  { title: 'Action Movies', fetcher: () => tmdbService.discover('movie', 28) },
-  { title: 'Sci-Fi & Fantasy', fetcher: () => tmdbService.discover('movie', 878) },
-  { title: 'Comedy Hits', fetcher: () => tmdbService.discover('movie', 35) },
-  { title: 'Horror Night', fetcher: () => tmdbService.discover('movie', 27) },
-  { title: 'Animated Adventures', fetcher: () => tmdbService.discover('movie', 16) },
-  { title: 'TV Action & Adventure', fetcher: () => tmdbService.discover('tv', 10759) },
-  { title: 'Sci-Fi & Fantasy TV', fetcher: () => tmdbService.discover('tv', 10765) },
-  { title: 'Documentaries', fetcher: () => tmdbService.discover('movie', 99) },
-  { title: 'Family Favorites', fetcher: () => tmdbService.discover('movie', 10751) },
-  { title: 'Thriller Movies', fetcher: () => tmdbService.discover('movie', 53) },
-  { title: 'Romance', fetcher: () => tmdbService.discover('movie', 10749) }
+  { title: 'Popular Movies', categoryId: 'movie_popular', fetcher: () => tmdbService.getPopular('movie') },
+  { title: 'Bingeworthy TV Shows', categoryId: 'tv_popular', fetcher: () => tmdbService.getPopular('tv') },
+  { title: 'Top Rated Movies', categoryId: 'movie_top_rated', fetcher: () => tmdbService.getTopRated('movie') },
+  { title: 'Action Movies', categoryId: 'movie_genre_28', fetcher: () => tmdbService.discover('movie', 28) },
+  { title: 'Sci-Fi & Fantasy', categoryId: 'movie_genre_878', fetcher: () => tmdbService.discover('movie', 878) },
+  { title: 'Comedy Hits', categoryId: 'movie_genre_35', fetcher: () => tmdbService.discover('movie', 35) },
+  { title: 'Horror Night', categoryId: 'movie_genre_27', fetcher: () => tmdbService.discover('movie', 27) },
+  { title: 'Animated Adventures', categoryId: 'movie_genre_16', fetcher: () => tmdbService.discover('movie', 16) },
+  { title: 'TV Action & Adventure', categoryId: 'tv_genre_10759', fetcher: () => tmdbService.discover('tv', 10759) },
+  { title: 'Sci-Fi & Fantasy TV', categoryId: 'tv_genre_10765', fetcher: () => tmdbService.discover('tv', 10765) },
+  { title: 'Documentaries', categoryId: 'movie_genre_99', fetcher: () => tmdbService.discover('movie', 99) },
+  { title: 'Family Favorites', categoryId: 'movie_genre_10751', fetcher: () => tmdbService.discover('movie', 10751) },
+  { title: 'Thriller Movies', categoryId: 'movie_genre_53', fetcher: () => tmdbService.discover('movie', 53) },
+  { title: 'Romance', categoryId: 'movie_genre_10749', fetcher: () => tmdbService.discover('movie', 10749) }
 ];
 
 const Home: React.FC = () => {
@@ -160,7 +161,7 @@ const Home: React.FC = () => {
 
         {/* 3. Trending Row */}
         {trendingItems.length > 0 && (
-            <ContentRow title="Trending Now" items={trendingItems} />
+            <ContentRow title="Trending Now" items={trendingItems} categoryId="trending_week" />
         )}
 
         {/* 4. Provider Rows (New Feature) */}
@@ -170,7 +171,12 @@ const Home: React.FC = () => {
         {/* 5. Dynamic Rows */}
         {ROW_CONFIGS.map((config) => (
             loadedRows[config.title] ? (
-                <ContentRow key={config.title} title={config.title} items={loadedRows[config.title]} />
+                <ContentRow 
+                    key={config.title} 
+                    title={config.title} 
+                    items={loadedRows[config.title]} 
+                    categoryId={config.categoryId}
+                />
             ) : (
                 <RowSkeleton key={config.title} title={config.title} />
             )

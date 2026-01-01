@@ -13,6 +13,7 @@ import Watchlist from './pages/Watchlist';
 import LikedContent from './pages/LikedContent';
 import Watch from './pages/Watch';
 import SharedRedirect from './pages/SharedRedirect';
+import ViewAll from './pages/ViewAll';
 
 const AppContent: React.FC = () => {
   return (
@@ -24,6 +25,8 @@ const AppContent: React.FC = () => {
         <Route path="/tv" element={<Browse type="tv" />} />
         
         <Route path="/search" element={<SearchPage />} />
+        <Route path="/category/:categoryId" element={<ViewAll />} />
+
         <Route path="/details/:type/:id" element={<Details />} />
         <Route path="/person/:id" element={<PersonDetails />} />
         <Route path="/collection/:id" element={<CollectionDetails />} />

@@ -76,16 +76,16 @@ const fetchFromTMDB = async <T>(endpoint: string, params: Record<string, string>
 };
 
 export const tmdbService = {
-  getTrending: async (mediaType: 'all' | 'movie' | 'tv' = 'all', timeWindow: 'day' | 'week' = 'week') => {
-    return fetchFromTMDB<{ results: MediaItem[] }>(`/trending/${mediaType}/${timeWindow}`);
+  getTrending: async (mediaType: 'all' | 'movie' | 'tv' = 'all', timeWindow: 'day' | 'week' = 'week', page: number = 1) => {
+    return fetchFromTMDB<{ results: MediaItem[] }>(`/trending/${mediaType}/${timeWindow}`, { page: page.toString() });
   },
 
-  getPopular: async (type: 'movie' | 'tv') => {
-    return fetchFromTMDB<{ results: MediaItem[] }>(`/${type}/popular`);
+  getPopular: async (type: 'movie' | 'tv', page: number = 1) => {
+    return fetchFromTMDB<{ results: MediaItem[] }>(`/${type}/popular`, { page: page.toString() });
   },
 
-  getTopRated: async (type: 'movie' | 'tv') => {
-    return fetchFromTMDB<{ results: MediaItem[] }>(`/${type}/top_rated`);
+  getTopRated: async (type: 'movie' | 'tv', page: number = 1) => {
+    return fetchFromTMDB<{ results: MediaItem[] }>(`/${type}/top_rated`, { page: page.toString() });
   },
 
   getDetails: async (type: 'movie' | 'tv', id: number) => {
@@ -101,34 +101,41 @@ export const tmdbService = {
     });
   },
 
-  search: async (query: string) => {
-    return fetchFromTMDB<{ results: MediaItem[] }>('/search/multi', { query });
+  search: async (query: string, page: number = 1) => {
+    return fetchFromTMDB<{ results: MediaItem[] }>('/search/multi', { query, page: page.toString() });
   },
 
-  // Added: Search specifically for collections to merge into search results if needed
-  searchCollections: async (query: string) => {
-    return fetchFromTMDB<{ results: MediaItem[] }>('/search/collection', { query });
+  // Search specifically for collections
+  searchCollections: async (query: string, page: number = 1) => {
+    return fetchFromTMDB<{ results: MediaItem[] }>('/search/collection', { query, page: page.toString() });
+  },
+
+  // Search keywords (for lists like "Oscar", "Anime", etc)
+  searchKeywords: async (query: string, page: number = 1) => {
+    return fetchFromTMDB<{ results: { id: number, name: string }[] }>('/search/keyword', { query, page: page.toString() });
   },
 
   getGenres: async (type: 'movie' | 'tv') => {
     return fetchFromTMDB<{ genres: Genre[] }>(`/genre/${type}/list`);
   },
   
-  discover: async (type: 'movie' | 'tv', genreId?: number, page: number = 1) => {
+  discover: async (type: 'movie' | 'tv', genreId?: number, page: number = 1, keywordId?: number) => {
       const params: Record<string, string> = {
           page: page.toString(),
           sort_by: 'popularity.desc'
       };
       if (genreId) params.with_genres = genreId.toString();
+      if (keywordId) params.with_keywords = keywordId.toString();
+      
       return fetchFromTMDB<{ results: MediaItem[] }>(`/discover/${type}`, params);
   },
 
-  discoverByProvider: async (providerId: number, type: 'movie' | 'tv') => {
-      // Default to US region
+  discoverByProvider: async (providerId: number, type: 'movie' | 'tv', page: number = 1) => {
       return fetchFromTMDB<{ results: MediaItem[] }>(`/discover/${type}`, {
           with_watch_providers: providerId.toString(),
           watch_region: 'US',
-          sort_by: 'popularity.desc'
+          sort_by: 'popularity.desc',
+          page: page.toString()
       });
   },
 
@@ -138,12 +145,10 @@ export const tmdbService = {
       });
   },
 
-  // Added: Fetch Collection Details
   getCollectionDetails: async (collectionId: number) => {
       return fetchFromTMDB<CollectionDetails>(`/collection/${collectionId}`);
   },
 
-  // Added: Get combined credits for a person (for "More from X" section)
   getPersonCredits: async (personId: number) => {
       return fetchFromTMDB<{cast: MediaItem[], crew: MediaItem[]}>(`/person/${personId}/combined_credits`);
   }

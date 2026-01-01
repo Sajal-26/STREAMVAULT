@@ -1,15 +1,17 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import MediaCard from './MediaCard';
 import { MediaItem } from '../types';
 
 interface ContentRowProps {
   title: string;
   items: MediaItem[];
+  categoryId?: string; // New prop for View All link
   onRemove?: (id: number) => void;
 }
 
-const ContentRow: React.FC<ContentRowProps> = ({ title, items, onRemove }) => {
+const ContentRow: React.FC<ContentRowProps> = ({ title, items, categoryId, onRemove }) => {
   const rowRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
@@ -57,12 +59,24 @@ const ContentRow: React.FC<ContentRowProps> = ({ title, items, onRemove }) => {
 
   return (
     <div className="mb-8 md:mb-12 px-4 md:px-12 relative group/row">
-      {title && (
-        <h2 className="text-lg md:text-2xl font-bold text-primary mb-3 md:mb-4 flex items-center">
-          <span className="w-1 h-5 md:h-6 bg-brand-primary mr-3 rounded-full"></span>
-          {title}
-        </h2>
-      )}
+      <div className="flex items-end justify-between mb-3 md:mb-4">
+        {title && (
+            <h2 className="text-lg md:text-2xl font-bold text-primary flex items-center">
+            <span className="w-1 h-5 md:h-6 bg-brand-primary mr-3 rounded-full"></span>
+            {title}
+            </h2>
+        )}
+        
+        {categoryId && (
+            <Link 
+                to={`/category/${categoryId}`}
+                className="group/link flex items-center text-xs md:text-sm font-semibold text-brand-primary hover:text-white transition-colors"
+            >
+                Explore All 
+                <ArrowRight className="w-4 h-4 ml-1 transform group-hover/link:translate-x-1 transition-transform" />
+            </Link>
+        )}
+      </div>
       
       <div className="relative">
         {canScrollLeft && (
