@@ -129,8 +129,8 @@ const Navbar: React.FC = () => {
              id: k.id,
              title: k.name,
              name: k.name,
-             poster_path: null,
-             backdrop_path: null,
+             poster_path: null, 
+             backdrop_path: null, 
              overview: 'List',
              vote_average: 0,
              media_type: 'collection' as const // Treat keyword as collection for UI simplicity here, handled in click
@@ -250,7 +250,7 @@ const Navbar: React.FC = () => {
                     </div>
                     <input
                         type="text"
-                        placeholder="Search TMDB..."
+                        placeholder="Search StreamVault..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         onFocus={() => { if(suggestions.length > 0) setShowSuggestions(true); }}
