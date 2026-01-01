@@ -1,14 +1,13 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { useParams, useNavigate, Link } from '../services/skipService';
-import { Play, Plus, Star, ThumbsUp, ChevronDown, Check, X, Share2, Calendar, Clock, Lock } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { useParams, useNavigate } from '../services/skipService';
+import { Play, Plus, ThumbsUp, ChevronDown, Check } from 'lucide-react';
 import { tmdbService } from '../services/tmdb';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { MediaDetails, SeasonDetails, MediaItem } from '../types';
+import { MediaDetails, SeasonDetails } from '../types';
 import { IMAGE_BASE_URL } from '../constants';
 import ContentRow from '../components/ContentRow';
 import Navbar from '../components/Navbar';
-import MediaCard from '../components/MediaCard';
 
 const Details: React.FC = () => {
   const params = useParams();
@@ -133,14 +132,14 @@ const Details: React.FC = () => {
       {/* Hero */}
       <div className="relative h-[70vh] w-full bg-black overflow-hidden">
         <div className="absolute inset-0">
-             <img src={backdrop} className="w-full h-full object-cover opacity-60" />
+             <img src={backdrop} className="w-full h-full object-cover opacity-60" alt={data.title || data.name} />
         </div>
         <div className="absolute inset-0 bg-gradient-to-t from-background via-black/40 to-transparent" />
         
         <div className="absolute bottom-0 left-0 w-full px-4 md:px-12 pb-12">
             <div className="max-w-4xl">
                  {logoPath ? (
-                    <img src={`${IMAGE_BASE_URL}/w500${logoPath}`} className="h-24 md:h-32 object-contain mb-6 origin-left" />
+                    <img src={`${IMAGE_BASE_URL}/w500${logoPath}`} className="h-24 md:h-32 object-contain mb-6 origin-left" alt="Title Logo" />
                  ) : (
                     <h1 className="text-4xl md:text-6xl font-bold mb-4">{data.title || data.name}</h1>
                  )}
@@ -206,7 +205,7 @@ const Details: React.FC = () => {
                           <div key={ep.id} className="group flex flex-col md:flex-row gap-4 p-4 rounded hover:bg-white/5 border border-transparent hover:border-white/5 transition cursor-pointer" onClick={() => navigate(`/watch/tv/${id}/${selectedSeasonNumber}/${ep.episode_number}`)}>
                                <div className="w-full md:w-48 aspect-video flex-shrink-0 bg-gray-800 rounded overflow-hidden relative">
                                    {ep.still_path ? (
-                                       <img src={`${IMAGE_BASE_URL}/w300${ep.still_path}`} className="w-full h-full object-cover" />
+                                       <img src={`${IMAGE_BASE_URL}/w300${ep.still_path}`} className="w-full h-full object-cover" alt={ep.name} />
                                    ) : (
                                        <div className="flex items-center justify-center h-full text-gray-500">No Image</div>
                                    )}
