@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import Navbar from '../components/Navbar';
 import Hero from '../components/Hero';
 import ContentRow from '../components/ContentRow';
+import Top10Row from '../components/Top10Row';
 import { tmdbService } from '../services/tmdb';
 import { MediaItem } from '../types';
 import { useAuth } from '../context/AuthContext';
@@ -31,6 +32,7 @@ const ROW_CONFIGS: RowConfig[] = [
 const Home: React.FC = () => {
   const [heroItems, setHeroItems] = useState<MediaItem[]>([]);
   const [trendingItems, setTrendingItems] = useState<MediaItem[]>([]);
+  const [top10Items, setTop10Items] = useState<MediaItem[]>([]);
   const [loadedRows, setLoadedRows] = useState<Record<string, MediaItem[]>>({});
   const [initialLoading, setInitialLoading] = useState(true);
   
@@ -40,18 +42,24 @@ const Home: React.FC = () => {
   useEffect(() => {
     const fetchInitial = async () => {
       try {
-        // 1. Fetch Trending immediately for Hero and first row
-        const trendingRes = await tmdbService.getTrending();
-        setTrendingItems(trendingRes.results);
+        // 1. Fetch Trending (Week) for Hero and "Trending Now" row
+        // 2. Fetch Trending (Day) for "Top 10 Today"
+        const [trendingWeek, trendingDay] = await Promise.all([
+             tmdbService.getTrending('all', 'week'),
+             tmdbService.getTrending('all', 'day')
+        ]);
         
-        if (trendingRes.results.length > 0) {
+        setTrendingItems(trendingWeek.results);
+        setTop10Items(trendingDay.results);
+        
+        if (trendingWeek.results.length > 0) {
            // Use top 10 items for the hero carousel
-           setHeroItems(trendingRes.results.slice(0, 10));
+           setHeroItems(trendingWeek.results.slice(0, 10));
         }
         
         setInitialLoading(false);
 
-        // 2. Fetch other rows lazily if not already fetched
+        // 3. Fetch other rows lazily if not already fetched
         if (!hasFetchedRows.current) {
             hasFetchedRows.current = true;
             fetchOtherRows();
@@ -121,6 +129,12 @@ const Home: React.FC = () => {
       <Hero items={heroItems} />
       
       <div className="-mt-20 md:-mt-32 relative z-10 pb-20 space-y-4 md:space-y-8">
+        
+        {/* Top 10 Row (New) */}
+        {top10Items.length > 0 && (
+            <Top10Row items={top10Items} />
+        )}
+
         {/* Continue Watching Row */}
         {continueWatchingItems.length > 0 && (
           <ContentRow 
@@ -175,9 +189,9 @@ const HomeSkeleton: React.FC = () => {
 
             {/* Rows Skeleton */}
             <div className="-mt-16 md:-mt-32 relative z-10 space-y-12 pb-20">
+                <div className="px-12 h-64 bg-white/5 animate-pulse rounded mb-8"></div>
                 <RowSkeleton title="Trending Now" />
                 <RowSkeleton title="Popular Movies" />
-                <RowSkeleton title="Bingeworthy TV Shows" />
             </div>
         </div>
     );
