@@ -148,11 +148,23 @@ export const tmdbService = {
       // Auto-detect region
       const region = await getRegion();
       
-      return fetchFromTMDB<{ results: MediaItem[] }>(`/discover/${type}`, {
+      // 1. Try fetching with the detected region
+      let res = await fetchFromTMDB<{ results: MediaItem[] }>(`/discover/${type}`, {
           with_watch_providers: providerId.toString(),
           watch_region: region,
           sort_by: 'popularity.desc'
       });
+
+      // 2. Fallback: If results are sparse (< 10), try without region (defaults to US usually)
+      if (!res.results || res.results.length < 10) {
+          // console.log(`Sparse results for provider ${providerId} in ${region}, falling back to default/US`);
+          res = await fetchFromTMDB<{ results: MediaItem[] }>(`/discover/${type}`, {
+              with_watch_providers: providerId.toString(),
+              sort_by: 'popularity.desc'
+          });
+      }
+
+      return res;
   },
 
   getPersonDetails: async (personId: number) => {
