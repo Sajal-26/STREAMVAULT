@@ -43,12 +43,15 @@ const Top10Row: React.FC<Top10RowProps> = ({ items }) => {
   const top10Items = items.slice(0, 10);
 
   return (
-    <div className="mb-12 px-4 md:px-12 relative group/row">
-      <div className="flex items-baseline gap-2 mb-4">
-        <h2 className="text-2xl md:text-3xl font-bold text-white uppercase tracking-tighter">
-            Top 10
+    <div className="mb-16 px-4 md:px-12 relative group/row">
+      <div className="flex items-center gap-4 mb-6 md:mb-8 select-none">
+        <h2 
+            className="text-5xl md:text-7xl font-black tracking-tighter text-transparent transition-colors duration-300"
+            style={{ WebkitTextStroke: '2px var(--color-primary)' }}
+        >
+            TOP 10
         </h2>
-        <span className="text-lg font-bold text-secondary uppercase tracking-widest">
+        <span className="text-base md:text-xl font-bold text-white uppercase tracking-widest leading-tight max-w-[100px]">
             Content Today
         </span>
       </div>
@@ -66,21 +69,21 @@ const Top10Row: React.FC<Top10RowProps> = ({ items }) => {
         <div 
           ref={rowRef}
           onScroll={checkScroll}
-          className="flex space-x-0 overflow-x-auto hide-scrollbar pb-8 pt-4 -ml-4" // Negative margin to handle the big numbers padding
+          className="flex space-x-0 overflow-x-auto hide-scrollbar pb-12 pt-4 -ml-4" // Padding bottom to accommodate hover effects
         >
           {top10Items.map((item, index) => (
-             <div key={item.id} className="relative flex-shrink-0 pl-4 pr-2 group">
+             <div key={item.id} className="relative flex-shrink-0 pl-4 pr-2 group cursor-pointer">
                  <div className="flex items-end relative">
                      {/* The Number */}
                      <span 
-                        className="text-[10rem] md:text-[14rem] font-black leading-none text-black tracking-tighter select-none scale-y-110 origin-bottom transform translate-y-2 translate-x-4 z-0"
-                        style={{ WebkitTextStroke: '4px #555' }}
+                        className="text-[9rem] sm:text-[11rem] md:text-[14rem] font-black leading-none tracking-tighter select-none scale-y-110 origin-bottom transform translate-y-3 translate-x-5 z-0 transition-all duration-300 text-transparent group-hover:text-[var(--color-primary)]"
+                        style={{ WebkitTextStroke: '4px var(--color-primary)' }}
                      >
                         {index + 1}
                      </span>
                      
                      {/* The Card Container */}
-                     <div className="min-w-[130px] w-[130px] sm:min-w-[160px] sm:w-[160px] md:min-w-[180px] md:w-[180px] z-10 -ml-6 md:-ml-8 mb-4">
+                     <div className="min-w-[130px] w-[130px] sm:min-w-[150px] sm:w-[150px] md:min-w-[180px] md:w-[180px] z-10 -ml-4 sm:-ml-6 md:-ml-8 mb-2 transition-transform duration-300 group-hover:scale-105 origin-bottom">
                         <MediaCard item={item} />
                      </div>
                  </div>

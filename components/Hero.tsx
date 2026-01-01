@@ -196,8 +196,8 @@ const Hero: React.FC<HeroProps> = ({ items }) => {
         </div>
       </div>
       
-      {/* Carousel Indicators */}
-      <div className="absolute bottom-8 right-8 md:right-16 flex space-x-2 z-30">
+      {/* Carousel Indicators - Moved up to avoid overlap */}
+      <div className="absolute bottom-16 right-8 md:right-16 flex space-x-2 z-30">
           {items.map((_, idx) => (
               <button 
                 key={idx} 

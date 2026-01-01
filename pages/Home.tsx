@@ -128,7 +128,11 @@ const Home: React.FC = () => {
       <Navbar />
       <Hero items={heroItems} />
       
-      <div className="-mt-20 md:-mt-32 relative z-10 pb-20 space-y-4 md:space-y-8">
+      {/* 
+        Adjusted negative margin (-mt-10 md:-mt-20) to prevent overlap with Hero indicators.
+        Previously was -mt-20 md:-mt-32 which was too aggressive.
+      */}
+      <div className="-mt-10 md:-mt-20 relative z-10 pb-20 space-y-4 md:space-y-8">
         
         {/* Top 10 Row (New) */}
         {top10Items.length > 0 && (
