@@ -12,7 +12,6 @@ import Settings from './pages/Settings';
 import Watchlist from './pages/Watchlist';
 import LikedContent from './pages/LikedContent';
 import Watch from './pages/Watch';
-import WatchParty from './pages/WatchParty';
 import SharedRedirect from './pages/SharedRedirect';
 
 const AppContent: React.FC = () => {
@@ -34,11 +33,6 @@ const AppContent: React.FC = () => {
         
         <Route path="/watch/:type/:id" element={<Watch />} />
         <Route path="/watch/:type/:id/:season/:episode" element={<Watch />} />
-        
-        {/* Watch Party Routes */}
-        <Route path="/watch-party/:action/:type/:id" element={<WatchParty />} />
-        <Route path="/watch-party/:action/:type/:id/:season/:episode" element={<WatchParty />} />
-        <Route path="/watch-party/join/:roomId" element={<WatchParty />} />
         
         <Route path="/watchlist" element={<Watchlist />} />
         <Route path="/liked" element={<LikedContent />} />

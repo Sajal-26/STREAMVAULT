@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { Play, Plus, Star, ThumbsUp, ChevronDown, Check, X, PlayCircle, Share2, Users } from 'lucide-react';
+import { Play, Plus, Star, ThumbsUp, ChevronDown, Check, X, PlayCircle, Share2 } from 'lucide-react';
 import { tmdbService } from '../services/tmdb';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -195,11 +195,18 @@ const Details: React.FC = () => {
       setIsSharing(true);
       
       try {
+          // Generate CLIENT-SIDE Short Link (No backend required)
+          // Format: /#/s/[typeChar][Base36ID]
+          // Example: Movie 550 -> /#/s/mf10
+          
           const prefix = type === 'movie' ? 'm' : 't';
           const idBase36 = parseInt(id).toString(36);
           const shortCode = `${prefix}${idBase36}`;
           
+          // Construct absolute URL (handling HashRouter structure)
+          // HashRouter urls look like: domain.com/#/s/code
           const origin = window.location.origin + window.location.pathname;
+          // Ensure no double slash if pathname is just /
           const baseUrl = origin.endsWith('/') ? origin : origin + '/';
           const shortUrl = `${baseUrl}#/s/${shortCode}`;
 
@@ -210,26 +217,6 @@ const Details: React.FC = () => {
       } finally {
           setIsSharing(false);
       }
-  };
-
-  const handleWatchParty = () => {
-      if (type === 'movie') {
-          navigate(`/watch-party/start/movie/${id}`);
-      } else {
-          navigate(`/watch-party/start/tv/${id}/1/1`);
-      }
-  };
-
-  const handlePlay = () => {
-    if (type === 'movie') {
-        navigate(`/watch/movie/${id}`);
-    } else {
-        navigate(`/watch/tv/${id}/1/1`);
-    }
-  };
-
-  const handleEpisodePlay = (seasonNum: number, episodeNum: number) => {
-      navigate(`/watch/tv/${id}/${seasonNum}/${episodeNum}`);
   };
 
   if (loading) return <DetailsSkeleton />;
@@ -265,6 +252,7 @@ const Details: React.FC = () => {
   const isInWatchlist = watchlist.some(w => w.mediaId === data.id);
   const isLiked = likedItems.some(l => l.mediaId === data.id);
 
+  // Creator Logic for Metadata Side panel
   const creators = type === 'tv' 
     ? data.created_by 
     : data.credits?.crew.filter(person => person.job === 'Director');
@@ -303,6 +291,18 @@ const Details: React.FC = () => {
       }
   };
 
+  const handlePlay = () => {
+    if (type === 'movie') {
+        navigate(`/watch/movie/${id}`);
+    } else {
+        navigate(`/watch/tv/${id}/1/1`);
+    }
+  };
+
+  const handleEpisodePlay = (seasonNum: number, episodeNum: number) => {
+      navigate(`/watch/tv/${id}/${seasonNum}/${episodeNum}`);
+  };
+
   return (
     <div className="min-h-screen bg-background text-primary pb-20">
       <Navbar />
@@ -319,7 +319,8 @@ const Details: React.FC = () => {
         <div className="absolute inset-0 bg-gradient-to-r from-black via-black/30 to-transparent" />
         
         <div className="absolute bottom-0 left-0 w-full px-4 md:px-12 pb-8 md:pb-12 flex flex-col md:flex-row items-end gap-8">
-            <div className="flex-1 w-full pt-20 md:pt-0"> 
+            <div className="flex-1 w-full pt-20 md:pt-0"> {/* Added padding top for mobile safeguard */}
+                
                 {logoPath ? (
                    <img 
                      src={`${IMAGE_BASE_URL}/w500${logoPath}`} 
@@ -347,15 +348,6 @@ const Details: React.FC = () => {
                     >
                         <Play className="w-4 h-4 md:w-5 md:h-5 mr-2 fill-black" /> Play
                     </button>
-                    
-                    {/* Watch Party Button */}
-                    <button 
-                        onClick={handleWatchParty}
-                        className="flex items-center px-6 py-2 md:py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-bold rounded hover:opacity-90 transition text-sm md:text-base shadow-lg"
-                    >
-                        <Users className="w-4 h-4 md:w-5 md:h-5 mr-2" /> Watch Party
-                    </button>
-
                      <button 
                         onClick={handleWatchlistToggle}
                         className="flex items-center px-4 py-2 md:py-3 bg-gray-600/60 backdrop-blur text-white font-bold rounded hover:bg-gray-600 transition text-sm md:text-base border border-white/10"
@@ -388,16 +380,17 @@ const Details: React.FC = () => {
             </div>
         </div>
       </div>
-      
-      {/* Rest of the component unchanged */}
+
       <div className="px-4 md:px-12 py-8 grid grid-cols-1 md:grid-cols-3 gap-10">
          <div className="md:col-span-2">
             
+            {/* Mobile Only Overview */}
             <div className="md:hidden mb-8">
                <h3 className="text-lg font-bold mb-2 cursor-default">Synopsis</h3>
                <p className="text-gray-300 text-sm leading-relaxed cursor-default">{data.overview}</p>
             </div>
 
+            {/* Episodes Section */}
             {type === 'tv' && (
                 <div className="mb-12">
                      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
@@ -458,6 +451,7 @@ const Details: React.FC = () => {
                 </div>
             )}
 
+            {/* Cast Section */}
             <div className="mb-10">
               <h2 className="text-lg md:text-2xl font-bold text-primary mb-4 flex items-center cursor-default">
                 <span className="w-1 h-5 md:h-6 bg-brand-primary mr-3 rounded-full"></span>
@@ -480,6 +474,7 @@ const Details: React.FC = () => {
               </div>
             </div>
 
+            {/* Official Trailer Section */}
             {trailerKey && (
                 <div className="mb-10 md:mb-12">
                     <h2 className="text-lg md:text-2xl font-bold text-primary mb-4 flex items-center cursor-default">
@@ -501,6 +496,7 @@ const Details: React.FC = () => {
                 </div>
             )}
 
+            {/* Trailers & Extras Section */}
             {videos.length > 0 && (
                 <div className="mb-8">
                     <h2 className="text-lg md:text-2xl font-bold text-primary mb-4 flex items-center cursor-default">
@@ -535,11 +531,13 @@ const Details: React.FC = () => {
             )}
          </div>
 
+         {/* Right Sidebar Metadata */}
          <div className="space-y-6 text-sm text-secondary h-fit md:sticky md:top-24">
              <div>
                  <span className="block text-secondary mb-2 font-bold uppercase tracking-wider text-xs cursor-default">Genres</span>
                  <div className="flex flex-wrap gap-2">
                      {data.genres.map(g => (
+                         // Make genres clickable linking to browse
                          <Link 
                             key={g.id} 
                             to={`/${type === 'movie' ? 'movies' : 'tv'}?genre=${g.id}`}
@@ -583,23 +581,30 @@ const Details: React.FC = () => {
              </div>
          </div>
       </div>
+
+      {/* Stacked Row Content (Moved from main grid to full width bottom) */}
       
+      {/* Collection Section */}
       {data.belongs_to_collection && collectionParts.length > 0 && (
             <ContentRow title={`Collection: ${data.belongs_to_collection.name}`} items={collectionParts} />
       )}
 
+      {/* More from Leading Actor */}
       {moreFromActor.length > 0 && (
           <ContentRow title={`More from ${actorName}`} items={moreFromActor} />
       )}
 
+      {/* More from Creator */}
       {moreFromCreator.length > 0 && (
           <ContentRow title={`More from ${creatorName}`} items={moreFromCreator} />
       )}
 
+      {/* Full Width More Like This Section */}
       {data.similar && data.similar.results.length > 0 && (
           <ContentRow title="More Like This" items={data.similar.results.map(i => ({...i, media_type: type as 'movie' | 'tv'}))} />
       )}
 
+      {/* Video Modal Overlay */}
       {showTrailerModal && playingVideoKey && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-4 backdrop-blur-md animate-in fade-in duration-300" onClick={closeTrailer}>
               <div className="relative w-full max-w-6xl aspect-video bg-black rounded-xl overflow-hidden shadow-2xl ring-1 ring-white/10" onClick={e => e.stopPropagation()}>
@@ -631,6 +636,7 @@ const DetailsSkeleton = () => {
         <div className="min-h-screen bg-background">
             <div className="h-20 w-full bg-black/50 fixed top-0 z-50"></div>
             
+            {/* Hero Skeleton */}
             <div className="relative h-[65vh] md:h-[80vh] w-full bg-surface animate-pulse overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
                 <div className="absolute bottom-0 left-0 w-full px-4 md:px-12 pb-12">

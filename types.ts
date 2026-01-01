@@ -134,23 +134,3 @@ export interface Genre {
   id: number;
   name: string;
 }
-
-// Watch Party Types
-export interface ChatMessage {
-  id: string;
-  text: string;
-  sender: string;
-  timestamp: number;
-  isSystem?: boolean;
-}
-
-export interface PartyState {
-  isPlaying: boolean;
-  currentTime: number;
-  media?: {
-    type: 'movie' | 'tv';
-    id: string;
-    season?: string;
-    episode?: string;
-  };
-}
