@@ -32,6 +32,7 @@ export interface MediaItem {
   backdrop_path: string | null;
   overview: string;
   vote_average: number;
+  vote_count?: number; // Added for filtering
   release_date?: string;
   first_air_date?: string;
   media_type: 'movie' | 'tv' | 'person' | 'collection' | 'company';

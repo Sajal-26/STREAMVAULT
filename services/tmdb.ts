@@ -75,17 +75,49 @@ const fetchFromTMDB = async <T>(endpoint: string, params: Record<string, string>
   throw lastError || new Error('Failed to fetch data from TMDB.');
 };
 
+// --- DATA QUALITY FILTER ---
+const filterQualityContent = (items: MediaItem[]): MediaItem[] => {
+    return items.filter(item => {
+        // 1. Image Check
+        // Must have at least one visual asset
+        const hasImage = 
+            item.poster_path || 
+            item.backdrop_path || 
+            item.profile_path || 
+            item.logo_path;
+
+        if (!hasImage) return false;
+
+        // 2. Vote/Rating Check for Content (Movies/TV)
+        // Skip for Person, Company, Collection as they use different metrics or we want matches by name
+        if (item.media_type === 'person' || item.media_type === 'company' || item.media_type === 'collection') {
+            return true;
+        }
+
+        // For Movies/TV: Ensure at least 1 vote to filter out empty/junk entries
+        const votes = item.vote_count !== undefined ? item.vote_count : 0;
+        return votes > 0;
+    });
+};
+
 export const tmdbService = {
   getTrending: async (mediaType: 'all' | 'movie' | 'tv' = 'all', timeWindow: 'day' | 'week' = 'week', page: number = 1) => {
-    return fetchFromTMDB<{ results: MediaItem[] }>(`/trending/${mediaType}/${timeWindow}`, { page: page.toString() });
+    const res = await fetchFromTMDB<{ results: MediaItem[] }>(`/trending/${mediaType}/${timeWindow}`, { page: page.toString() });
+    res.results = filterQualityContent(res.results);
+    return res;
   },
 
   getPopular: async (type: 'movie' | 'tv', page: number = 1) => {
-    return fetchFromTMDB<{ results: MediaItem[] }>(`/${type}/popular`, { page: page.toString() });
+    const res = await fetchFromTMDB<{ results: MediaItem[] }>(`/${type}/popular`, { page: page.toString() });
+    res.results = filterQualityContent(res.results);
+    return res;
   },
 
   getTopRated: async (type: 'movie' | 'tv', page: number = 1) => {
-    return fetchFromTMDB<{ results: MediaItem[] }>(`/${type}/top_rated`, { page: page.toString() });
+    // API naturally returns top rated, so vote_count > 0 is implicit, but filtering images is good.
+    const res = await fetchFromTMDB<{ results: MediaItem[] }>(`/${type}/top_rated`, { page: page.toString() });
+    res.results = filterQualityContent(res.results);
+    return res;
   },
 
   getDetails: async (type: 'movie' | 'tv', id: number) => {
@@ -102,12 +134,16 @@ export const tmdbService = {
   },
 
   search: async (query: string, page: number = 1) => {
-    return fetchFromTMDB<{ results: MediaItem[] }>('/search/multi', { query, page: page.toString() });
+    const res = await fetchFromTMDB<{ results: MediaItem[] }>('/search/multi', { query, page: page.toString() });
+    res.results = filterQualityContent(res.results);
+    return res;
   },
 
   // Search specifically for collections
   searchCollections: async (query: string, page: number = 1) => {
-    return fetchFromTMDB<{ results: MediaItem[] }>('/search/collection', { query, page: page.toString() });
+    const res = await fetchFromTMDB<{ results: MediaItem[] }>('/search/collection', { query, page: page.toString() });
+    res.results = filterQualityContent(res.results);
+    return res;
   },
 
   // Search keywords (for lists like "Oscar", "Anime", etc)
@@ -117,7 +153,10 @@ export const tmdbService = {
 
   // Search companies (e.g. T-Series, Marvel)
   searchCompanies: async (query: string, page: number = 1) => {
-    return fetchFromTMDB<{ results: { id: number, name: string, logo_path: string | null }[] }>('/search/company', { query, page: page.toString() });
+    const res = await fetchFromTMDB<{ results: { id: number, name: string, logo_path: string | null }[] }>('/search/company', { query, page: page.toString() });
+    // Filter companies without logos
+    res.results = res.results.filter(c => !!c.logo_path);
+    return res;
   },
 
   getGenres: async (type: 'movie' | 'tv') => {
@@ -127,23 +166,31 @@ export const tmdbService = {
   discover: async (type: 'movie' | 'tv', genreId?: number, page: number = 1, keywordId?: number, companyId?: number) => {
       const params: Record<string, string> = {
           page: page.toString(),
-          sort_by: 'popularity.desc'
+          sort_by: 'popularity.desc',
+          'vote_count.gte': '1', // Server-side filter for votes
+          'vote_average.gte': '0' // Ensure it has a rating field
       };
       if (genreId) params.with_genres = genreId.toString();
       if (keywordId) params.with_keywords = keywordId.toString();
       if (companyId) params.with_companies = companyId.toString();
       
-      return fetchFromTMDB<{ results: MediaItem[] }>(`/discover/${type}`, params);
+      const res = await fetchFromTMDB<{ results: MediaItem[] }>(`/discover/${type}`, params);
+      
+      // Client-side filter for images (API doesn't allow filtering null posters easily)
+      res.results = filterQualityContent(res.results);
+      return res;
   },
 
   discoverByProvider: async (providerId: number, type: 'movie' | 'tv', page: number = 1) => {
-      // Default to US region
-      return fetchFromTMDB<{ results: MediaItem[] }>(`/discover/${type}`, {
+      const res = await fetchFromTMDB<{ results: MediaItem[] }>(`/discover/${type}`, {
           with_watch_providers: providerId.toString(),
           watch_region: 'US',
           sort_by: 'popularity.desc',
-          page: page.toString()
+          page: page.toString(),
+          'vote_count.gte': '1' // Server-side filter
       });
+      res.results = filterQualityContent(res.results);
+      return res;
   },
 
   getPersonDetails: async (personId: number) => {
@@ -154,11 +201,17 @@ export const tmdbService = {
 
   // Added: Fetch Collection Details
   getCollectionDetails: async (collectionId: number) => {
-      return fetchFromTMDB<CollectionDetails>(`/collection/${collectionId}`);
+      const res = await fetchFromTMDB<CollectionDetails>(`/collection/${collectionId}`);
+      // Filter collection parts
+      res.parts = filterQualityContent(res.parts);
+      return res;
   },
 
   // Added: Get combined credits for a person (for "More from X" section)
   getPersonCredits: async (personId: number) => {
-      return fetchFromTMDB<{cast: MediaItem[], crew: MediaItem[]}>(`/person/${personId}/combined_credits`);
+      const res = await fetchFromTMDB<{cast: MediaItem[], crew: MediaItem[]}>(`/person/${personId}/combined_credits`);
+      res.cast = filterQualityContent(res.cast);
+      res.crew = filterQualityContent(res.crew);
+      return res;
   }
 };
