@@ -44,16 +44,22 @@ const Top10Row: React.FC<Top10RowProps> = ({ items }) => {
 
   return (
     <div className="mb-16 relative group/row">
-      <div className="px-4 md:px-12 flex items-center gap-4 mb-6 md:mb-8 select-none">
+      {/* Header Section */}
+      <div className="px-4 md:px-12 flex items-center gap-3 mb-6 md:mb-8 select-none">
         <h2 
-            className="text-5xl md:text-7xl font-black tracking-tighter text-transparent transition-colors duration-300"
+            className="text-6xl md:text-8xl font-black tracking-tighter text-transparent transition-colors duration-300"
             style={{ WebkitTextStroke: '2px var(--color-primary)' }}
         >
             TOP 10
         </h2>
-        <span className="text-base md:text-xl font-bold text-white uppercase tracking-widest leading-tight max-w-[100px]">
-            Content Today
-        </span>
+        <div className="flex flex-col justify-center space-y-1 mt-2">
+            <span className="text-sm md:text-lg font-bold text-white uppercase tracking-widest leading-none">
+                CONTENT
+            </span>
+            <span className="text-sm md:text-lg font-bold text-white uppercase tracking-widest leading-none">
+                TODAY
+            </span>
+        </div>
       </div>
       
       <div className="relative">
@@ -69,21 +75,25 @@ const Top10Row: React.FC<Top10RowProps> = ({ items }) => {
         <div 
           ref={rowRef}
           onScroll={checkScroll}
-          className="flex space-x-0 overflow-x-auto hide-scrollbar pb-12 pt-12 px-4 md:px-12"
+          className="flex space-x-0 overflow-x-auto hide-scrollbar pb-12 pt-8 px-4 md:px-12"
         >
           {top10Items.map((item, index) => (
              <div key={item.id} className="relative flex-shrink-0 pr-6 group cursor-pointer">
                  <div className="flex items-end relative">
                      {/* The Number */}
+                     {/* 
+                        Using font-bold instead of font-black to ensure counters (holes in 4, 0, etc) are visible.
+                        Reduced stroke width to 3px for cleaner hollow look.
+                     */}
                      <span 
-                        className="text-[9rem] sm:text-[11rem] md:text-[14rem] font-black leading-none tracking-tighter select-none scale-y-110 origin-bottom transform translate-y-3 z-0 transition-all duration-300 text-transparent group-hover:text-[var(--color-primary)]"
-                        style={{ WebkitTextStroke: '4px var(--color-primary)' }}
+                        className="text-[10rem] sm:text-[12rem] md:text-[15rem] font-bold leading-none tracking-tighter select-none scale-y-110 origin-bottom transform translate-y-4 z-0 transition-all duration-300 text-transparent group-hover:text-[var(--color-primary)]"
+                        style={{ WebkitTextStroke: '3px var(--color-primary)' }}
                      >
                         {index + 1}
                      </span>
                      
                      {/* The Card Container */}
-                     <div className="min-w-[130px] w-[130px] sm:min-w-[150px] sm:w-[150px] md:min-w-[180px] md:w-[180px] z-10 -ml-2 sm:-ml-4 md:-ml-6 mb-2 transition-transform duration-300 group-hover:scale-105 origin-center">
+                     <div className="min-w-[130px] w-[130px] sm:min-w-[150px] sm:w-[150px] md:min-w-[180px] md:w-[180px] z-10 -ml-2 sm:-ml-4 md:-ml-8 mb-2 transition-transform duration-300 group-hover:scale-105 origin-center">
                         <MediaCard item={item} />
                      </div>
                  </div>

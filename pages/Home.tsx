@@ -129,10 +129,12 @@ const Home: React.FC = () => {
       <Hero items={heroItems} />
       
       {/* 
-        Adjusted negative margin (-mt-10 md:-mt-20) to prevent overlap with Hero indicators.
-        Previously was -mt-20 md:-mt-32 which was too aggressive.
+        Spacing Adjustment:
+        Removed significant negative margin to prevent the "Top 10" title from overlapping 
+        the Hero's pagination dots (which are at bottom-16).
+        -mt-4 creates a slight visual connection without overlap.
       */}
-      <div className="-mt-10 md:-mt-20 relative z-10 pb-20 space-y-4 md:space-y-8">
+      <div className="-mt-4 md:-mt-8 relative z-10 pb-20 space-y-4 md:space-y-8">
         
         {/* Top 10 Row (New) */}
         {top10Items.length > 0 && (
