@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { Play, Plus, Star, ThumbsUp, ChevronDown, Check, X, PlayCircle, Share2, Copy } from 'lucide-react';
+import { Play, Plus, Star, ThumbsUp, ChevronDown, Check, X, PlayCircle, Share2 } from 'lucide-react';
 import { tmdbService } from '../services/tmdb';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';

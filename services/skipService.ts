@@ -7,10 +7,10 @@ export interface SkipInterval {
 
 export const skipService = {
   getSkipIntervals: async (
-    type: string, 
-    id: string, 
-    season?: number, 
-    episode?: number
+    _type: string, 
+    _id: string, 
+    _season?: number, 
+    _episode?: number
   ): Promise<SkipInterval[]> => {
     // In a real application, this would fetch from a database or API
     // For now, we return an empty array or mock data
