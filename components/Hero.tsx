@@ -64,10 +64,10 @@ const Hero: React.FC<HeroProps> = ({ items }) => {
               return (prev - 1 + items.length) % items.length;
           });
           setIsAnimating(false);
-      }, 300); // Wait for fade out
+      }, 500); // Wait for fade out
   }, [isAnimating, items.length]);
 
-  if (!item) return <div className="h-[60vh] md:h-[85vh] bg-gray-900 animate-pulse" />;
+  if (!item) return <div className="h-[60vh] md:h-[95vh] bg-gray-900 animate-pulse" />;
 
   const backdrop = item.backdrop_path ? `${IMAGE_BASE_URL}/original${item.backdrop_path}` : null;
   
@@ -92,51 +92,51 @@ const Hero: React.FC<HeroProps> = ({ items }) => {
   };
 
   return (
-    <div className="relative h-[65vh] md:h-[90vh] w-full overflow-hidden group bg-gray-900">
+    <div className="relative h-[65vh] md:h-[95vh] w-full overflow-hidden group bg-black">
       
       {/* Background Image with Transition */}
-      <div className={`absolute inset-0 transition-opacity duration-500 ease-in-out ${isAnimating ? 'opacity-0' : 'opacity-100'}`}>
+      <div className={`absolute inset-0 transition-opacity duration-700 ease-in-out ${isAnimating ? 'opacity-0' : 'opacity-100'}`}>
         {backdrop ? (
             <img 
               src={backdrop} 
               alt={item.title} 
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover opacity-70"
             />
         ) : (
             <div className="w-full h-full bg-gradient-to-br from-gray-900 to-black" />
         )}
       </div>
 
-      {/* Gradient Overlays */}
-      <div className="absolute inset-0 bg-gradient-to-r from-black via-black/40 to-transparent" />
-      <div className="absolute inset-0 bg-gradient-to-t from-[#141414] via-[#141414]/10 to-transparent" />
+      {/* Heavy Gradient Overlays for Cinematic Look */}
+      <div className="absolute inset-0 bg-gradient-to-t from-[#141414] via-[#141414]/20 to-transparent" />
+      <div className="absolute inset-0 bg-gradient-to-r from-[#141414] via-[#141414]/40 to-transparent" />
       
       {/* Navigation Buttons - Absolute positioned at edges */}
-      <div className="absolute inset-0 pointer-events-none flex items-center justify-between px-2 md:px-8 z-30">
+      <div className="absolute inset-0 pointer-events-none flex items-center justify-between px-2 md:px-4 z-30">
           <button 
             onClick={() => changeSlide('prev')}
-            className="pointer-events-auto p-2 md:p-3 rounded-full bg-black/30 hover:bg-brand-primary/80 text-white backdrop-blur-sm border border-white/10 hover:border-white transition-all transform hover:scale-110 group/btn"
+            className="pointer-events-auto p-2 rounded-full hover:bg-white/10 text-white/50 hover:text-white transition-all transform hover:scale-110 group/btn"
           >
-              <ChevronLeft className="w-6 h-6 md:w-8 md:h-8 group-hover/btn:-translate-x-1 transition-transform" />
+              <ChevronLeft className="w-8 h-8 md:w-12 md:h-12 drop-shadow-lg" />
           </button>
           
           <button 
             onClick={() => changeSlide('next')}
-            className="pointer-events-auto p-2 md:p-3 rounded-full bg-black/30 hover:bg-brand-primary/80 text-white backdrop-blur-sm border border-white/10 hover:border-white transition-all transform hover:scale-110 group/btn"
+            className="pointer-events-auto p-2 rounded-full hover:bg-white/10 text-white/50 hover:text-white transition-all transform hover:scale-110 group/btn"
           >
-              <ChevronRight className="w-6 h-6 md:w-8 md:h-8 group-hover/btn:translate-x-1 transition-transform" />
+              <ChevronRight className="w-8 h-8 md:w-12 md:h-12 drop-shadow-lg" />
           </button>
       </div>
 
-      {/* Content */}
-      <div className={`absolute inset-0 flex flex-col justify-center px-4 md:px-16 lg:px-24 max-w-7xl transition-opacity duration-500 ease-in-out ${isAnimating ? 'opacity-0' : 'opacity-100'} z-20`}>
-        <div className="max-w-3xl pt-20">
+      {/* Content Container - Align Bottom Left */}
+      <div className={`absolute inset-0 flex flex-col justify-end px-4 md:px-16 lg:px-24 pb-24 md:pb-48 max-w-7xl transition-opacity duration-500 ease-in-out ${isAnimating ? 'opacity-0' : 'opacity-100'} z-20 pointer-events-none`}>
+        <div className="max-w-3xl pointer-events-auto">
             {/* Logo or Title */}
             {logoPath ? (
             <img 
                 src={`${IMAGE_BASE_URL}/w500${logoPath}`} 
                 alt={item.title} 
-                className="w-2/3 md:w-1/2 max-w-[400px] max-h-[160px] object-contain mb-6 origin-left drop-shadow-2xl"
+                className="w-2/3 md:w-1/2 max-w-[300px] md:max-w-[450px] max-h-[120px] md:max-h-[180px] object-contain mb-6 origin-left drop-shadow-2xl"
             />
             ) : (
             <h1 className="text-3xl md:text-5xl lg:text-7xl font-black text-white mb-4 drop-shadow-lg tracking-tight leading-tight">
@@ -145,46 +145,42 @@ const Hero: React.FC<HeroProps> = ({ items }) => {
             )}
             
             {/* Metadata Row */}
-            <div className="flex flex-wrap items-center gap-4 text-sm md:text-base font-medium text-gray-200 mb-6">
-                <div className="flex items-center text-yellow-400 bg-black/40 px-2 py-1 rounded backdrop-blur-sm border border-yellow-500/30">
-                    <Star className="w-4 h-4 mr-1 fill-current" />
-                    <span>{rating.toFixed(1)}</span>
+            <div className="flex flex-wrap items-center gap-3 text-sm font-medium text-gray-200 mb-6">
+                <div className="flex items-center text-yellow-400 bg-black/60 backdrop-blur-md px-2 py-1 rounded border border-yellow-500/20">
+                    <Star className="w-3.5 h-3.5 mr-1.5 fill-current" />
+                    <span>{rating.toFixed(1)}/10</span>
                 </div>
                 
                 {year && (
-                    <div className="flex items-center text-gray-300 bg-black/40 px-2 py-1 rounded backdrop-blur-sm border border-white/10">
-                        <Calendar className="w-4 h-4 mr-1" />
+                    <div className="flex items-center text-gray-200 bg-white/10 px-2 py-1 rounded backdrop-blur-md">
+                        <Calendar className="w-3.5 h-3.5 mr-1.5" />
                         {year}
                     </div>
                 )}
                 
-                {runtime && (
-                    <span className="text-gray-300">{formatRuntime(runtime)}</span>
-                )}
-                
                 {genres.slice(0, 3).map(g => (
-                    <span key={g.id} className="text-gray-300 border border-white/20 px-2 py-0.5 rounded-full text-xs md:text-sm">
+                    <span key={g.id} className="text-gray-300 bg-white/5 border border-white/10 px-3 py-1 rounded-full text-xs">
                         {g.name}
                     </span>
                 ))}
             </div>
 
-            <p className="hidden md:block text-base md:text-lg text-gray-200 line-clamp-3 mb-8 drop-shadow-md max-w-2xl leading-relaxed">
+            <p className="hidden md:block text-base md:text-lg text-gray-300 line-clamp-3 mb-8 drop-shadow-md max-w-2xl leading-relaxed text-shadow-sm">
             {item.overview}
             </p>
             
             <div className="flex items-center gap-4">
                 <button 
                     onClick={handlePlay}
-                    className="flex items-center px-8 py-3 bg-brand-primary text-white rounded-lg font-bold hover:bg-red-700 transition-all transform hover:scale-105 hover:shadow-[0_0_20px_rgba(229,9,20,0.5)] text-base md:text-lg"
+                    className="flex items-center px-6 md:px-8 py-3 bg-white text-black rounded-lg font-bold hover:bg-gray-200 transition-all transform hover:scale-105 text-base md:text-lg shadow-[0_0_20px_rgba(255,255,255,0.3)]"
                 >
-                    <Play className="w-5 h-5 md:w-6 md:h-6 mr-2 fill-white" />
+                    <Play className="w-5 h-5 md:w-6 md:h-6 mr-2 fill-black" />
                     Play
                 </button>
                 
                 <Link 
                     to={linkTarget}
-                    className="flex items-center px-8 py-3 bg-gray-600/40 backdrop-blur-md text-white rounded-lg font-bold hover:bg-gray-600/60 border border-white/10 transition-all transform hover:scale-105 text-base md:text-lg"
+                    className="flex items-center px-6 md:px-8 py-3 bg-white/10 backdrop-blur-md text-white rounded-lg font-bold hover:bg-white/20 transition-all transform hover:scale-105 text-base md:text-lg border border-white/10"
                 >
                     <Info className="w-5 h-5 md:w-6 md:h-6 mr-2" />
                     See More
@@ -194,11 +190,12 @@ const Hero: React.FC<HeroProps> = ({ items }) => {
       </div>
       
       {/* Carousel Indicators */}
-      <div className="absolute bottom-6 right-8 md:right-16 flex space-x-2 z-30">
+      <div className="absolute bottom-8 right-8 md:right-16 flex space-x-2 z-30">
           {items.map((_, idx) => (
-              <div 
+              <button 
                 key={idx} 
-                className={`h-1.5 rounded-full transition-all duration-300 ${idx === currentIndex ? 'w-8 bg-brand-primary' : 'w-2 bg-gray-600/50'}`}
+                onClick={() => setCurrentIndex(idx)}
+                className={`h-1.5 rounded-full transition-all duration-300 ${idx === currentIndex ? 'w-8 bg-white' : 'w-2 bg-white/30 hover:bg-white/60'}`}
               />
           ))}
       </div>

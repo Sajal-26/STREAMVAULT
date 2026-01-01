@@ -120,7 +120,7 @@ const Home: React.FC = () => {
       <Navbar />
       <Hero items={heroItems} />
       
-      <div className="-mt-16 md:-mt-32 relative z-10 pb-20">
+      <div className="-mt-20 md:-mt-32 relative z-10 pb-20 space-y-4 md:space-y-8">
         {/* Continue Watching Row */}
         {continueWatchingItems.length > 0 && (
           <ContentRow 
@@ -161,7 +161,7 @@ const HomeSkeleton: React.FC = () => {
             <div className="h-20 w-full bg-black/50 fixed top-0 z-50"></div>
             
             {/* Hero Skeleton */}
-            <div className="relative h-[60vh] md:h-[85vh] w-full bg-surface animate-pulse overflow-hidden">
+            <div className="relative h-[60vh] md:h-[95vh] w-full bg-surface animate-pulse overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-t from-[#141414] via-transparent to-transparent" />
                 <div className="absolute bottom-0 left-0 p-12 w-full max-w-4xl space-y-4">
                     <div className="h-10 md:h-16 w-2/3 bg-white/10 rounded"></div>
