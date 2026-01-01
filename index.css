@@ -22,6 +22,11 @@ a, button, [role="button"] {
   cursor: pointer;
 }
 
+/* Custom caret color matching theme */
+input, textarea {
+  caret-color: var(--color-primary);
+}
+
 .glass {
   background: rgba(20, 20, 20, 0.8);
   backdrop-filter: blur(12px);

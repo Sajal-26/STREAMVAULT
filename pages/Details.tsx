@@ -1,6 +1,6 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { Play, Plus, Star, ThumbsUp, ChevronDown, Check, X, Share2, Calendar } from 'lucide-react';
+import { Play, Plus, Star, ThumbsUp, ChevronDown, Check, X, Share2, Calendar, Clock, Lock } from 'lucide-react';
 import { tmdbService } from '../services/tmdb';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -32,6 +32,8 @@ const Details: React.FC = () => {
   // TV Specific State
   const [selectedSeasonNumber, setSelectedSeasonNumber] = useState(1);
   const [seasonData, setSeasonData] = useState<SeasonDetails | null>(null);
+  const [isSeasonDropdownOpen, setIsSeasonDropdownOpen] = useState(false);
+  const seasonDropdownRef = useRef<HTMLDivElement>(null);
 
   // Media Assets State
   const [logoPath, setLogoPath] = useState<string | null>(null);
@@ -42,10 +44,32 @@ const Details: React.FC = () => {
   // Share State
   const [isSharing, setIsSharing] = useState(false);
 
+  // Helper to check if released
+  const checkReleased = (dateString?: string) => {
+      if (!dateString) return false;
+      const date = new Date(dateString);
+      const today = new Date();
+      // Reset time to ensure we compare calendar dates
+      date.setHours(0,0,0,0);
+      today.setHours(0,0,0,0);
+      return date <= today;
+  };
+
   // Helper to extract official trailer
   const extractTrailerKey = useCallback((videoList: { key: string; type: string; site: string }[]) => {
       const officialTrailer = videoList.find(v => v.type === 'Trailer') || videoList.find(v => v.type === 'Teaser') || videoList[0];
       return officialTrailer ? officialTrailer.key : null;
+  }, []);
+
+  // Click outside listener for dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+        if (seasonDropdownRef.current && !seasonDropdownRef.current.contains(event.target as Node)) {
+            setIsSeasonDropdownOpen(false);
+        }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   const fetchDetails = async () => {
@@ -415,61 +439,117 @@ const Details: React.FC = () => {
                 <div className="mb-12">
                      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
                         <h3 className="text-xl md:text-2xl font-bold text-primary cursor-default">Episodes</h3>
-                        <div className="relative inline-block w-full sm:w-auto min-w-[200px]">
-                            <select 
-                                value={selectedSeasonNumber}
-                                onChange={(e) => setSelectedSeasonNumber(Number(e.target.value))}
-                                className="w-full appearance-none bg-white/10 border border-white/10 text-white py-3 pl-4 pr-10 rounded-lg text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-brand-primary cursor-pointer hover:bg-white/20 transition-all"
+                        
+                        {/* Custom Season Dropdown */}
+                        <div className="relative inline-block w-full sm:w-auto min-w-[220px]" ref={seasonDropdownRef}>
+                            <button
+                                onClick={() => setIsSeasonDropdownOpen(!isSeasonDropdownOpen)}
+                                className="w-full flex items-center justify-between bg-white/5 border border-white/10 text-white py-3 pl-5 pr-4 rounded-xl text-sm font-bold hover:bg-white/10 transition-all focus:outline-none ring-1 ring-transparent focus:ring-brand-primary/50"
                             >
-                                {data.seasons?.filter(s => s.season_number > 0).map(s => (
-                                    <option key={s.season_number} value={s.season_number} className="bg-gray-800 text-white">
-                                        Season {s.season_number} ({s.episode_count} Episodes)
-                                    </option>
-                                ))}
-                            </select>
-                            <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                                <span className="flex items-center">
+                                    {data.seasons?.find(s => s.season_number === selectedSeasonNumber)?.name || `Season ${selectedSeasonNumber}`}
+                                     <span className="text-gray-400 font-medium text-xs ml-2 bg-white/10 px-2 py-0.5 rounded-full">
+                                        {data.seasons?.find(s => s.season_number === selectedSeasonNumber)?.episode_count} Eps
+                                     </span>
+                                </span>
+                                <ChevronDown className={`w-4 h-4 ml-3 text-gray-400 transition-transform duration-300 ${isSeasonDropdownOpen ? 'rotate-180 text-brand-primary' : ''}`} />
+                            </button>
+
+                            {isSeasonDropdownOpen && (
+                                <div className="absolute top-full left-0 right-0 mt-2 bg-[#1a1a1a]/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.5)] z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200 origin-top">
+                                    <div className="max-h-[300px] overflow-y-auto custom-scrollbar p-1.5">
+                                        {data.seasons?.filter(s => s.season_number > 0).map(s => (
+                                            <div
+                                                key={s.season_number}
+                                                onClick={() => {
+                                                    setSelectedSeasonNumber(s.season_number);
+                                                    setIsSeasonDropdownOpen(false);
+                                                }}
+                                                className={`px-4 py-3 cursor-pointer flex items-center justify-between rounded-lg transition-all mb-0.5 last:mb-0 ${
+                                                    selectedSeasonNumber === s.season_number 
+                                                    ? 'bg-brand-primary text-white shadow-md' 
+                                                    : 'text-gray-300 hover:bg-white/10 hover:text-white'
+                                                }`}
+                                            >
+                                                <span className="font-semibold text-sm">{s.name}</span>
+                                                <span className={`text-xs ${selectedSeasonNumber === s.season_number ? 'text-white/80' : 'text-gray-500'}`}>
+                                                    {s.episode_count} Episodes
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                      </div>
 
                      <div className="space-y-4 md:space-y-6">
                          {seasonData ? (
-                             seasonData.episodes.map(ep => (
-                                 <div 
-                                    key={ep.id} 
-                                    onClick={() => handleEpisodePlay(selectedSeasonNumber, ep.episode_number)}
-                                    className="flex flex-col sm:flex-row gap-4 p-4 rounded-md hover:bg-surface transition group cursor-pointer border-b border-gray-700/50 sm:border-0"
-                                 >
-                                     <div className="w-full sm:w-48 aspect-video flex-shrink-0 relative rounded overflow-hidden bg-surface">
-                                         {ep.still_path ? (
-                                             <img src={`${IMAGE_BASE_URL}/w300${ep.still_path}`} alt={ep.name} className="w-full h-full object-cover" />
-                                         ) : (
-                                            <div className="w-full h-full flex items-center justify-center text-secondary text-xs">No Preview</div>
-                                         )}
-                                         <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
-                                            <Play className="w-8 h-8 fill-white text-white" />
+                             seasonData.episodes.map(ep => {
+                                 const isReleased = checkReleased(ep.air_date);
+                                 
+                                 return (
+                                     <div 
+                                        key={ep.id} 
+                                        onClick={() => isReleased && handleEpisodePlay(selectedSeasonNumber, ep.episode_number)}
+                                        className={`flex flex-col sm:flex-row gap-4 p-4 rounded-md transition border-b border-gray-700/50 sm:border-0 ${
+                                            isReleased 
+                                            ? 'hover:bg-surface group cursor-pointer' 
+                                            : 'opacity-50 cursor-default grayscale-[0.5]'
+                                        }`}
+                                     >
+                                         <div className="w-full sm:w-48 aspect-video flex-shrink-0 relative rounded overflow-hidden bg-surface">
+                                             {ep.still_path ? (
+                                                 <img src={`${IMAGE_BASE_URL}/w300${ep.still_path}`} alt={ep.name} className="w-full h-full object-cover" />
+                                             ) : (
+                                                <div className="w-full h-full flex items-center justify-center text-secondary text-xs">No Preview</div>
+                                             )}
+                                             
+                                             {isReleased ? (
+                                                <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
+                                                    <Play className="w-8 h-8 fill-white text-white" />
+                                                </div>
+                                             ) : (
+                                                <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                                                     <div className="bg-black/60 text-white text-[10px] px-2 py-1 rounded backdrop-blur-md flex items-center font-bold border border-white/10">
+                                                        <Lock className="w-3 h-3 mr-1.5" /> 
+                                                        COMING SOON
+                                                     </div>
+                                                </div>
+                                             )}
                                          </div>
-                                     </div>
-                                     <div className="flex-1 flex flex-col justify-center">
-                                         <div className="flex flex-wrap justify-between items-baseline mb-2">
-                                             <h4 className="font-bold text-base md:text-lg text-primary mr-2">{ep.episode_number}. {ep.name}</h4>
-                                             <div className="flex items-center text-xs md:text-sm text-secondary cursor-default">
-                                                {ep.vote_average > 0 && (
-                                                    <span className="flex items-center text-yellow-500 font-semibold mr-3">
-                                                        <Star className="w-3 h-3 mr-1 fill-current" /> {ep.vote_average.toFixed(1)}
-                                                    </span>
-                                                )}
-                                                {ep.runtime ? `${ep.runtime}m` : ''}
+                                         <div className="flex-1 flex flex-col justify-center">
+                                             <div className="flex flex-wrap justify-between items-baseline mb-2">
+                                                 <h4 className={`font-bold text-base md:text-lg mr-2 ${isReleased ? 'text-primary' : 'text-gray-400'}`}>
+                                                    {ep.episode_number}. {ep.name}
+                                                    {!isReleased && <span className="ml-2 text-[10px] text-brand-primary border border-brand-primary/40 bg-brand-primary/10 px-1.5 py-0.5 rounded align-middle">UNAIRED</span>}
+                                                 </h4>
+                                                 <div className="flex items-center text-xs md:text-sm text-secondary cursor-default">
+                                                    {isReleased && ep.vote_average > 0 && (
+                                                        <span className="flex items-center text-yellow-500 font-semibold mr-3">
+                                                            <Star className="w-3 h-3 mr-1 fill-current" /> {ep.vote_average.toFixed(1)}
+                                                        </span>
+                                                    )}
+                                                    {ep.runtime ? `${ep.runtime}m` : ''}
+                                                 </div>
                                              </div>
+                                             <p className="text-secondary text-xs md:text-sm line-clamp-2 md:line-clamp-3 leading-relaxed cursor-default">
+                                                 {ep.overview || "No description available for this episode."}
+                                             </p>
+                                             <p className={`text-xs mt-2 font-medium flex items-center ${isReleased ? 'text-gray-500' : 'text-brand-primary'}`}>
+                                                 {isReleased ? (
+                                                     <>Aired: {formatDate(ep.air_date)}</>
+                                                 ) : (
+                                                     <>
+                                                        <Clock className="w-3 h-3 mr-1.5" />
+                                                        Airs: {formatDate(ep.air_date)}
+                                                     </>
+                                                 )}
+                                             </p>
                                          </div>
-                                         <p className="text-secondary text-xs md:text-sm line-clamp-2 md:line-clamp-3 leading-relaxed cursor-default">
-                                             {ep.overview || "No description available for this episode."}
-                                         </p>
-                                         <p className="text-xs text-gray-500 mt-2">
-                                             Aired: {formatDate(ep.air_date)}
-                                         </p>
                                      </div>
-                                 </div>
-                             ))
+                                 );
+                             })
                          ) : (
                              <div className="space-y-4">
                                 {[1,2,3].map(i => (
