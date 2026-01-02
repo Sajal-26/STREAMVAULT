@@ -71,6 +71,12 @@ const PersonDetails: React.FC = () => {
                             <p>{new Date(person.birthday).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}</p>
                         </div>
                     )}
+                     {person.deathday && (
+                        <div>
+                            <h3 className="font-bold text-white mb-1">Died</h3>
+                            <p>{new Date(person.deathday).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                        </div>
+                    )}
                      {person.place_of_birth && (
                         <div>
                             <h3 className="font-bold text-white mb-1">Place of Birth</h3>

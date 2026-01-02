@@ -273,7 +273,7 @@ const Details: React.FC = () => {
       {/* Main Content Area */}
       <div className="px-4 md:px-12 py-8 grid grid-cols-1 lg:grid-cols-3 gap-12">
           
-          {/* Left: Episodes & Cast */}
+          {/* Left: Episodes & Cast (Grid Column) */}
           <div className="lg:col-span-2 space-y-12">
               
               {/* Next Episode Banner (TV Only) */}
@@ -383,11 +383,11 @@ const Details: React.FC = () => {
                   </div>
               )}
 
-              {/* Cast */}
-              {data.credits?.cast && data.credits.cast.length > 0 && (
+              {/* Cast (Movies Only - Kept in grid per user preference "In movies it's okay") */}
+              {type === 'movie' && data.credits?.cast && data.credits.cast.length > 0 && (
                   <ContentRow 
                     title="Cast" 
-                    items={data.credits.cast.slice(0, 15).map(c => ({
+                    items={data.credits.cast.slice(0, 20).map(c => ({
                         id: c.id,
                         media_type: 'person',
                         name: c.name,
@@ -465,6 +465,24 @@ const Details: React.FC = () => {
 
       {/* Full Width Bottom Rows */}
       <div className="-mt-8">
+        {/* Cast (TV Only - Moved here for full width space) */}
+        {type === 'tv' && data.credits?.cast && data.credits.cast.length > 0 && (
+            <ContentRow 
+            title="Cast" 
+            items={data.credits.cast.slice(0, 20).map(c => ({
+                id: c.id,
+                media_type: 'person',
+                name: c.name,
+                profile_path: c.profile_path,
+                title: c.name,
+                poster_path: null,
+                backdrop_path: null,
+                overview: '',
+                vote_average: 0
+            }))} 
+            />
+        )}
+
         {actorCredits.length > 0 && (
             <ContentRow 
                 title={`More from ${leadingActorName}`} 
