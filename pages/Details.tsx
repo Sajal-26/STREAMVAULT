@@ -218,14 +218,14 @@ const Details: React.FC = () => {
   if (loading) return (
     <div className="min-h-screen bg-background text-primary">
         <Navbar />
-        <div className="relative h-[70vh] w-full bg-gray-900 animate-pulse">
-            <div className="absolute bottom-0 left-0 w-full px-4 md:px-12 pb-12">
-                <div className="h-12 w-2/3 bg-gray-800 rounded mb-4" />
+        <div className="relative h-[50vh] md:h-[70vh] w-full bg-gray-900 animate-pulse">
+            <div className="absolute bottom-0 left-0 w-full px-5 md:px-12 pb-8 md:pb-12">
+                <div className="h-8 md:h-12 w-2/3 bg-gray-800 rounded mb-4" />
                 <div className="h-6 w-1/3 bg-gray-800 rounded mb-6" />
                 <div className="h-24 w-full max-w-2xl bg-gray-800 rounded mb-8" />
                 <div className="flex gap-4">
-                    <div className="h-12 w-32 bg-gray-800 rounded" />
-                    <div className="h-12 w-32 bg-gray-800 rounded" />
+                    <div className="h-10 md:h-12 w-32 bg-gray-800 rounded" />
+                    <div className="h-10 md:h-12 w-32 bg-gray-800 rounded" />
                 </div>
             </div>
         </div>
@@ -266,79 +266,119 @@ const Details: React.FC = () => {
       <Navbar />
       
       {/* Hero */}
-      <div className="relative h-[70vh] w-full bg-black overflow-hidden group">
+      <div className="relative h-[55vh] md:h-[80vh] w-full bg-black overflow-hidden group">
         <div className="absolute inset-0">
              <img src={backdrop} className="w-full h-full object-cover opacity-60" alt={data.title || data.name} />
         </div>
         <div className="absolute inset-0 bg-gradient-to-t from-background via-black/40 to-transparent" />
         
-        <div className="absolute bottom-0 left-0 w-full px-4 md:px-12 pb-12">
+        <div className="absolute bottom-0 left-0 w-full px-5 md:px-12 pb-8 md:pb-12">
             <div className="max-w-4xl">
                  {logoPath ? (
-                    <img src={`${IMAGE_BASE_URL}/w500${logoPath}`} className="h-24 md:h-32 object-contain mb-6 origin-left" alt="Title Logo" />
+                    <img src={`${IMAGE_BASE_URL}/w500${logoPath}`} className="h-16 md:h-32 object-contain mb-4 md:mb-6 origin-left" alt="Title Logo" />
                  ) : (
-                    <h1 className="text-4xl md:text-6xl font-bold mb-4">{data.title || data.name}</h1>
+                    <h1 className="text-3xl md:text-6xl font-bold mb-3 md:mb-4">{data.title || data.name}</h1>
                  )}
                  
-                 <div className="flex flex-wrap items-center gap-4 text-sm md:text-base text-gray-200 mb-6">
+                 {/* Mobile Optimized Metadata */}
+                 <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs md:text-base text-gray-200 mb-4 md:mb-6 font-medium">
                      <span className="text-green-400 font-bold">{data.vote_average.toFixed(1)} Match</span>
-                     <span className="flex items-center gap-1"><Calendar className="w-4 h-4" /> {year}</span>
-                     <span className="flex items-center gap-1"><Clock className="w-4 h-4" /> {type === 'movie' ? formatRuntime(runtime) : `${data.number_of_seasons} Seasons`}</span>
-                     {data.status && <span className="px-2 py-0.5 bg-white/10 rounded text-xs uppercase tracking-wider font-bold">{data.status}</span>}
+                     <span className="text-gray-400">|</span>
+                     <span className="flex items-center gap-1">{year}</span>
+                     <span className="text-gray-400">|</span>
+                     <span className="flex items-center gap-1">{type === 'movie' ? formatRuntime(runtime) : `${data.number_of_seasons} Seasons`}</span>
+                     {data.status && <span className="hidden md:inline-block ml-2 px-2 py-0.5 bg-white/10 rounded text-xs uppercase tracking-wider font-bold">{data.status}</span>}
                  </div>
 
-                 {/* Genres */}
-                 <div className="flex flex-wrap gap-2 mb-6">
+                 {/* Genres - Compact on mobile */}
+                 <div className="flex flex-wrap gap-2 mb-6 hidden md:flex">
                     {data.genres?.map(g => (
                          <span key={g.id} className="border border-white/20 px-2 py-0.5 rounded text-xs hover:bg-white/10 transition cursor-default">{g.name}</span>
                      ))}
                  </div>
-
-                 <p className="text-gray-300 text-lg mb-8 line-clamp-3 max-w-2xl">{data.overview}</p>
                  
-                 <div className="flex flex-wrap items-center gap-4">
-                     <button onClick={handlePlay} className="flex items-center px-8 py-3 bg-white text-black rounded font-bold hover:bg-gray-200 transition">
-                         <Play className="w-6 h-6 mr-2 fill-black" /> {currentCW ? 'Resume' : 'Play'}
+                 {/* Overview - Truncated on mobile */}
+                 <p className="hidden md:block text-gray-300 text-lg mb-8 line-clamp-3 max-w-2xl">{data.overview}</p>
+                 
+                 {/* Action Buttons - Stack on mobile, Row on Desktop */}
+                 <div className="flex flex-col md:flex-row md:items-center gap-3 md:gap-4">
+                     {/* Primary Play Button */}
+                     <button 
+                        onClick={handlePlay} 
+                        className="w-full md:w-auto flex items-center justify-center px-6 md:px-8 py-3 bg-white text-black rounded font-bold hover:bg-gray-200 transition"
+                    >
+                         <Play className="w-5 h-5 md:w-6 md:h-6 mr-2 fill-black" /> {currentCW ? 'Resume' : 'Play'}
                      </button>
-                     <button onClick={startWatchParty} className="flex items-center px-6 py-3 bg-white/10 text-white border border-white/10 rounded font-bold hover:bg-brand-primary hover:border-brand-primary transition">
-                         <Users className="w-5 h-5 mr-2" /> Watch Party
-                     </button>
-                     <button onClick={toggleWatchlist} className="p-3 bg-white/10 rounded-full hover:bg-white/20 transition border border-white/10">
-                         {inWatchlist ? <Check className="w-6 h-6" /> : <Plus className="w-6 h-6" />}
-                     </button>
-                     <button onClick={toggleLike} className="p-3 bg-white/10 rounded-full hover:bg-white/20 transition border border-white/10">
-                         <ThumbsUp className={`w-6 h-6 ${isLiked ? 'fill-brand-primary text-brand-primary' : ''}`} />
-                     </button>
+
+                     {/* Secondary Actions Row */}
+                     <div className="flex items-center justify-around md:justify-start gap-4 md:gap-4 mt-2 md:mt-0">
+                         <button 
+                            onClick={toggleWatchlist} 
+                            className="flex flex-col md:flex-row items-center gap-1 md:gap-0 p-2 md:p-3 text-gray-300 hover:text-white transition md:bg-white/10 md:rounded-full md:border md:border-white/10"
+                            title="My List"
+                        >
+                             {inWatchlist ? <Check className="w-6 h-6" /> : <Plus className="w-6 h-6" />}
+                             <span className="text-[10px] md:hidden">My List</span>
+                         </button>
+                         
+                         <button 
+                            onClick={toggleLike} 
+                            className="flex flex-col md:flex-row items-center gap-1 md:gap-0 p-2 md:p-3 text-gray-300 hover:text-white transition md:bg-white/10 md:rounded-full md:border md:border-white/10"
+                            title="Rate"
+                        >
+                             <ThumbsUp className={`w-6 h-6 ${isLiked ? 'fill-brand-primary text-brand-primary' : ''}`} />
+                             <span className="text-[10px] md:hidden">Rate</span>
+                         </button>
+                         
+                         <button 
+                            onClick={startWatchParty} 
+                            className="flex flex-col md:flex-row items-center gap-1 md:gap-0 p-2 md:p-3 text-gray-300 hover:text-white transition md:bg-white/10 md:rounded-full md:border md:border-white/10"
+                            title="Watch Party"
+                         >
+                             <Users className="w-6 h-6" />
+                             <span className="text-[10px] md:hidden">Party</span>
+                         </button>
+                     </div>
                  </div>
             </div>
         </div>
       </div>
 
       {/* Main Content Area */}
-      <div className="px-4 md:px-12 py-8 grid grid-cols-1 lg:grid-cols-3 gap-12">
+      <div className="px-5 md:px-12 py-6 md:py-8 grid grid-cols-1 lg:grid-cols-3 gap-8 md:gap-12">
           
           {/* Left: Episodes & Cast (Grid Column) */}
-          <div className="lg:col-span-2 space-y-12">
+          <div className="lg:col-span-2 space-y-8 md:space-y-12">
               
+              {/* Mobile Overview (Visible only on mobile) */}
+              <div className="md:hidden space-y-4">
+                  <p className="text-gray-300 text-sm leading-relaxed">{data.overview}</p>
+                  <div className="flex flex-wrap gap-2">
+                    {data.genres?.map(g => (
+                         <span key={g.id} className="text-[10px] text-gray-400 border border-white/20 px-2 py-1 rounded">{g.name}</span>
+                     ))}
+                 </div>
+              </div>
+
               {/* Next Episode Banner (TV Only) */}
               {data.next_episode_to_air && (
-                  <div className="bg-gradient-to-r from-brand-primary/20 to-transparent border-l-4 border-brand-primary p-6 rounded-r-lg">
-                      <h3 className="text-xl font-bold mb-2 flex items-center gap-2">
-                          <Signal className="w-5 h-5 text-brand-primary" /> 
+                  <div className="bg-gradient-to-r from-brand-primary/20 to-transparent border-l-4 border-brand-primary p-4 md:p-6 rounded-r-lg">
+                      <h3 className="text-base md:text-xl font-bold mb-2 flex items-center gap-2">
+                          <Signal className="w-4 h-4 md:w-5 md:h-5 text-brand-primary" /> 
                           Next Episode Arriving
                       </h3>
-                      <div className="flex flex-col md:flex-row md:items-center gap-4">
+                      <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-4">
                            <div className="flex-1">
-                               <p className="text-2xl font-bold">{data.next_episode_to_air.name}</p>
-                               <p className="text-secondary">
-                                   Season {data.next_episode_to_air.season_number} • Episode {data.next_episode_to_air.episode_number}
+                               <p className="text-lg md:text-2xl font-bold">{data.next_episode_to_air.name}</p>
+                               <p className="text-sm text-secondary">
+                                   S{data.next_episode_to_air.season_number} E{data.next_episode_to_air.episode_number}
                                </p>
                            </div>
-                           <div className="text-right">
-                               <p className="text-lg font-bold text-white">
-                                   {new Date(data.next_episode_to_air.air_date).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}
+                           <div className="text-left md:text-right mt-2 md:mt-0">
+                               <p className="text-base md:text-lg font-bold text-white">
+                                   {new Date(data.next_episode_to_air.air_date).toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' })}
                                </p>
-                               <p className="text-brand-primary font-bold">
+                               <p className="text-sm text-brand-primary font-bold">
                                    {getDaysUntil(data.next_episode_to_air.air_date)} days left
                                </p>
                            </div>
@@ -349,11 +389,11 @@ const Details: React.FC = () => {
               {/* TV Seasons */}
               {type === 'tv' && seasonData && (
                   <div>
-                      <div className="flex items-center justify-between mb-6">
-                          <h2 className="text-2xl font-bold">Episodes</h2>
-                          <div className="flex items-center gap-3">
+                      <div className="flex items-center justify-between mb-4 md:mb-6">
+                          <h2 className="text-xl md:text-2xl font-bold">Episodes</h2>
+                          <div className="flex items-center gap-2 md:gap-3">
                               {/* View Toggle */}
-                              <div className="flex bg-white/10 rounded-lg p-1 border border-white/5">
+                              <div className="hidden md:flex bg-white/10 rounded-lg p-1 border border-white/5">
                                   <button 
                                       onClick={() => setViewMode('list')}
                                       className={`p-1.5 rounded transition ${viewMode === 'list' ? 'bg-white/20 text-white shadow-sm' : 'text-gray-400 hover:text-white'}`}
@@ -370,15 +410,15 @@ const Details: React.FC = () => {
                                   </button>
                               </div>
 
-                              <div className="relative">
+                              <div className="relative z-20">
                                   <button 
                                     onClick={() => setIsSeasonDropdownOpen(!isSeasonDropdownOpen)}
-                                    className="flex items-center gap-2 bg-white/10 px-4 py-2 rounded border border-white/10 hover:bg-white/20 transition text-sm font-medium"
+                                    className="flex items-center gap-2 bg-white/10 px-3 py-1.5 md:px-4 md:py-2 rounded border border-white/10 hover:bg-white/20 transition text-xs md:text-sm font-medium"
                                   >
-                                      {seasonData.name} <ChevronDown className="w-4 h-4" />
+                                      {seasonData.name} <ChevronDown className="w-3 h-3 md:w-4 md:h-4" />
                                   </button>
                                   {isSeasonDropdownOpen && (
-                                      <div className="absolute right-0 top-full mt-2 w-48 bg-surface border border-white/10 rounded shadow-xl z-50 max-h-60 overflow-y-auto">
+                                      <div className="absolute right-0 top-full mt-2 w-48 bg-surface border border-white/10 rounded shadow-xl max-h-60 overflow-y-auto">
                                           {data.seasons?.map(s => (
                                               <button
                                                 key={s.season_number}
@@ -394,7 +434,7 @@ const Details: React.FC = () => {
                           </div>
                       </div>
                       
-                      <div className={viewMode === 'grid' ? "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4" : "space-y-4"}>
+                      <div className={viewMode === 'grid' ? "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-3 md:gap-4" : "space-y-3 md:space-y-4"}>
                           {seasonData.episodes?.slice(0, visibleEpisodes).map(ep => {
                               const released = isReleased(ep.air_date);
                               const progress = getEpisodeProgress(selectedSeasonNumber, ep.episode_number);
@@ -420,11 +460,9 @@ const Details: React.FC = () => {
                                             )}
                                             {!released && (
                                                 <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-                                                    <span className="text-[10px] font-bold uppercase tracking-wider text-white border border-white/50 px-2 py-0.5 rounded">Coming Soon</span>
+                                                    <span className="text-[10px] font-bold uppercase tracking-wider text-white border border-white/50 px-2 py-0.5 rounded">Soon</span>
                                                 </div>
                                             )}
-                                            
-                                            {/* Progress Bar (Grid) */}
                                             {progress > 0 && (
                                                 <div className="absolute bottom-0 left-0 right-0 h-1 bg-gray-600">
                                                     <div className="h-full bg-brand-primary" style={{ width: `${progress}%` }}></div>
@@ -433,72 +471,50 @@ const Details: React.FC = () => {
                                         </div>
                                         <div className="p-3">
                                             <div className="flex justify-between items-start mb-1">
-                                                <h4 className="font-bold text-sm text-white line-clamp-1">{ep.episode_number}. {ep.name}</h4>
-                                                <span className="text-xs text-gray-400 whitespace-nowrap">{ep.runtime ? `${ep.runtime}m` : ''}</span>
+                                                <h4 className="font-bold text-xs md:text-sm text-white line-clamp-1">{ep.episode_number}. {ep.name}</h4>
+                                                <span className="text-[10px] text-gray-400 whitespace-nowrap">{ep.runtime ? `${ep.runtime}m` : ''}</span>
                                             </div>
-                                            <p className="text-xs text-gray-400 line-clamp-2 mb-2 min-h-[2.5em]">{ep.overview || "No description."}</p>
-                                            <div className="flex items-center gap-2 text-[10px] text-gray-500">
-                                                {ep.air_date && (
-                                                    <span className="flex items-center gap-1">
-                                                        <Calendar className="w-2.5 h-2.5" /> 
-                                                        {new Date(ep.air_date).toLocaleDateString()}
-                                                    </span>
-                                                )}
-                                            </div>
+                                            <p className="text-[10px] md:text-xs text-gray-400 line-clamp-2 mb-2 min-h-[2.5em]">{ep.overview || "No description."}</p>
                                         </div>
                                     </div>
                                   );
                               }
 
-                              // List View Row
+                              // List View Row (Default for Mobile)
                               return (
                                 <div 
                                     key={ep.id} 
-                                    className={`group flex flex-col md:flex-row gap-4 p-4 rounded border border-transparent transition ${released ? 'hover:bg-white/5 hover:border-white/5 cursor-pointer' : 'opacity-60 cursor-not-allowed'}`}
+                                    className={`group flex flex-row gap-3 md:gap-4 p-2 md:p-4 rounded border border-white/5 md:border-transparent transition bg-white/5 md:bg-transparent ${released ? 'hover:bg-white/5 hover:border-white/5 cursor-pointer' : 'opacity-60 cursor-not-allowed'}`}
                                     onClick={() => released && navigate(`/watch/tv/${id}/${selectedSeasonNumber}/${ep.episode_number}`)}
                                 >
-                                    <div className="w-full md:w-48 aspect-video flex-shrink-0 bg-gray-800 rounded overflow-hidden relative">
+                                    <div className="w-32 md:w-48 aspect-video flex-shrink-0 bg-gray-800 rounded overflow-hidden relative">
                                         {ep.still_path ? (
                                             <img src={`${IMAGE_BASE_URL}/w300${ep.still_path}`} className="w-full h-full object-cover" alt={ep.name} />
                                         ) : (
-                                            <div className="flex items-center justify-center h-full text-gray-500">No Image</div>
+                                            <div className="flex items-center justify-center h-full text-gray-500 text-xs">No Image</div>
                                         )}
                                         {released ? (
-                                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
+                                            <div className="hidden md:flex absolute inset-0 bg-black/40 items-center justify-center opacity-0 group-hover:opacity-100 transition">
                                                 <Play className="w-8 h-8 text-white fill-white" />
                                             </div>
                                         ) : (
                                             <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-                                                <span className="text-xs font-bold uppercase tracking-wider text-white border border-white/50 px-2 py-1 rounded">Coming Soon</span>
+                                                <span className="text-[10px] font-bold uppercase tracking-wider text-white border border-white/50 px-2 py-1 rounded">Soon</span>
                                             </div>
                                         )}
-                                        {/* Progress Bar (List) */}
                                         {progress > 0 && (
                                             <div className="absolute bottom-0 left-0 right-0 h-1 bg-gray-600">
                                                 <div className="h-full bg-brand-primary" style={{ width: `${progress}%` }}></div>
                                             </div>
                                         )}
                                     </div>
-                                    <div className="flex-1">
-                                        <div className="flex items-center justify-between mb-2">
-                                            <h4 className="font-bold text-lg">{ep.episode_number}. {ep.name}</h4>
-                                            <span className="text-sm text-gray-400">{ep.runtime ? `${ep.runtime}m` : ''}</span>
+                                    <div className="flex-1 flex flex-col justify-center">
+                                        <div className="flex items-start justify-between mb-1">
+                                            <h4 className="font-bold text-sm md:text-lg text-white line-clamp-2">{ep.episode_number}. {ep.name}</h4>
+                                            <span className="text-xs text-gray-400 ml-2 whitespace-nowrap">{ep.runtime ? `${ep.runtime}m` : ''}</span>
                                         </div>
-                                        <p className="text-gray-400 text-sm line-clamp-2 mb-3">{ep.overview || "No description available."}</p>
-                                        <div className="flex items-center gap-4 text-xs text-gray-500">
-                                            {ep.air_date && (
-                                                <span className="flex items-center gap-1">
-                                                    <Calendar className="w-3 h-3" /> 
-                                                    {new Date(ep.air_date).toLocaleDateString()}
-                                                </span>
-                                            )}
-                                            {ep.vote_average > 0 && (
-                                                <span className="flex items-center gap-1 text-green-500/80">
-                                                    <ThumbsUp className="w-3 h-3" />
-                                                    {ep.vote_average.toFixed(1)}
-                                                </span>
-                                            )}
-                                        </div>
+                                        <p className="hidden md:block text-gray-400 text-sm line-clamp-2 mb-3">{ep.overview || "No description available."}</p>
+                                        <p className="md:hidden text-gray-400 text-xs line-clamp-2">{ep.overview || "No description."}</p>
                                     </div>
                                 </div>
                               );
@@ -520,7 +536,7 @@ const Details: React.FC = () => {
                   </div>
               )}
 
-              {/* Cast (Movies Only - Kept in grid per user preference "In movies it's okay") */}
+              {/* Cast (Movies Only) */}
               {type === 'movie' && data.credits?.cast && data.credits.cast.length > 0 && (
                   <ContentRow 
                     title="Cast" 
@@ -530,7 +546,7 @@ const Details: React.FC = () => {
                         name: c.name,
                         profile_path: c.profile_path,
                         title: c.name,
-                        character: c.character, // Added character mapping
+                        character: c.character, 
                         poster_path: null,
                         backdrop_path: null,
                         overview: '',
@@ -540,8 +556,8 @@ const Details: React.FC = () => {
               )}
           </div>
 
-          {/* Right: Info Sidebar */}
-          <div className="space-y-8">
+          {/* Right: Info Sidebar (Hidden on mobile, mapped to bottom) */}
+          <div className="hidden lg:block space-y-8">
               {/* Detailed Stats */}
               <div className="bg-surface p-6 rounded-lg border border-white/5 space-y-6">
                   <div>
@@ -613,7 +629,7 @@ const Details: React.FC = () => {
                 name: c.name,
                 profile_path: c.profile_path,
                 title: c.name,
-                character: c.character, // Added character mapping
+                character: c.character, 
                 poster_path: null,
                 backdrop_path: null,
                 overview: '',

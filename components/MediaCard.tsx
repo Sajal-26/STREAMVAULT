@@ -142,8 +142,9 @@ const MediaCard: React.FC<MediaCardProps> = ({ item, onRemove }) => {
         className="relative w-full aspect-[2/3] group/card"
     >
       
-      {/* 1. Base Static Card (Always Visible placeholder) */}
-      <div className="absolute inset-0 rounded-md overflow-hidden bg-gray-800 ring-1 ring-white/10 transition-opacity duration-300 group-hover/card:opacity-0">
+      {/* 1. Base Static Card (Always Visible) */}
+      {/* REMOVED: group-hover/card:opacity-0 logic. The base card now stays visible behind the popout. */}
+      <div className="absolute inset-0 rounded-md overflow-hidden bg-gray-800 ring-1 ring-white/10 transition-opacity duration-300">
           {imagePath ? (
             <img
                 src={imagePath}
@@ -178,7 +179,7 @@ const MediaCard: React.FC<MediaCardProps> = ({ item, onRemove }) => {
           )}
       </div>
 
-      {/* 2. HOVER CARD (Pop-out) */}
+      {/* 2. HOVER CARD (Pop-out) - Desktop Only */}
       <div className={`
           hidden md:block absolute top-1/2 
           w-[175%] bg-[#141414] rounded-lg shadow-2xl z-[60] 
@@ -203,7 +204,7 @@ const MediaCard: React.FC<MediaCardProps> = ({ item, onRemove }) => {
                   {title}
               </h4>
 
-              {/* Hover Card Remove Button (New) */}
+              {/* Hover Card Remove Button */}
               {onRemove && (
                   <button
                     onClick={handleRemove}
