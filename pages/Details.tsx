@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from '../services/skipService';
-import { Play, Plus, ThumbsUp, ChevronDown, Check } from 'lucide-react';
+import { Play, Plus, ThumbsUp, ChevronDown, Check, Users } from 'lucide-react';
 import { tmdbService } from '../services/tmdb';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -8,6 +8,8 @@ import { MediaDetails, SeasonDetails } from '../types';
 import { IMAGE_BASE_URL } from '../constants';
 import ContentRow from '../components/ContentRow';
 import Navbar from '../components/Navbar';
+import { db } from '../services/firebase';
+import { ref, set } from 'firebase/database';
 
 const Details: React.FC = () => {
   const params = useParams();
@@ -112,6 +114,32 @@ const Details: React.FC = () => {
       else navigate(`/watch/tv/${id}/${selectedSeasonNumber}/1`);
   };
 
+  const startWatchParty = async () => {
+      if (!data) return;
+      
+      const newRoomId = Math.random().toString(36).substr(2, 6).toUpperCase();
+      const userId = localStorage.getItem('sv_userid') || Math.random().toString(36).substr(2, 9);
+      const username = localStorage.getItem('sv_username') || `Host`;
+      
+      localStorage.setItem('sv_userid', userId);
+
+      // Create room with this content selected
+      await set(ref(db, `rooms/${newRoomId}`), {
+          hostId: userId,
+          createdAt: Date.now(),
+          users: { [userId]: username },
+          state: {
+              mediaType: type,
+              mediaId: Number(id),
+              season: selectedSeasonNumber,
+              episode: 1, // Default to ep 1 for parties started from details
+              title: data.title || data.name
+          }
+      });
+      
+      navigate(`/party/${newRoomId}`);
+  };
+
   if (loading) return <div className="min-h-screen bg-black animate-pulse" />;
   if (!data) return <div className="min-h-screen bg-black text-white flex items-center justify-center">Content not found</div>;
 
@@ -155,9 +183,12 @@ const Details: React.FC = () => {
 
                  <p className="text-gray-300 text-lg mb-8 line-clamp-3 max-w-2xl">{data.overview}</p>
                  
-                 <div className="flex items-center gap-4">
+                 <div className="flex flex-wrap items-center gap-4">
                      <button onClick={handlePlay} className="flex items-center px-8 py-3 bg-white text-black rounded font-bold hover:bg-gray-200 transition">
                          <Play className="w-6 h-6 mr-2 fill-black" /> Play
+                     </button>
+                     <button onClick={startWatchParty} className="flex items-center px-6 py-3 bg-white/10 text-white border border-white/10 rounded font-bold hover:bg-brand-primary hover:border-brand-primary transition">
+                         <Users className="w-5 h-5 mr-2" /> Watch Party
                      </button>
                      <button onClick={toggleWatchlist} className="p-3 bg-white/10 rounded-full hover:bg-white/20 transition border border-white/10">
                          {inWatchlist ? <Check className="w-6 h-6" /> : <Plus className="w-6 h-6" />}
