@@ -149,7 +149,7 @@ const Hero: React.FC<HeroProps> = ({ items }) => {
 
       {/* Content Container */}
       <div className={`absolute inset-0 flex flex-col justify-end px-4 md:px-16 lg:px-24 pb-24 md:pb-48 max-w-7xl transition-opacity duration-500 ease-in-out ${isAnimating ? 'opacity-0' : 'opacity-100'} z-20 pointer-events-none`}>
-        <div className="max-w-3xl pointer-events-auto">
+        <div className="max-w-3xl pointer-events-auto w-full">
             {/* Logo or Title */}
             {logoPath ? (
             <img 
@@ -195,10 +195,11 @@ const Hero: React.FC<HeroProps> = ({ items }) => {
             {item.overview}
             </p>
             
-            <div className="flex items-center gap-4">
+            {/* Action Buttons: 50/50 Split on Mobile */}
+            <div className="flex flex-row items-center gap-3 w-full md:w-auto mt-2">
                 <button 
                     onClick={handlePlay}
-                    className="flex items-center px-6 md:px-8 py-3 bg-white text-black rounded-lg font-bold hover:bg-gray-200 transition-all transform hover:scale-105 text-base md:text-lg shadow-[0_0_20px_rgba(255,255,255,0.3)]"
+                    className="flex-1 md:flex-none flex items-center justify-center px-6 md:px-8 py-3.5 bg-white text-black rounded-lg font-bold hover:bg-gray-200 transition-all transform hover:scale-105 text-base md:text-lg shadow-[0_0_20px_rgba(255,255,255,0.3)]"
                 >
                     <Play className="w-5 h-5 md:w-6 md:h-6 mr-2 fill-black" />
                     Play
@@ -206,7 +207,7 @@ const Hero: React.FC<HeroProps> = ({ items }) => {
                 
                 <Link 
                     to={linkTarget}
-                    className="flex items-center px-6 md:px-8 py-3 bg-white/10 backdrop-blur-md text-white rounded-lg font-bold hover:bg-white/20 transition-all transform hover:scale-105 text-base md:text-lg border border-white/10"
+                    className="flex-1 md:flex-none flex items-center justify-center px-6 md:px-8 py-3.5 bg-white/10 backdrop-blur-md text-white rounded-lg font-bold hover:bg-white/20 transition-all transform hover:scale-105 text-base md:text-lg border border-white/10"
                 >
                     <Info className="w-5 h-5 md:w-6 md:h-6 mr-2" />
                     See More
