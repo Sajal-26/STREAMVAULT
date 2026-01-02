@@ -618,7 +618,7 @@ const Details: React.FC = () => {
       </div>
 
       {/* Full Width Bottom Rows */}
-      <div className="-mt-8">
+      <div className="mt-8 md:mt-12">
         {/* Cast (TV Only - Moved here for full width space) */}
         {type === 'tv' && data.credits?.cast && data.credits.cast.length > 0 && (
             <ContentRow 
