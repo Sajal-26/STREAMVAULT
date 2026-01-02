@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from '../services/skipService';
-import { Play, Plus, ThumbsUp, ChevronDown, Check, Users, ArrowLeft, Calendar, Clock, Globe, Building2, Signal, LayoutGrid, List } from 'lucide-react';
+import { Play, Plus, ThumbsUp, ChevronDown, Check, Users, ArrowLeft, Globe, Building2, Signal, LayoutGrid, List } from 'lucide-react';
 import { tmdbService } from '../services/tmdb';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
