@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Play, Plus, ThumbsUp, ChevronDown, Check, Users, ArrowLeft, Calendar, Clock, Globe, Building2, Signal, Info } from 'lucide-react';
+import { Play, Plus, ThumbsUp, ChevronDown, Check, Users, ArrowLeft, Calendar, Clock, Globe, Building2, Signal } from 'lucide-react';
 import { tmdbService } from '../services/tmdb';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
