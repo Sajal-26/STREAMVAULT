@@ -159,13 +159,13 @@ const WatchParty: React.FC = () => {
 
     if (!roomId) {
         return (
-            <div className="min-h-screen bg-background pt-24 pb-12 px-4 flex flex-col items-center justify-center">
+            <div className="min-h-screen bg-background pt-20 pb-20 px-4 flex flex-col items-center justify-center">
                 <Navbar />
-                <div className="w-full max-w-md bg-surface p-8 rounded-2xl border border-white/10 shadow-2xl">
+                <div className="w-full max-w-md mx-auto bg-surface p-6 md:p-8 rounded-2xl border border-white/10 shadow-2xl relative z-10">
                     <div className="text-center mb-8">
-                        <MonitorPlay className="w-16 h-16 mx-auto text-brand-primary mb-4" />
-                        <h1 className="text-3xl font-bold text-white mb-2">Watch Party</h1>
-                        <p className="text-secondary">Watch movies and shows in sync with friends.</p>
+                        <MonitorPlay className="w-12 h-12 md:w-16 md:h-16 mx-auto text-brand-primary mb-4" />
+                        <h1 className="text-2xl md:text-3xl font-bold text-white mb-2">Watch Party</h1>
+                        <p className="text-sm md:text-base text-secondary">Watch movies and shows in sync with friends.</p>
                     </div>
 
                     <div className="space-y-6">
@@ -190,21 +190,21 @@ const WatchParty: React.FC = () => {
 
                         <div className="relative flex py-2 items-center">
                             <div className="flex-grow border-t border-white/10"></div>
-                            <span className="flex-shrink-0 mx-4 text-gray-500 text-sm">OR JOIN</span>
+                            <span className="flex-shrink-0 mx-4 text-gray-500 text-xs md:text-sm">OR JOIN</span>
                             <div className="flex-grow border-t border-white/10"></div>
                         </div>
 
                         <form onSubmit={joinRoom} className="flex gap-2">
                             <input 
                                 type="text" 
-                                placeholder="Enter Room Code"
+                                placeholder="ROOM CODE"
                                 value={joinRoomId}
                                 onChange={(e) => setJoinRoomId(e.target.value)}
-                                className="flex-1 bg-black/50 border border-white/10 rounded-lg px-4 py-3 text-white focus:border-brand-primary focus:outline-none uppercase"
+                                className="flex-1 min-w-0 bg-black/50 border border-white/10 rounded-lg px-4 py-3 text-white focus:border-brand-primary focus:outline-none uppercase text-sm"
                             />
                             <button 
                                 type="submit"
-                                className="bg-white/10 hover:bg-white/20 text-white font-bold py-3 px-6 rounded-lg transition"
+                                className="bg-white/10 hover:bg-white/20 text-white font-bold py-3 px-4 rounded-lg transition shrink-0"
                             >
                                 Join
                             </button>

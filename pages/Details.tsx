@@ -19,7 +19,8 @@ const Details: React.FC = () => {
   const navigate = useNavigate();
   const { 
     watchlist, addToWatchlist, removeFromWatchlist,
-    likedItems, addToLikes, removeFromLikes
+    likedItems, addToLikes, removeFromLikes,
+    continueWatching, watchHistory
   } = useAuth();
   const { showToast } = useToast();
   
@@ -44,6 +45,9 @@ const Details: React.FC = () => {
   const inWatchlist = watchlist.some(i => i.mediaId === Number(id));
   const isLiked = likedItems.some(i => i.mediaId === Number(id));
 
+  // Determine current progress for this show (from Continue Watching list)
+  const currentCW = continueWatching.find(i => i.mediaId === Number(id) && i.mediaType === 'tv');
+
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
@@ -57,12 +61,17 @@ const Details: React.FC = () => {
         setLogoPath(englishLogo ? englishLogo.file_path : (logos[0]?.file_path || null));
 
         if (type === 'tv') {
-             // Fetch season 1 by default or first available
-             const seasonNum = res.seasons?.[0]?.season_number || 1;
+             // Prefer last watched season if available, else 1
+             let seasonNum = currentCW?.season || res.seasons?.[0]?.season_number || 1;
+             // Ensure season exists
+             if(res.seasons && !res.seasons.some((s: any) => s.season_number === seasonNum)) {
+                 seasonNum = 1;
+             }
+             
              setSelectedSeasonNumber(seasonNum);
              const seasonRes = await tmdbService.getSeasonDetails(Number(id), seasonNum);
              setSeasonData(seasonRes);
-             setVisibleEpisodes(6); // Reset pagination
+             setVisibleEpisodes(Math.max(6, (currentCW?.episode || 0) + 2)); // Auto expand slightly to current ep
         }
 
         // Fetch "More from Leading Actor"
@@ -145,8 +154,14 @@ const Details: React.FC = () => {
   };
 
   const handlePlay = () => {
-      if (type === 'movie') navigate(`/watch/movie/${id}`);
-      else navigate(`/watch/tv/${id}/${selectedSeasonNumber}/1`);
+      if (type === 'movie') {
+          navigate(`/watch/movie/${id}`);
+      } else {
+          // Resume where left off or start S1E1
+          const s = currentCW?.season || selectedSeasonNumber;
+          const e = currentCW?.episode || 1;
+          navigate(`/watch/tv/${id}/${s}/${e}`);
+      }
   };
 
   const startWatchParty = async () => {
@@ -179,6 +194,24 @@ const Details: React.FC = () => {
           console.error("Watch party creation failed", error);
           showToast('Failed to start Watch Party. Try again.', 'error');
       }
+  };
+
+  const getEpisodeProgress = (seasonNum: number, episodeNum: number) => {
+      // 1. Check if completed in history (exact history tracking is limited in mock API, but logic stands)
+      // Since our simple history doesn't track every single episode ID, we rely on Continue Watching logic for now.
+      // Ideally, we'd have a 'watchedEpisodes' map.
+      
+      if (currentCW) {
+          if (currentCW.season === seasonNum && currentCW.episode === episodeNum) {
+              return currentCW.progress || 0;
+          }
+          // If current watch is S1E5, then S1E1-4 are technically watched?
+          // This is a simplification.
+          if (currentCW.season! > seasonNum || (currentCW.season === seasonNum && currentCW.episode! > episodeNum)) {
+              return 100;
+          }
+      }
+      return 0;
   };
 
   if (loading) return (
@@ -264,7 +297,7 @@ const Details: React.FC = () => {
                  
                  <div className="flex flex-wrap items-center gap-4">
                      <button onClick={handlePlay} className="flex items-center px-8 py-3 bg-white text-black rounded font-bold hover:bg-gray-200 transition">
-                         <Play className="w-6 h-6 mr-2 fill-black" /> Play
+                         <Play className="w-6 h-6 mr-2 fill-black" /> {currentCW ? 'Resume' : 'Play'}
                      </button>
                      <button onClick={startWatchParty} className="flex items-center px-6 py-3 bg-white/10 text-white border border-white/10 rounded font-bold hover:bg-brand-primary hover:border-brand-primary transition">
                          <Users className="w-5 h-5 mr-2" /> Watch Party
@@ -363,6 +396,7 @@ const Details: React.FC = () => {
                       <div className={viewMode === 'grid' ? "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4" : "space-y-4"}>
                           {seasonData.episodes?.slice(0, visibleEpisodes).map(ep => {
                               const released = isReleased(ep.air_date);
+                              const progress = getEpisodeProgress(selectedSeasonNumber, ep.episode_number);
                               
                               if (viewMode === 'grid') {
                                   // Grid View Card
@@ -386,6 +420,13 @@ const Details: React.FC = () => {
                                             {!released && (
                                                 <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
                                                     <span className="text-[10px] font-bold uppercase tracking-wider text-white border border-white/50 px-2 py-0.5 rounded">Coming Soon</span>
+                                                </div>
+                                            )}
+                                            
+                                            {/* Progress Bar (Grid) */}
+                                            {progress > 0 && (
+                                                <div className="absolute bottom-0 left-0 right-0 h-1 bg-gray-600">
+                                                    <div className="h-full bg-brand-primary" style={{ width: `${progress}%` }}></div>
                                                 </div>
                                             )}
                                         </div>
@@ -428,6 +469,12 @@ const Details: React.FC = () => {
                                         ) : (
                                             <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
                                                 <span className="text-xs font-bold uppercase tracking-wider text-white border border-white/50 px-2 py-1 rounded">Coming Soon</span>
+                                            </div>
+                                        )}
+                                        {/* Progress Bar (List) */}
+                                        {progress > 0 && (
+                                            <div className="absolute bottom-0 left-0 right-0 h-1 bg-gray-600">
+                                                <div className="h-full bg-brand-primary" style={{ width: `${progress}%` }}></div>
                                             </div>
                                         )}
                                     </div>

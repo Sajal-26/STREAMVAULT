@@ -1,8 +1,9 @@
 import React from 'react';
 import { Link, useNavigate } from '../services/skipService';
-import { Star, Play, Info, X, User, Layers, Building2 } from 'lucide-react';
+import { Star, Play, Info, X, Plus, Check } from 'lucide-react';
 import { MediaItem } from '../types';
 import { IMAGE_BASE_URL } from '../constants';
+import { useAuth } from '../context/AuthContext';
 
 interface MediaCardProps {
   item: MediaItem;
@@ -11,43 +12,63 @@ interface MediaCardProps {
 
 const MediaCard: React.FC<MediaCardProps> = ({ item, onRemove }) => {
   const navigate = useNavigate();
-  const title = item.title || item.name;
+  const { watchlist, addToWatchlist, removeFromWatchlist } = useAuth();
   
-  // Logic for different media types (Movie/TV uses poster_path, Person uses profile_path, Company uses logo_path)
-  // Explicitly type imageKey to allow undefined since profile_path/logo_path are optional
+  const title = item.title || item.name;
+  const isPerson = item.media_type === 'person';
+  const isCollection = item.media_type === 'collection';
+  const isCompany = item.media_type === 'company';
+  
+  // Image Logic
   let imageKey: string | null | undefined = item.poster_path;
-  if (item.media_type === 'person') imageKey = item.profile_path;
-  if (item.media_type === 'company') imageKey = item.logo_path;
+  if (isPerson) imageKey = item.profile_path;
+  if (isCompany) imageKey = item.logo_path;
 
-  // Use w500 for logos to ensure clarity if they are small
-  const imageSize = item.media_type === 'company' ? 'w500' : 'w342';
+  const imageSize = isCompany ? 'w500' : 'w342';
   const imagePath = imageKey ? `${IMAGE_BASE_URL}/${imageSize}${imageKey}` : null;
   
-  const mediaType = item.media_type || 'movie';
+  // Link Logic
+  let linkTarget = `/details/${item.media_type || 'movie'}/${item.id}`;
+  if (isPerson) linkTarget = `/person/${item.id}`;
+  if (isCollection) linkTarget = `/collection/${item.id}`;
+  if (isCompany) linkTarget = `/category/company_${item.id}`;
 
-  const isPerson = mediaType === 'person';
-  const isCollection = mediaType === 'collection'; 
-  const isCompany = mediaType === 'company';
+  const inWatchlist = watchlist.some(i => i.mediaId === item.id);
 
   const handlePlay = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     if (isPerson || isCollection || isCompany) {
-         // Cannot play directly, navigate to their page
          if (isPerson) navigate(`/person/${item.id}`);
          if (isCollection) navigate(`/collection/${item.id}`);
          if (isCompany) navigate(`/category/company_${item.id}`);
          return;
     }
 
-    if (mediaType === 'movie') {
+    if (item.media_type === 'movie') {
         navigate(`/watch/movie/${item.id}`);
     } else {
-        // If continue watching data exists, use it, otherwise default to S1 E1
         const s = item.season || 1;
         const e = item.episode || 1;
         navigate(`/watch/tv/${item.id}/${s}/${e}`);
     }
+  };
+
+  const handleToggleList = (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (inWatchlist) {
+          removeFromWatchlist(item.id);
+      } else {
+          addToWatchlist({
+              mediaId: item.id,
+              mediaType: item.media_type as 'movie' | 'tv',
+              title: title || '',
+              posterPath: item.poster_path,
+              voteAverage: item.vote_average,
+              releaseDate: item.release_date || item.first_air_date
+          });
+      }
   };
 
   const handleRemove = (e: React.MouseEvent) => {
@@ -61,138 +82,171 @@ const MediaCard: React.FC<MediaCardProps> = ({ item, onRemove }) => {
       if (!total && item.progress && item.progress > 0 && item.watchedDuration) {
           total = item.watchedDuration / (item.progress / 100);
       }
-  
       if (!total || !item.watchedDuration) return '';
-      
       const remainingSeconds = total - item.watchedDuration;
       const minutesLeft = Math.ceil(remainingSeconds / 60);
-  
       if (minutesLeft <= 0) return 'Finished';
-      
-      if (minutesLeft < 60) {
-          return `${minutesLeft} min left`;
-      }
-      
+      if (minutesLeft < 60) return `${minutesLeft} min left`;
       const hrs = Math.floor(minutesLeft / 60);
       const mins = minutesLeft % 60;
-      
       if (mins === 0) return `${hrs} hr left`;
       return `${hrs} hr ${mins} min left`;
   };
 
-  // Determine link target
-  let linkTarget = `/details/${mediaType}/${item.id}`;
-  if (isPerson) linkTarget = `/person/${item.id}`;
-  if (isCollection) linkTarget = `/collection/${item.id}`;
-  if (isCompany) linkTarget = `/category/company_${item.id}`;
-
   const remainingTimeText = formatRemainingTime();
+  const year = new Date(item.release_date || item.first_air_date || '').getFullYear();
+  const matchScore = item.vote_average ? Math.round(item.vote_average * 10) : 0;
 
+  // --- RENDER FOR CAST / PERSON ---
+  if (isPerson) {
+      return (
+        <Link to={linkTarget} className="block group w-full cursor-pointer">
+            <div className="aspect-[2/3] rounded-md overflow-hidden bg-gray-800 mb-2 relative ring-1 ring-white/10 group-hover:ring-white/30 transition-all">
+                {imagePath ? (
+                    <img
+                        src={imagePath}
+                        alt={title}
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        loading="lazy"
+                    />
+                ) : (
+                    <div className="flex flex-col items-center justify-center h-full text-secondary">
+                        <span className="text-xs text-center p-2">{title}</span>
+                    </div>
+                )}
+            </div>
+            <div className="px-1">
+                <h3 className="text-white font-bold text-sm leading-tight truncate">{title}</h3>
+                {item.character && (
+                    <p className="text-gray-400 text-xs truncate">{item.character}</p>
+                )}
+            </div>
+        </Link>
+      );
+  }
+
+  // --- RENDER FOR COLLECTIONS / COMPANIES ---
+  if (isCollection || isCompany) {
+      return (
+        <Link to={linkTarget} className="group relative block w-full aspect-[2/3] rounded-md bg-gray-800 overflow-hidden ring-1 ring-white/10 hover:ring-brand-primary transition-all">
+             <div className={`absolute inset-0 ${isCompany ? 'bg-white p-4 flex items-center justify-center' : ''}`}>
+                {imagePath ? (
+                    <img
+                        src={imagePath}
+                        alt={title}
+                        className={`w-full h-full ${isCompany ? 'object-contain' : 'object-cover'} transition-transform duration-500 group-hover:scale-105`}
+                        loading="lazy"
+                    />
+                ) : (
+                    <div className="flex items-center justify-center h-full text-secondary p-2 text-center">
+                        <span className="text-xs font-bold">{title}</span>
+                    </div>
+                )}
+             </div>
+             <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                 <span className="text-xs font-bold text-white uppercase tracking-wider border border-white px-2 py-1 rounded">View</span>
+             </div>
+        </Link>
+      );
+  }
+
+  // --- RENDER FOR MOVIES / TV (HOVER CARD STYLE) ---
   return (
-    <div className="group/card relative block w-full aspect-[2/3] rounded-md bg-surface transition-all duration-300 hover:scale-110 hover:z-20 hover:shadow-[0_0_20px_rgba(0,0,0,0.5)] cursor-pointer ring-1 ring-white/5 hover:ring-white/20">
-      <div className={`absolute inset-0 overflow-hidden rounded-md bg-gray-800 ${isCompany ? 'flex items-center justify-center bg-white p-4' : ''}`}>
+    <div className="relative w-full aspect-[2/3] group/card">
+      {/* 1. Base Static Card (Always Visible) */}
+      <div className="absolute inset-0 rounded-md overflow-hidden bg-gray-800 ring-1 ring-white/10">
           {imagePath ? (
             <img
                 src={imagePath}
                 alt={title}
-                className={`w-full h-full object-cover transition-opacity duration-300 group-hover/card:opacity-40 ${isCompany ? 'object-contain group-hover/card:opacity-90' : ''}`}
+                className="w-full h-full object-cover"
                 loading="lazy"
             />
           ) : (
-            <div className="flex flex-col items-center justify-center h-full text-secondary p-2 text-center">
-                {isPerson ? <User className="w-12 h-12 mb-2 opacity-50" /> : 
-                 isCollection ? <Layers className="w-12 h-12 mb-2 opacity-50" /> :
-                 isCompany ? <Building2 className="w-12 h-12 mb-2 opacity-50" /> :
-                 <Info className="w-12 h-12 mb-2 opacity-50" />}
+            <div className="flex items-center justify-center h-full text-secondary p-2 text-center bg-gray-900">
                 <span className="text-xs">{title}</span>
             </div>
           )}
+          
+          {/* Continue Watching Progress (Base Card) */}
+          {(item.progress !== undefined && item.progress > 0) && (
+              <div className="absolute bottom-0 left-0 right-0 z-10 bg-black/80 backdrop-blur-sm px-2 py-1">
+                  <div className="flex items-center justify-between text-[9px] text-gray-300 mb-0.5">
+                     <span className="truncate max-w-[60px]">{item.media_type === 'tv' ? `S${item.season} E${item.episode}` : 'Resume'}</span>
+                  </div>
+                  <div className="w-full h-0.5 bg-gray-600 rounded-full overflow-hidden">
+                      <div className="h-full bg-brand-primary" style={{ width: `${item.progress}%` }}></div>
+                  </div>
+              </div>
+          )}
+          
+          {/* Always Visible Remove Button */}
+          {onRemove && (
+              <button
+                onClick={handleRemove}
+                className="absolute top-1 right-1 z-20 p-1.5 bg-black/60 text-white rounded-full hover:bg-red-600 transition-colors backdrop-blur-sm"
+                title="Remove"
+              >
+                  <X className="w-3 h-3" />
+              </button>
+          )}
       </div>
 
-      {/* Progress Bar (Visible Always if progress exists) */}
-      {(item.progress !== undefined && item.progress > 0) && (
-          <div className="absolute bottom-0 left-0 right-0 z-20 bg-black/80 backdrop-blur-sm px-2 py-1.5 rounded-b-md">
-              <div className="flex items-center justify-between text-[10px] text-gray-200 mb-1 font-semibold">
-                 {/* Only show S/E info for TV Shows */}
-                 {mediaType === 'tv' && item.season && item.episode ? (
-                     <span className="text-brand-primary">S{item.season} E{item.episode}</span>
-                 ) : (
-                     <span className="text-gray-400 text-[9px] uppercase tracking-wider">Resume</span>
-                 )}
-                 <span>{remainingTimeText}</span>
+      {/* 2. Hover Overlay Card (Desktop Only - Hidden on Touch via CSS typically, but we use group-hover) */}
+      {/* Note: In a real Netflix clone, this would portal out. Here we use absolute expansion with z-index. */}
+      <div className="hidden md:block absolute top-[-10%] left-[-10%] w-[120%] h-[140%] bg-[#141414] rounded-lg shadow-2xl z-50 opacity-0 scale-90 group-hover/card:opacity-100 group-hover/card:scale-100 transition-all duration-300 origin-center pointer-events-none group-hover/card:pointer-events-auto ring-1 ring-white/10 overflow-hidden">
+          
+          {/* Preview Image Area */}
+          <div className="relative h-3/5 w-full bg-black">
+              {item.backdrop_path ? (
+                  <img src={`${IMAGE_BASE_URL}/w300${item.backdrop_path}`} alt={title} className="w-full h-full object-cover" />
+              ) : (
+                  <img src={imagePath || ''} alt={title} className="w-full h-full object-cover" />
+              )}
+              <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-[#141414] to-transparent"></div>
+              <h4 className="absolute bottom-2 left-3 text-white font-bold text-shadow shadow-black text-sm line-clamp-1">{title}</h4>
+          </div>
+
+          {/* Action & Info Area */}
+          <div className="p-3 flex flex-col gap-2 h-2/5 justify-between">
+              
+              {/* Buttons */}
+              <div className="flex items-center gap-2">
+                  <button onClick={handlePlay} className="w-8 h-8 rounded-full bg-white flex items-center justify-center hover:bg-gray-200 transition">
+                      <Play className="w-4 h-4 text-black fill-black ml-0.5" />
+                  </button>
+                  <button onClick={handleToggleList} className="w-8 h-8 rounded-full border-2 border-gray-500 hover:border-white flex items-center justify-center transition text-white">
+                      {inWatchlist ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                  </button>
+                  <Link to={linkTarget} className="w-8 h-8 rounded-full border-2 border-gray-500 hover:border-white flex items-center justify-center transition text-white ml-auto">
+                      <Info className="w-4 h-4" />
+                  </Link>
               </div>
-              <div className="w-full h-1 bg-gray-600 rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-brand-primary rounded-full transition-all duration-300" 
-                    style={{ width: `${item.progress}%` }}
-                  ></div>
+
+              {/* Metadata */}
+              <div className="flex items-center flex-wrap gap-x-2 gap-y-1 text-[10px] font-medium text-gray-300">
+                  <span className="text-green-400 font-bold">{matchScore}% Match</span>
+                  <span className="border border-gray-500 px-1 rounded text-[8px]">HD</span>
+                  <span>{year}</span>
+              </div>
+
+              {/* Genres */}
+              <div className="flex flex-wrap gap-1">
+                  {item.genre_ids?.slice(0, 3).map(id => (
+                      <span key={id} className="text-[9px] text-gray-400 flex items-center">
+                         <span className="w-1 h-1 bg-gray-600 rounded-full mr-1"></span> Genre
+                      </span>
+                  ))}
               </div>
           </div>
-      )}
-      
-      {/* Remove Button (For Continue Watching) */}
-      {onRemove && (
-          <button
-            onClick={handleRemove}
-            className="absolute top-1 right-1 z-30 p-1.5 bg-black/60 text-white rounded-full hover:bg-brand-primary transition-colors opacity-0 group-hover/card:opacity-100"
-            title="Remove from Continue Watching"
-          >
-              <X className="w-3 h-3" />
-          </button>
-      )}
+      </div>
 
-      {/* Default Link Overlay */}
+      {/* Mobile Click Handler (Invisible Overlay) */}
       <Link 
         to={linkTarget} 
-        className="absolute inset-0 z-0 rounded-md"
+        className="md:hidden absolute inset-0 z-30"
         aria-label={`View details for ${title}`}
       />
-
-      {/* Hover Overlay Content */}
-      <div className={`absolute inset-0 flex flex-col justify-end p-3 opacity-0 group-hover/card:opacity-100 transition-opacity duration-300 z-10 pointer-events-none bg-gradient-to-t from-black via-black/40 to-transparent rounded-md ${item.progress ? 'pb-10' : ''}`}>
-        
-        {/* Action Buttons */}
-        <div className="flex gap-2 mb-3 pointer-events-auto transform translate-y-4 group-hover/card:translate-y-0 transition-transform duration-300">
-            {!isPerson && !isCollection && !isCompany && (
-                <button 
-                    onClick={handlePlay}
-                    className="flex-1 flex items-center justify-center bg-white text-black py-2 rounded font-bold text-xs hover:bg-gray-200 transition-colors shadow-lg"
-                >
-                    <Play className="w-3 h-3 mr-1 fill-black" /> {item.progress ? 'Resume' : 'Watch'}
-                </button>
-            )}
-            
-            <Link 
-                to={linkTarget}
-                className={`flex-1 flex items-center justify-center ${
-                    (isPerson || isCollection || isCompany) ? 'bg-brand-primary text-white hover:opacity-90' : 'bg-gray-600/60 text-white hover:bg-gray-500'
-                } py-2 rounded font-bold text-xs transition-colors backdrop-blur-sm shadow-lg border border-white/10`}
-            >
-                {(isPerson || isCollection || isCompany) ? 'View' : 'Info'}
-            </Link>
-        </div>
-
-        <h3 className="text-white font-bold text-sm line-clamp-2 leading-tight mb-1 drop-shadow-md">{title}</h3>
-        {/* Character Name for Actors */}
-        {item.character && (
-            <p className="text-xs text-gray-300 line-clamp-1 italic mb-1">as {item.character}</p>
-        )}
-        
-        {!isPerson && !isCollection && !isCompany && (
-            <div className="flex items-center justify-between text-xs text-gray-300">
-            <span className="flex items-center text-green-400 font-medium drop-shadow-md">
-                <Star className="w-3 h-3 mr-1 fill-current" />
-                {item.vote_average?.toFixed(1)}
-            </span>
-            <span className="drop-shadow-md">
-                {new Date(item.release_date || item.first_air_date || '').getFullYear() || 'N/A'}
-            </span>
-            </div>
-        )}
-        {isPerson && !item.character && <p className="text-xs text-gray-300">Person</p>}
-        {isCollection && <p className="text-xs text-gray-300">Collection</p>}
-        {isCompany && <p className="text-xs text-gray-300">Company</p>}
-      </div>
     </div>
   );
 };
