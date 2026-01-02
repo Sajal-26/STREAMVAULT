@@ -393,7 +393,7 @@ const Details: React.FC = () => {
                           <h2 className="text-xl md:text-2xl font-bold">Episodes</h2>
                           <div className="flex items-center gap-2 md:gap-3">
                               {/* View Toggle */}
-                              <div className="hidden md:flex bg-white/10 rounded-lg p-1 border border-white/5">
+                              <div className="flex bg-white/10 rounded-lg p-1 border border-white/5">
                                   <button 
                                       onClick={() => setViewMode('list')}
                                       className={`p-1.5 rounded transition ${viewMode === 'list' ? 'bg-white/20 text-white shadow-sm' : 'text-gray-400 hover:text-white'}`}
@@ -523,10 +523,10 @@ const Details: React.FC = () => {
                       
                       {/* Show More Button */}
                       {seasonData.episodes && visibleEpisodes < seasonData.episodes.length && (
-                          <div className="mt-6 flex justify-center">
+                          <div className="mt-8 flex justify-center relative z-20 py-4">
                               <button 
                                 onClick={handleLoadMoreEpisodes}
-                                className="px-6 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full text-sm font-bold text-white transition flex items-center gap-2 group"
+                                className="px-8 py-3 bg-white/10 hover:bg-white/20 border border-white/10 rounded-full text-sm font-bold text-white transition flex items-center gap-2 group backdrop-blur-md"
                               >
                                   Show More Episodes
                                   <ChevronDown className="w-4 h-4 transition-transform group-hover:translate-y-1" />
