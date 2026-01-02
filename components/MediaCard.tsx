@@ -202,6 +202,17 @@ const MediaCard: React.FC<MediaCardProps> = ({ item, onRemove }) => {
               <h4 className="absolute bottom-2 left-3 text-white font-bold text-shadow-lg shadow-black text-sm md:text-base line-clamp-1 pr-12 z-10">
                   {title}
               </h4>
+
+              {/* Hover Card Remove Button (New) */}
+              {onRemove && (
+                  <button
+                    onClick={handleRemove}
+                    className="absolute top-2 right-2 z-20 p-1.5 bg-black/60 text-white rounded-full hover:bg-red-600 transition-colors backdrop-blur-sm ring-1 ring-white/20"
+                    title="Remove from row"
+                  >
+                      <X className="w-4 h-4" />
+                  </button>
+              )}
           </div>
 
           {/* Bottom: Info Area */}
