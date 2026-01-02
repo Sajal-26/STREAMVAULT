@@ -1,12 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ref, set, push, onValue, update, remove } from 'firebase/database';
+import { ref, set, push, onValue, remove } from 'firebase/database';
 import { db } from '../services/firebase';
 import { useAuth } from '../context/AuthContext';
 import Navbar from '../components/Navbar';
 import { MessageCircle, Send, Users, Play, Copy, ArrowLeft, Tv, MonitorPlay } from 'lucide-react';
-import { tmdbService } from '../services/tmdb';
-import { MediaDetails } from '../types';
 
 interface ChatMessage {
     id: string;

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from '../services/skipService';
 import { Play, Plus, ThumbsUp, ChevronDown, Check, Users } from 'lucide-react';
 import { tmdbService } from '../services/tmdb';
