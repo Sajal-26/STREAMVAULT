@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Link, useNavigate } from '../services/skipService';
+import { Link, useNavigate } from 'react-router-dom';
 import { Play, Info, ChevronLeft, ChevronRight, Star, Calendar, Clock } from 'lucide-react';
 import { MediaItem } from '../types';
 import { tmdbService } from '../services/tmdb';
@@ -35,7 +35,7 @@ const Hero: React.FC<HeroProps> = ({ items }) => {
            
            // Logo
            const logos = res.images?.logos || [];
-           const englishLogo = logos.find(l => l.iso_639_1 === 'en');
+           const englishLogo = logos.find((l: any) => l.iso_639_1 === 'en');
            setLogoPath(englishLogo ? englishLogo.file_path : (logos[0]?.file_path || null));
 
            // Genres

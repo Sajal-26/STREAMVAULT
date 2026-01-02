@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from '../services/skipService';
+import { useParams, useNavigate } from 'react-router-dom';
 import { Play, Plus, ThumbsUp, ChevronDown, Check, Users, ArrowLeft } from 'lucide-react';
 import { tmdbService } from '../services/tmdb';
 import { useAuth } from '../context/AuthContext';
