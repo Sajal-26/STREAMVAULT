@@ -163,7 +163,7 @@ const MediaCard: React.FC<MediaCardProps> = ({ item, onRemove }) => {
               </div>
           )}
           
-          {/* Always Visible Remove Button (Requested: "Always be there hover or not") */}
+          {/* Always Visible Remove Button */}
           {onRemove && (
               <button
                 onClick={handleRemove}
@@ -175,22 +175,28 @@ const MediaCard: React.FC<MediaCardProps> = ({ item, onRemove }) => {
           )}
       </div>
 
-      {/* 2. Hover Overlay Card (Desktop Only - Hidden on Touch via CSS, enabled via group-hover) */}
-      <div className="hidden md:block absolute top-[-10%] left-[-10%] w-[120%] h-[140%] bg-[#141414] rounded-lg shadow-2xl z-50 opacity-0 scale-90 group-hover/card:opacity-100 group-hover/card:scale-100 transition-all duration-300 origin-center pointer-events-none group-hover/card:pointer-events-auto ring-1 ring-white/10 overflow-hidden">
+      {/* 2. Hover Overlay Card (Desktop Only) */}
+      {/* 
+          Geometry: 
+          Width 130% -> Left -15% (Centers horizontally)
+          Height 160% -> Top -30% (Centers vertically)
+          This ensures the card expands evenly from the center.
+      */}
+      <div className="hidden md:block absolute top-[-30%] left-[-15%] w-[130%] h-[160%] bg-[#141414] rounded-lg shadow-2xl z-50 opacity-0 scale-95 group-hover/card:opacity-100 group-hover/card:scale-100 transition-all duration-300 delay-150 origin-center pointer-events-none group-hover/card:pointer-events-auto ring-1 ring-white/10 overflow-hidden">
           
-          {/* Preview Image Area */}
-          <div className="relative h-3/5 w-full bg-black">
+          {/* Preview Image Area (Takes up more space now to maintain visual scale) */}
+          <div className="relative h-[65%] w-full bg-black">
               {item.backdrop_path ? (
                   <img src={`${IMAGE_BASE_URL}/w300${item.backdrop_path}`} alt={title} className="w-full h-full object-cover" />
               ) : (
                   <img src={imagePath || ''} alt={title} className="w-full h-full object-cover" />
               )}
-              <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-[#141414] to-transparent"></div>
-              <h4 className="absolute bottom-2 left-3 text-white font-bold text-shadow shadow-black text-sm line-clamp-1">{title}</h4>
+              <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-[#141414] to-transparent"></div>
+              <h4 className="absolute bottom-3 left-3 text-white font-bold text-shadow shadow-black text-sm line-clamp-1 pr-2">{title}</h4>
           </div>
 
           {/* Action & Info Area */}
-          <div className="p-3 flex flex-col gap-2 h-2/5 justify-between bg-[#141414]">
+          <div className="h-[35%] p-3 flex flex-col justify-between bg-[#141414]">
               
               {/* Buttons */}
               <div className="flex items-center gap-2">
@@ -206,16 +212,16 @@ const MediaCard: React.FC<MediaCardProps> = ({ item, onRemove }) => {
               </div>
 
               {/* Metadata */}
-              <div className="flex items-center flex-wrap gap-x-2 gap-y-1 text-[10px] font-medium text-gray-300">
+              <div className="flex items-center flex-wrap gap-x-3 gap-y-1 text-[11px] font-medium text-gray-300">
                   <span className="text-green-400 font-bold">{matchScore}% Match</span>
-                  <span className="border border-gray-500 px-1 rounded text-[8px]">HD</span>
+                  <span className="border border-gray-500 px-1 rounded text-[9px] leading-tight">HD</span>
                   <span>{year}</span>
               </div>
 
               {/* Genres */}
-              <div className="flex flex-wrap gap-1">
+              <div className="flex flex-wrap gap-1 mt-1">
                   {item.genre_ids?.slice(0, 3).map(id => (
-                      <span key={id} className="text-[9px] text-gray-400 flex items-center">
+                      <span key={id} className="text-[10px] text-gray-400 flex items-center">
                          <span className="w-1 h-1 bg-gray-600 rounded-full mr-1"></span> Genre
                       </span>
                   ))}

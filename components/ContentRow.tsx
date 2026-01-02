@@ -88,10 +88,15 @@ const ContentRow: React.FC<ContentRowProps> = ({ title, items, categoryId, onRem
           </button>
         )}
 
+        {/* 
+            Increased padding to prevent hover card clipping.
+            pt-24 (96px) handles the top-[-30%] expansion of cards.
+            -mt-16 compensates layout shift.
+        */}
         <div 
           ref={rowRef}
           onScroll={checkScroll}
-          className="flex space-x-3 md:space-x-4 overflow-x-auto hide-scrollbar pb-6 pt-12 -mt-8 px-1" // Adjusted vertical padding
+          className="flex space-x-3 md:space-x-4 overflow-x-auto hide-scrollbar pb-8 pt-24 -mt-16 px-1"
         >
           {items.map((item) => (
              <div key={item.id} className="min-w-[150px] w-[150px] sm:min-w-[180px] sm:w-[180px] md:min-w-[220px] md:w-[220px] flex-shrink-0 mb-4">
