@@ -80,7 +80,7 @@ const MediaCard: React.FC<MediaCardProps> = ({ item, onRemove }) => {
   const year = new Date(item.release_date || item.first_air_date || '').getFullYear();
   const matchScore = item.vote_average ? Math.round(item.vote_average * 10) : 0;
 
-  // --- RENDER FOR CAST / PERSON ---
+  // --- RENDER FOR CAST / PERSON (New Design: Text Below Image) ---
   if (isPerson) {
       return (
         <Link to={linkTarget} className="block group w-full cursor-pointer">
@@ -136,7 +136,7 @@ const MediaCard: React.FC<MediaCardProps> = ({ item, onRemove }) => {
   // --- RENDER FOR MOVIES / TV (HOVER CARD STYLE) ---
   return (
     <div className="relative w-full aspect-[2/3] group/card">
-      {/* 1. Base Static Card (Always Visible) */}
+      {/* 1. Base Static Card (Visible on Mobile, Base on Desktop) */}
       <div className="absolute inset-0 rounded-md overflow-hidden bg-gray-800 ring-1 ring-white/10">
           {imagePath ? (
             <img
@@ -163,7 +163,7 @@ const MediaCard: React.FC<MediaCardProps> = ({ item, onRemove }) => {
               </div>
           )}
           
-          {/* Always Visible Remove Button */}
+          {/* Always Visible Remove Button (Requested: "Always be there hover or not") */}
           {onRemove && (
               <button
                 onClick={handleRemove}
@@ -175,8 +175,7 @@ const MediaCard: React.FC<MediaCardProps> = ({ item, onRemove }) => {
           )}
       </div>
 
-      {/* 2. Hover Overlay Card (Desktop Only - Hidden on Touch via CSS typically, but we use group-hover) */}
-      {/* Note: In a real Netflix clone, this would portal out. Here we use absolute expansion with z-index. */}
+      {/* 2. Hover Overlay Card (Desktop Only - Hidden on Touch via CSS, enabled via group-hover) */}
       <div className="hidden md:block absolute top-[-10%] left-[-10%] w-[120%] h-[140%] bg-[#141414] rounded-lg shadow-2xl z-50 opacity-0 scale-90 group-hover/card:opacity-100 group-hover/card:scale-100 transition-all duration-300 origin-center pointer-events-none group-hover/card:pointer-events-auto ring-1 ring-white/10 overflow-hidden">
           
           {/* Preview Image Area */}
@@ -191,11 +190,11 @@ const MediaCard: React.FC<MediaCardProps> = ({ item, onRemove }) => {
           </div>
 
           {/* Action & Info Area */}
-          <div className="p-3 flex flex-col gap-2 h-2/5 justify-between">
+          <div className="p-3 flex flex-col gap-2 h-2/5 justify-between bg-[#141414]">
               
               {/* Buttons */}
               <div className="flex items-center gap-2">
-                  <button onClick={handlePlay} className="w-8 h-8 rounded-full bg-white flex items-center justify-center hover:bg-gray-200 transition">
+                  <button onClick={handlePlay} className="w-8 h-8 rounded-full bg-white flex items-center justify-center hover:bg-gray-200 transition shadow-md">
                       <Play className="w-4 h-4 text-black fill-black ml-0.5" />
                   </button>
                   <button onClick={handleToggleList} className="w-8 h-8 rounded-full border-2 border-gray-500 hover:border-white flex items-center justify-center transition text-white">
@@ -224,7 +223,7 @@ const MediaCard: React.FC<MediaCardProps> = ({ item, onRemove }) => {
           </div>
       </div>
 
-      {/* Mobile Click Handler (Invisible Overlay) */}
+      {/* Mobile Click Handler (Invisible Link Layer) */}
       <Link 
         to={linkTarget} 
         className="md:hidden absolute inset-0 z-30"

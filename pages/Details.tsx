@@ -197,18 +197,19 @@ const Details: React.FC = () => {
   };
 
   const getEpisodeProgress = (seasonNum: number, episodeNum: number) => {
-      // 1. Check if completed in history (exact history tracking is limited in mock API, but logic stands)
-      // Since our simple history doesn't track every single episode ID, we rely on Continue Watching logic for now.
-      // Ideally, we'd have a 'watchedEpisodes' map.
+      // Logic:
+      // If currentCW indicates we are past this episode (higher season OR same season higher episode), return 100%.
+      // If matches exactly, return cw.progress.
+      // Else 0.
       
       if (currentCW) {
-          if (currentCW.season === seasonNum && currentCW.episode === episodeNum) {
-              return currentCW.progress || 0;
-          }
-          // If current watch is S1E5, then S1E1-4 are technically watched?
-          // This is a simplification.
-          if (currentCW.season! > seasonNum || (currentCW.season === seasonNum && currentCW.episode! > episodeNum)) {
-              return 100;
+          const cwSeason = currentCW.season || 1;
+          const cwEpisode = currentCW.episode || 1;
+
+          if (cwSeason > seasonNum) return 100;
+          if (cwSeason === seasonNum) {
+              if (cwEpisode > episodeNum) return 100;
+              if (cwEpisode === episodeNum) return currentCW.progress || 0;
           }
       }
       return 0;
