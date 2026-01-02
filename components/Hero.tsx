@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { Link, useNavigate } from '../services/skipService';
 import { Play, Info, ChevronLeft, ChevronRight, Star, Calendar, Clock } from 'lucide-react';
-import { MediaItem } from '../types';
+import { MediaItem, MediaDetails } from '../types';
 import { tmdbService } from '../services/tmdb';
 import { IMAGE_BASE_URL } from '../constants';
 
@@ -13,64 +13,80 @@ const Hero: React.FC<HeroProps> = ({ items }) => {
   const navigate = useNavigate();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
-  
-  // Current Item Details
-  const [logoPath, setLogoPath] = useState<string | null>(null);
-  const [genres, setGenres] = useState<{id: number, name: string}[]>([]);
-  const [runtime, setRuntime] = useState<number | null>(null);
-  const [rating, setRating] = useState<number>(0);
+  const [heroData, setHeroData] = useState<MediaDetails[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [isPaused, setIsPaused] = useState(false);
 
-  const item = items[currentIndex];
-
+  // Pre-fetch detailed data for all hero items
   useEffect(() => {
-    const fetchHeroDetails = async () => {
-      if (item) {
-        const mediaType = item.media_type || 'movie';
-        // Only fetch if movie or tv
-        if (mediaType !== 'movie' && mediaType !== 'tv') return;
+    const fetchAllDetails = async () => {
+      if (items.length === 0) return;
+      setLoading(true);
+      try {
+        // Take top 8 items to keep initial load reasonable
+        const itemsToFetch = items.slice(0, 8);
+        const promises = itemsToFetch.map(item => {
+            const mediaType = item.media_type || 'movie';
+            // Ensure we only fetch details for supported media types
+            if (mediaType === 'movie' || mediaType === 'tv') {
+                return tmdbService.getDetails(mediaType, item.id)
+                    .catch(() => null);
+            }
+            return Promise.resolve(null);
+        });
 
-        try {
-           // Fetch full details
-           const res = await tmdbService.getDetails(mediaType, item.id);
-           
-           // Logo
-           const logos = res.images?.logos || [];
-           const englishLogo = logos.find((l: any) => l.iso_639_1 === 'en');
-           setLogoPath(englishLogo ? englishLogo.file_path : (logos[0]?.file_path || null));
-
-           // Genres
-           setGenres(res.genres || []);
-
-           // Runtime / Rating
-           setRuntime(res.runtime || (res.episode_run_time ? res.episode_run_time[0] : null));
-           setRating(res.vote_average);
-
-        } catch (e) {
-          console.error("Failed to fetch hero details", e);
-        }
+        const results = await Promise.all(promises);
+        const validResults = results.filter((r): r is MediaDetails => r !== null);
+        setHeroData(validResults);
+      } catch (e) {
+        console.error("Hero pre-fetch failed", e);
+      } finally {
+        setLoading(false);
       }
     };
 
-    fetchHeroDetails();
-  }, [item]);
+    fetchAllDetails();
+  }, [items]);
 
   const changeSlide = useCallback((direction: 'next' | 'prev') => {
-      if (isAnimating || items.length <= 1) return;
+      if (isAnimating || heroData.length <= 1) return;
       setIsAnimating(true);
       
       setTimeout(() => {
           setCurrentIndex(prev => {
-              if (direction === 'next') return (prev + 1) % items.length;
-              return (prev - 1 + items.length) % items.length;
+              if (direction === 'next') return (prev + 1) % heroData.length;
+              return (prev - 1 + heroData.length) % heroData.length;
           });
           setIsAnimating(false);
       }, 500); // Wait for fade out
-  }, [isAnimating, items.length]);
+  }, [isAnimating, heroData.length]);
 
-  if (!item) return <div className="h-[60vh] md:h-[95vh] bg-gray-900 animate-pulse" />;
+  // Auto-play Logic (10s)
+  useEffect(() => {
+      const timer = setInterval(() => {
+          if (!isPaused && !isAnimating && heroData.length > 1) {
+              changeSlide('next');
+          }
+      }, 10000);
 
-  const backdrop = item.backdrop_path ? `${IMAGE_BASE_URL}/original${item.backdrop_path}` : null;
+      return () => clearInterval(timer);
+  }, [isPaused, isAnimating, heroData.length, changeSlide]);
+
+  if (loading || heroData.length === 0) {
+      return <div className="h-[60vh] md:h-[95vh] bg-gray-900 animate-pulse" />;
+  }
+
+  const item = heroData[currentIndex];
   
+  // Data extraction from fully loaded item
+  const backdrop = item.backdrop_path ? `${IMAGE_BASE_URL}/original${item.backdrop_path}` : null;
+  const logo = item.images?.logos?.find((l: any) => l.iso_639_1 === 'en') || item.images?.logos?.[0];
+  const logoPath = logo ? logo.file_path : null;
+  const genres = item.genres || [];
+  const runtime = item.runtime || (item.episode_run_time ? item.episode_run_time[0] : null);
+  const rating = item.vote_average || 0;
+  const year = new Date(item.release_date || item.first_air_date || '').getFullYear();
+
   const handlePlay = () => {
       const type = item.media_type || 'movie';
       if (type === 'tv') {
@@ -84,7 +100,6 @@ const Hero: React.FC<HeroProps> = ({ items }) => {
      ? `/person/${item.id}`
      : `/details/${item.media_type || 'movie'}/${item.id}`;
 
-  const year = new Date(item.release_date || item.first_air_date || '').getFullYear();
   const formatRuntime = (mins: number) => {
       const h = Math.floor(mins / 60);
       const m = mins % 60;
@@ -92,7 +107,11 @@ const Hero: React.FC<HeroProps> = ({ items }) => {
   };
 
   return (
-    <div className="relative h-[65vh] md:h-[95vh] w-full overflow-hidden group bg-black">
+    <div 
+        className="relative h-[65vh] md:h-[95vh] w-full overflow-hidden group bg-black"
+        onMouseEnter={() => setIsPaused(true)}
+        onMouseLeave={() => setIsPaused(false)}
+    >
       
       {/* Background Image with Transition */}
       <div className={`absolute inset-0 transition-opacity duration-700 ease-in-out ${isAnimating ? 'opacity-0' : 'opacity-100'}`}>
@@ -111,7 +130,7 @@ const Hero: React.FC<HeroProps> = ({ items }) => {
       <div className="absolute inset-0 bg-gradient-to-t from-[#141414] via-[#141414]/20 to-transparent" />
       <div className="absolute inset-0 bg-gradient-to-r from-[#141414] via-[#141414]/40 to-transparent" />
       
-      {/* Navigation Buttons - Absolute positioned at edges */}
+      {/* Navigation Buttons */}
       <div className="absolute inset-0 pointer-events-none flex items-center justify-between px-2 md:px-4 z-30">
           <button 
             onClick={() => changeSlide('prev')}
@@ -128,14 +147,14 @@ const Hero: React.FC<HeroProps> = ({ items }) => {
           </button>
       </div>
 
-      {/* Content Container - Align Bottom Left */}
+      {/* Content Container */}
       <div className={`absolute inset-0 flex flex-col justify-end px-4 md:px-16 lg:px-24 pb-24 md:pb-48 max-w-7xl transition-opacity duration-500 ease-in-out ${isAnimating ? 'opacity-0' : 'opacity-100'} z-20 pointer-events-none`}>
         <div className="max-w-3xl pointer-events-auto">
             {/* Logo or Title */}
             {logoPath ? (
             <img 
                 src={`${IMAGE_BASE_URL}/w500${logoPath}`} 
-                alt={item.title} 
+                alt={item.title || item.name} 
                 className="w-2/3 md:w-1/2 max-w-[300px] md:max-w-[450px] max-h-[120px] md:max-h-[180px] object-contain mb-6 origin-left drop-shadow-2xl"
             />
             ) : (
@@ -196,9 +215,9 @@ const Hero: React.FC<HeroProps> = ({ items }) => {
         </div>
       </div>
       
-      {/* Carousel Indicators - Moved up to avoid overlap */}
+      {/* Carousel Indicators */}
       <div className="absolute bottom-16 right-8 md:right-16 flex space-x-2 z-30">
-          {items.map((_, idx) => (
+          {heroData.map((_, idx) => (
               <button 
                 key={idx} 
                 onClick={() => setCurrentIndex(idx)}
