@@ -7,7 +7,7 @@ import { MediaItem } from '../types';
 interface ContentRowProps {
   title: string;
   items: MediaItem[];
-  categoryId?: string; // New prop for View All link
+  categoryId?: string;
   onRemove?: (id: number) => void;
 }
 
@@ -19,7 +19,6 @@ const ContentRow: React.FC<ContentRowProps> = ({ title, items, categoryId, onRem
   const checkScroll = () => {
     if (rowRef.current) {
       const { scrollLeft, scrollWidth, clientWidth } = rowRef.current;
-      // Only show arrows if there is actual overflow
       const hasOverflow = scrollWidth > clientWidth;
       
       setCanScrollLeft(scrollLeft > 0);
@@ -29,15 +28,9 @@ const ContentRow: React.FC<ContentRowProps> = ({ title, items, categoryId, onRem
 
   useEffect(() => {
     checkScroll();
-    
-    // ResizeObserver ensures we detect overflow changes when images load or window resizes
     const ref = rowRef.current;
     if (!ref) return;
-
-    const observer = new ResizeObserver(() => {
-        checkScroll();
-    });
-    
+    const observer = new ResizeObserver(checkScroll);
     observer.observe(ref);
     return () => observer.disconnect();
   }, [items]);
@@ -50,7 +43,6 @@ const ContentRow: React.FC<ContentRowProps> = ({ title, items, categoryId, onRem
         : (current.clientWidth * 0.8);
         
       current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
-      // Timeout to check scroll state after animation finishes
       setTimeout(checkScroll, 500);
     }
   };
@@ -58,23 +50,21 @@ const ContentRow: React.FC<ContentRowProps> = ({ title, items, categoryId, onRem
   if (!items || items.length === 0) return null;
 
   return (
-    <div className="mb-8 md:mb-12 px-4 md:px-12 relative group/row">
-      <div className="flex items-center gap-4 mb-3 md:mb-4">
+    <div className="mb-6 px-4 md:px-12 relative group/row">
+      {/* Title */}
+      <div className="flex items-center gap-4 mb-2 md:mb-3 relative z-20">
         {title && (
-            <h2 className="text-lg md:text-2xl font-bold text-primary flex items-center">
-            <span className="w-1 h-5 md:h-6 bg-brand-primary mr-3 rounded-full"></span>
-            {title}
+            <h2 className="text-lg md:text-xl font-bold text-primary flex items-center hover:text-white transition-colors">
+             {title}
+             {categoryId && (
+                 <Link 
+                    to={`/category/${categoryId}`}
+                    className="ml-2 text-xs font-semibold text-brand-primary opacity-0 group-hover/row:opacity-100 transition-opacity flex items-center"
+                 >
+                    Explore <ArrowRight className="w-3 h-3 ml-0.5" />
+                 </Link>
+             )}
             </h2>
-        )}
-        
-        {categoryId && (
-            <Link 
-                to={`/category/${categoryId}`}
-                className="group/link flex items-center text-xs md:text-sm font-semibold text-brand-primary hover:text-white transition-colors"
-            >
-                Explore All 
-                <ArrowRight className="w-4 h-4 ml-1 transform group-hover/link:translate-x-1 transition-transform" />
-            </Link>
         )}
       </div>
       
@@ -82,24 +72,28 @@ const ContentRow: React.FC<ContentRowProps> = ({ title, items, categoryId, onRem
         {canScrollLeft && (
           <button 
             onClick={() => scroll('left')}
-            className="absolute left-0 top-0 bottom-0 z-20 w-12 bg-gradient-to-r from-background to-transparent flex items-center justify-center opacity-0 group-hover/row:opacity-100 transition-opacity duration-300 cursor-pointer"
+            className="absolute left-0 top-0 bottom-0 z-30 w-12 bg-gradient-to-r from-background to-transparent flex items-center justify-center opacity-0 group-hover/row:opacity-100 transition-opacity duration-300 cursor-pointer h-full"
           >
             <ChevronLeft className="w-10 h-10 text-white hover:scale-125 transition-transform drop-shadow-lg" />
           </button>
         )}
 
         {/* 
-            Increased padding to prevent hover card clipping.
-            pt-24 (96px) handles the top-[-30%] expansion of cards.
-            -mt-16 compensates layout shift.
+            Container Padding Logic:
+            The hover card grows significantly (approx 75% wider and taller due to content).
+            We add substantial padding to top and bottom to ensure the expanded card is not clipped by overflow-hidden.
+            Then we apply negative margins to the outer container (or adjacent elements) to compensate for this visual whitespace.
+            
+            pt-20 (80px) and pb-20 (80px) should cover the growth.
+            -my-16 pulls the layout back.
         */}
         <div 
           ref={rowRef}
           onScroll={checkScroll}
-          className="flex space-x-3 md:space-x-4 overflow-x-auto hide-scrollbar pb-8 pt-24 -mt-16 px-1"
+          className="flex space-x-3 md:space-x-4 overflow-x-auto hide-scrollbar px-1 py-20 -my-16 relative z-10"
         >
           {items.map((item) => (
-             <div key={item.id} className="min-w-[150px] w-[150px] sm:min-w-[180px] sm:w-[180px] md:min-w-[220px] md:w-[220px] flex-shrink-0 mb-4">
+             <div key={item.id} className="min-w-[130px] w-[130px] sm:min-w-[160px] sm:w-[160px] md:min-w-[200px] md:w-[200px] flex-shrink-0 transition-transform duration-300">
                 <MediaCard item={item} onRemove={onRemove} />
              </div>
           ))}
@@ -108,7 +102,7 @@ const ContentRow: React.FC<ContentRowProps> = ({ title, items, categoryId, onRem
         {canScrollRight && (
           <button 
             onClick={() => scroll('right')}
-            className="absolute right-0 top-0 bottom-0 z-20 w-12 bg-gradient-to-l from-background to-transparent flex items-center justify-center opacity-0 group-hover/row:opacity-100 transition-opacity duration-300 cursor-pointer"
+            className="absolute right-0 top-0 bottom-0 z-30 w-12 bg-gradient-to-l from-background to-transparent flex items-center justify-center opacity-0 group-hover/row:opacity-100 transition-opacity duration-300 cursor-pointer h-full"
           >
             <ChevronRight className="w-10 h-10 text-white hover:scale-125 transition-transform drop-shadow-lg" />
           </button>

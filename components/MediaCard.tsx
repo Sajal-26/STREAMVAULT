@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useNavigate } from '../services/skipService';
-import { Play, Info, X, Plus, Check } from 'lucide-react';
+import { Play, Info, X, Plus, Check, ThumbsUp } from 'lucide-react';
 import { MediaItem } from '../types';
 import { IMAGE_BASE_URL } from '../constants';
 import { useAuth } from '../context/AuthContext';
@@ -27,6 +27,9 @@ const MediaCard: React.FC<MediaCardProps> = ({ item, onRemove }) => {
   const imageSize = isCompany ? 'w500' : 'w342';
   const imagePath = imageKey ? `${IMAGE_BASE_URL}/${imageSize}${imageKey}` : null;
   
+  // Backdrop for hover state
+  const backdropPath = item.backdrop_path ? `${IMAGE_BASE_URL}/w780${item.backdrop_path}` : imagePath;
+
   // Link Logic
   let linkTarget = `/details/${item.media_type || 'movie'}/${item.id}`;
   if (isPerson) linkTarget = `/person/${item.id}`;
@@ -80,64 +83,43 @@ const MediaCard: React.FC<MediaCardProps> = ({ item, onRemove }) => {
   const year = new Date(item.release_date || item.first_air_date || '').getFullYear();
   const matchScore = item.vote_average ? Math.round(item.vote_average * 10) : 0;
 
-  // --- RENDER FOR CAST / PERSON (New Design: Text Below Image) ---
-  if (isPerson) {
+  // --- STATIC CARDS (Person, Collection, Company) ---
+  if (isPerson || isCollection || isCompany) {
+     // ... (Simple render for non-playable types)
       return (
-        <Link to={linkTarget} className="block group w-full cursor-pointer">
+        <Link to={linkTarget} className="block group w-full cursor-pointer relative">
             <div className="aspect-[2/3] rounded-md overflow-hidden bg-gray-800 mb-2 relative ring-1 ring-white/10 group-hover:ring-white/30 transition-all">
                 {imagePath ? (
                     <img
                         src={imagePath}
                         alt={title}
-                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        className={`w-full h-full ${isCompany ? 'object-contain p-4 bg-white' : 'object-cover'} transition-transform duration-500 group-hover:scale-105`}
                         loading="lazy"
                     />
                 ) : (
-                    <div className="flex flex-col items-center justify-center h-full text-secondary">
-                        <span className="text-xs text-center p-2">{title}</span>
-                    </div>
-                )}
-            </div>
-            <div className="px-1">
-                <h3 className="text-white font-bold text-sm leading-tight truncate">{title}</h3>
-                {item.character && (
-                    <p className="text-gray-400 text-xs truncate">{item.character}</p>
-                )}
-            </div>
-        </Link>
-      );
-  }
-
-  // --- RENDER FOR COLLECTIONS / COMPANIES ---
-  if (isCollection || isCompany) {
-      return (
-        <Link to={linkTarget} className="group relative block w-full aspect-[2/3] rounded-md bg-gray-800 overflow-hidden ring-1 ring-white/10 hover:ring-brand-primary transition-all">
-             <div className={`absolute inset-0 ${isCompany ? 'bg-white p-4 flex items-center justify-center' : ''}`}>
-                {imagePath ? (
-                    <img
-                        src={imagePath}
-                        alt={title}
-                        className={`w-full h-full ${isCompany ? 'object-contain' : 'object-cover'} transition-transform duration-500 group-hover:scale-105`}
-                        loading="lazy"
-                    />
-                ) : (
-                    <div className="flex items-center justify-center h-full text-secondary p-2 text-center">
+                    <div className="flex flex-col items-center justify-center h-full text-secondary p-2 text-center">
                         <span className="text-xs font-bold">{title}</span>
                     </div>
                 )}
-             </div>
-             <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                 <span className="text-xs font-bold text-white uppercase tracking-wider border border-white px-2 py-1 rounded">View</span>
-             </div>
+            </div>
+            {!isCompany && (
+                <div className="px-1">
+                    <h3 className="text-white font-bold text-sm leading-tight truncate">{title}</h3>
+                    {isPerson && item.character && (
+                        <p className="text-gray-400 text-xs truncate">{item.character}</p>
+                    )}
+                </div>
+            )}
         </Link>
       );
   }
 
-  // --- RENDER FOR MOVIES / TV (HOVER CARD STYLE) ---
+  // --- PLAYABLE MEDIA CARD (Movies/TV) ---
   return (
     <div className="relative w-full aspect-[2/3] group/card">
-      {/* 1. Base Static Card (Visible on Mobile, Base on Desktop) */}
-      <div className="absolute inset-0 rounded-md overflow-hidden bg-gray-800 ring-1 ring-white/10">
+      
+      {/* 1. Base Static Card (Always Visible placeholder) */}
+      <div className="absolute inset-0 rounded-md overflow-hidden bg-gray-800 ring-1 ring-white/10 transition-opacity duration-300 group-hover/card:opacity-0">
           {imagePath ? (
             <img
                 src={imagePath}
@@ -151,19 +133,16 @@ const MediaCard: React.FC<MediaCardProps> = ({ item, onRemove }) => {
             </div>
           )}
           
-          {/* Continue Watching Progress (Base Card) */}
+          {/* Progress Bar (Base) */}
           {(item.progress !== undefined && item.progress > 0) && (
               <div className="absolute bottom-0 left-0 right-0 z-10 bg-black/80 backdrop-blur-sm px-2 py-1">
-                  <div className="flex items-center justify-between text-[9px] text-gray-300 mb-0.5">
-                     <span className="truncate max-w-[60px]">{item.media_type === 'tv' ? `S${item.season} E${item.episode}` : 'Resume'}</span>
-                  </div>
                   <div className="w-full h-0.5 bg-gray-600 rounded-full overflow-hidden">
                       <div className="h-full bg-brand-primary" style={{ width: `${item.progress}%` }}></div>
                   </div>
               </div>
           )}
           
-          {/* Always Visible Remove Button */}
+          {/* Always Visible Remove Button (if provided) */}
           {onRemove && (
               <button
                 onClick={handleRemove}
@@ -175,57 +154,90 @@ const MediaCard: React.FC<MediaCardProps> = ({ item, onRemove }) => {
           )}
       </div>
 
-      {/* 2. Hover Overlay Card (Desktop Only) */}
+      {/* 2. HOVER CARD (Pop-out) */}
       {/* 
-          Geometry: 
-          Width 130% -> Left -15% (Centers horizontally)
-          Height 160% -> Top -30% (Centers vertically)
-          This ensures the card expands evenly from the center.
+         - Hidden on mobile (md:block)
+         - Absolute positioned centered relative to the base card
+         - Width: ~1.75x base card width
+         - Scale transition
+         - High Z-index
       */}
-      <div className="hidden md:block absolute top-[-30%] left-[-15%] w-[130%] h-[160%] bg-[#141414] rounded-lg shadow-2xl z-50 opacity-0 scale-95 group-hover/card:opacity-100 group-hover/card:scale-100 transition-all duration-300 delay-150 origin-center pointer-events-none group-hover/card:pointer-events-auto ring-1 ring-white/10 overflow-hidden">
+      <div className="hidden md:block absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[175%] bg-[#141414] rounded-lg shadow-2xl z-50 opacity-0 pointer-events-none group-hover/card:opacity-100 group-hover/card:pointer-events-auto group-hover/card:scale-100 scale-95 transition-all duration-300 ease-in-out delay-300 ring-1 ring-white/10 overflow-hidden">
           
-          {/* Preview Image Area (Takes up more space now to maintain visual scale) */}
-          <div className="relative h-[65%] w-full bg-black">
-              {item.backdrop_path ? (
-                  <img src={`${IMAGE_BASE_URL}/w300${item.backdrop_path}`} alt={title} className="w-full h-full object-cover" />
-              ) : (
-                  <img src={imagePath || ''} alt={title} className="w-full h-full object-cover" />
-              )}
+          {/* Top: Video/Backdrop Area (Aspect Video 16:9) */}
+          <div className="relative aspect-video w-full bg-black">
+              <img 
+                src={backdropPath || ''} 
+                alt={title} 
+                className="w-full h-full object-cover" 
+              />
               <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-[#141414] to-transparent"></div>
-              <h4 className="absolute bottom-3 left-3 text-white font-bold text-shadow shadow-black text-sm line-clamp-1 pr-2">{title}</h4>
+              
+              {/* Title Overlay on Image */}
+              <h4 className="absolute bottom-2 left-3 text-white font-bold text-shadow-lg shadow-black text-sm md:text-base line-clamp-1 pr-12 z-10">
+                  {title}
+              </h4>
+
+              {/* Mute/Sound icon placeholder could go here */}
           </div>
 
-          {/* Action & Info Area */}
-          <div className="h-[35%] p-3 flex flex-col justify-between bg-[#141414]">
+          {/* Bottom: Info Area */}
+          <div className="p-3 bg-[#141414] flex flex-col gap-3 shadow-inner-top">
               
-              {/* Buttons */}
+              {/* Action Buttons Row */}
               <div className="flex items-center gap-2">
-                  <button onClick={handlePlay} className="w-8 h-8 rounded-full bg-white flex items-center justify-center hover:bg-gray-200 transition shadow-md">
+                  <button 
+                    onClick={handlePlay} 
+                    className="w-8 h-8 rounded-full bg-white flex items-center justify-center hover:bg-gray-200 transition shadow-md"
+                    title="Play"
+                  >
                       <Play className="w-4 h-4 text-black fill-black ml-0.5" />
                   </button>
-                  <button onClick={handleToggleList} className="w-8 h-8 rounded-full border-2 border-gray-500 hover:border-white flex items-center justify-center transition text-white">
+                  <button 
+                    onClick={handleToggleList} 
+                    className="w-8 h-8 rounded-full border-2 border-gray-500 hover:border-white flex items-center justify-center transition text-white"
+                    title={inWatchlist ? "Remove from List" : "Add to List"}
+                  >
                       {inWatchlist ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
                   </button>
-                  <Link to={linkTarget} className="w-8 h-8 rounded-full border-2 border-gray-500 hover:border-white flex items-center justify-center transition text-white ml-auto">
+                  {/* Like Button Placeholder - Functional or just visual */}
+                  <div className="w-8 h-8 rounded-full border-2 border-gray-500 hover:border-white flex items-center justify-center transition text-white cursor-pointer">
+                      <ThumbsUp className="w-3.5 h-3.5" />
+                  </div>
+
+                  <Link 
+                    to={linkTarget} 
+                    className="w-8 h-8 rounded-full border-2 border-gray-500 hover:border-white flex items-center justify-center transition text-white ml-auto"
+                    title="More Info"
+                  >
                       <Info className="w-4 h-4" />
                   </Link>
               </div>
 
-              {/* Metadata */}
-              <div className="flex items-center flex-wrap gap-x-3 gap-y-1 text-[11px] font-medium text-gray-300">
-                  <span className="text-green-400 font-bold">{matchScore}% Match</span>
-                  <span className="border border-gray-500 px-1 rounded text-[9px] leading-tight">HD</span>
+              {/* Metadata Row */}
+              <div className="flex items-center flex-wrap gap-x-3 gap-y-1 text-[11px] font-semibold text-gray-300">
+                  <span className="text-green-400">{matchScore}% Match</span>
+                  <span className="border border-gray-500 px-1 rounded text-[9px]">HD</span>
                   <span>{year}</span>
+                  {item.media_type === 'tv' && <span>{item.season ? `S${item.season}` : 'Series'}</span>}
               </div>
 
-              {/* Genres */}
-              <div className="flex flex-wrap gap-1 mt-1">
+              {/* Genres Row */}
+              <div className="flex flex-wrap gap-1.5">
                   {item.genre_ids?.slice(0, 3).map(id => (
-                      <span key={id} className="text-[10px] text-gray-400 flex items-center">
-                         <span className="w-1 h-1 bg-gray-600 rounded-full mr-1"></span> Genre
+                      <span key={id} className="text-[10px] text-gray-400 capitalize flex items-center">
+                          <span className="w-1 h-1 bg-gray-500 rounded-full mr-1.5"></span>
+                          Genre
                       </span>
                   ))}
               </div>
+
+              {/* Overview (Clamped) - New Requirement */}
+              {item.overview && (
+                  <p className="text-[10px] text-gray-400 line-clamp-3 leading-relaxed mt-1">
+                      {item.overview}
+                  </p>
+              )}
           </div>
       </div>
 
