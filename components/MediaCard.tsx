@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useState } from 'react';
 import { Link, useNavigate } from '../services/skipService';
 import { Play, Info, X, Plus, Check, ThumbsUp } from 'lucide-react';
 import { MediaItem } from '../types';
@@ -14,6 +14,9 @@ const MediaCard: React.FC<MediaCardProps> = ({ item, onRemove }) => {
   const navigate = useNavigate();
   const { watchlist, addToWatchlist, removeFromWatchlist } = useAuth();
   
+  const cardRef = useRef<HTMLDivElement>(null);
+  const [hoverPos, setHoverPos] = useState<'left' | 'center' | 'right'>('center');
+
   const title = item.title || item.name;
   const isPerson = item.media_type === 'person';
   const isCollection = item.media_type === 'collection';
@@ -80,12 +83,29 @@ const MediaCard: React.FC<MediaCardProps> = ({ item, onRemove }) => {
       if (onRemove) onRemove(item.id);
   };
 
+  const handleMouseEnter = () => {
+    if (!cardRef.current) return;
+    const rect = cardRef.current.getBoundingClientRect();
+    const viewportW = window.innerWidth;
+    
+    // We scale to approx 1.75x width. 
+    // If centered, it protrudes 0.375x width on each side.
+    const overhang = rect.width * 0.4; 
+
+    if (rect.left < overhang) {
+        setHoverPos('left');
+    } else if (viewportW - rect.right < overhang) {
+        setHoverPos('right');
+    } else {
+        setHoverPos('center');
+    }
+  };
+
   const year = new Date(item.release_date || item.first_air_date || '').getFullYear();
   const matchScore = item.vote_average ? Math.round(item.vote_average * 10) : 0;
 
   // --- STATIC CARDS (Person, Collection, Company) ---
   if (isPerson || isCollection || isCompany) {
-     // ... (Simple render for non-playable types)
       return (
         <Link to={linkTarget} className="block group w-full cursor-pointer relative">
             <div className="aspect-[2/3] rounded-md overflow-hidden bg-gray-800 mb-2 relative ring-1 ring-white/10 group-hover:ring-white/30 transition-all">
@@ -116,7 +136,11 @@ const MediaCard: React.FC<MediaCardProps> = ({ item, onRemove }) => {
 
   // --- PLAYABLE MEDIA CARD (Movies/TV) ---
   return (
-    <div className="relative w-full aspect-[2/3] group/card">
+    <div 
+        ref={cardRef} 
+        onMouseEnter={handleMouseEnter}
+        className="relative w-full aspect-[2/3] group/card"
+    >
       
       {/* 1. Base Static Card (Always Visible placeholder) */}
       <div className="absolute inset-0 rounded-md overflow-hidden bg-gray-800 ring-1 ring-white/10 transition-opacity duration-300 group-hover/card:opacity-0">
@@ -155,14 +179,15 @@ const MediaCard: React.FC<MediaCardProps> = ({ item, onRemove }) => {
       </div>
 
       {/* 2. HOVER CARD (Pop-out) */}
-      {/* 
-         - Hidden on mobile (md:block)
-         - Absolute positioned centered relative to the base card
-         - Width: ~1.75x base card width
-         - Scale transition
-         - High Z-index
-      */}
-      <div className="hidden md:block absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[175%] bg-[#141414] rounded-lg shadow-2xl z-50 opacity-0 pointer-events-none group-hover/card:opacity-100 group-hover/card:pointer-events-auto group-hover/card:scale-100 scale-95 transition-all duration-300 ease-in-out delay-300 ring-1 ring-white/10 overflow-hidden">
+      <div className={`
+          hidden md:block absolute top-1/2 
+          w-[175%] bg-[#141414] rounded-lg shadow-2xl z-[60] 
+          transition-all duration-300 ease-in-out delay-300 ring-1 ring-white/10 overflow-hidden
+          opacity-0 pointer-events-none group-hover/card:opacity-100 group-hover/card:pointer-events-auto group-hover/card:scale-100 scale-95
+          ${hoverPos === 'left' ? 'left-0 -translate-y-1/2 origin-left' : ''}
+          ${hoverPos === 'center' ? 'left-1/2 -translate-x-1/2 -translate-y-1/2 origin-center' : ''}
+          ${hoverPos === 'right' ? 'right-0 -translate-y-1/2 origin-right' : ''}
+      `}>
           
           {/* Top: Video/Backdrop Area (Aspect Video 16:9) */}
           <div className="relative aspect-video w-full bg-black">
@@ -177,8 +202,6 @@ const MediaCard: React.FC<MediaCardProps> = ({ item, onRemove }) => {
               <h4 className="absolute bottom-2 left-3 text-white font-bold text-shadow-lg shadow-black text-sm md:text-base line-clamp-1 pr-12 z-10">
                   {title}
               </h4>
-
-              {/* Mute/Sound icon placeholder could go here */}
           </div>
 
           {/* Bottom: Info Area */}
@@ -200,7 +223,6 @@ const MediaCard: React.FC<MediaCardProps> = ({ item, onRemove }) => {
                   >
                       {inWatchlist ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
                   </button>
-                  {/* Like Button Placeholder - Functional or just visual */}
                   <div className="w-8 h-8 rounded-full border-2 border-gray-500 hover:border-white flex items-center justify-center transition text-white cursor-pointer">
                       <ThumbsUp className="w-3.5 h-3.5" />
                   </div>
@@ -232,7 +254,7 @@ const MediaCard: React.FC<MediaCardProps> = ({ item, onRemove }) => {
                   ))}
               </div>
 
-              {/* Overview (Clamped) - New Requirement */}
+              {/* Overview (Clamped) */}
               {item.overview && (
                   <p className="text-[10px] text-gray-400 line-clamp-3 leading-relaxed mt-1">
                       {item.overview}
@@ -241,7 +263,7 @@ const MediaCard: React.FC<MediaCardProps> = ({ item, onRemove }) => {
           </div>
       </div>
 
-      {/* Mobile Click Handler (Invisible Link Layer) */}
+      {/* Mobile Click Handler */}
       <Link 
         to={linkTarget} 
         className="md:hidden absolute inset-0 z-30"

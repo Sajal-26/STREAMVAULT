@@ -59,7 +59,7 @@ const ContentRow: React.FC<ContentRowProps> = ({ title, items, categoryId, onRem
              {categoryId && (
                  <Link 
                     to={`/category/${categoryId}`}
-                    className="ml-2 text-xs font-semibold text-brand-primary opacity-0 group-hover/row:opacity-100 transition-opacity flex items-center"
+                    className="ml-2 text-xs font-semibold text-brand-primary flex items-center hover:text-white transition-colors"
                  >
                     Explore <ArrowRight className="w-3 h-3 ml-0.5" />
                  </Link>
