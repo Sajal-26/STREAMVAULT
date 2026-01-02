@@ -20,7 +20,7 @@ const Details: React.FC = () => {
   const { 
     watchlist, addToWatchlist, removeFromWatchlist,
     likedItems, addToLikes, removeFromLikes,
-    continueWatching, watchHistory
+    continueWatching
   } = useAuth();
   const { showToast } = useToast();
   

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useNavigate } from '../services/skipService';
-import { Star, Play, Info, X, Plus, Check } from 'lucide-react';
+import { Play, Info, X, Plus, Check } from 'lucide-react';
 import { MediaItem } from '../types';
 import { IMAGE_BASE_URL } from '../constants';
 import { useAuth } from '../context/AuthContext';
@@ -77,23 +77,6 @@ const MediaCard: React.FC<MediaCardProps> = ({ item, onRemove }) => {
       if (onRemove) onRemove(item.id);
   };
 
-  const formatRemainingTime = () => {
-      let total = item.totalDuration;
-      if (!total && item.progress && item.progress > 0 && item.watchedDuration) {
-          total = item.watchedDuration / (item.progress / 100);
-      }
-      if (!total || !item.watchedDuration) return '';
-      const remainingSeconds = total - item.watchedDuration;
-      const minutesLeft = Math.ceil(remainingSeconds / 60);
-      if (minutesLeft <= 0) return 'Finished';
-      if (minutesLeft < 60) return `${minutesLeft} min left`;
-      const hrs = Math.floor(minutesLeft / 60);
-      const mins = minutesLeft % 60;
-      if (mins === 0) return `${hrs} hr left`;
-      return `${hrs} hr ${mins} min left`;
-  };
-
-  const remainingTimeText = formatRemainingTime();
   const year = new Date(item.release_date || item.first_air_date || '').getFullYear();
   const matchScore = item.vote_average ? Math.round(item.vote_average * 10) : 0;
 
