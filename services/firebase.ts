@@ -5,11 +5,11 @@ export const analytics = {};
 export const db = {};
 
 // Mock database functions
-export const ref = (db: any, path: string) => ({});
-export const set = (ref: any, value: any) => Promise.resolve();
-export const push = (ref: any, value: any) => Promise.resolve();
-export const onValue = (ref: any, callback: (snapshot: any) => void) => {
+export const ref = (_db: any, _path: string) => ({});
+export const set = (_ref: any, _value: any) => Promise.resolve();
+export const push = (_ref: any, _value: any) => Promise.resolve();
+export const onValue = (_ref: any, _callback: (snapshot: any) => void) => {
     // Return unsubscribe function
     return () => {};
 };
-export const remove = (ref: any) => Promise.resolve();
+export const remove = (_ref: any) => Promise.resolve();

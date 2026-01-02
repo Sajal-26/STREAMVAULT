@@ -19,7 +19,7 @@ const RouterContext = createContext<RouterContextType>({
     params: {}
 });
 
-export const HashRouter = ({ children }: { children: ReactNode }) => {
+export const HashRouter = ({ children }: { children?: ReactNode }) => {
     const getHashLoc = () => {
         const hash = window.location.hash.slice(1); // remove #
         const [pathname, search] = hash.split('?');
@@ -40,7 +40,7 @@ export const HashRouter = ({ children }: { children: ReactNode }) => {
     return React.createElement(RouterContext.Provider, { value: { location, params: {} } }, children);
 };
 
-export const Routes = ({ children }: { children: ReactNode }) => {
+export const Routes = ({ children }: { children?: ReactNode }) => {
     const { location } = useContext(RouterContext);
     let match: ReactNode = null;
 
@@ -113,7 +113,11 @@ export const useNavigate = () => {
 };
 
 export const useLocation = () => useContext(RouterContext).location;
-export const useParams = () => useContext(RouterContext).params;
+
+// Allow generic type argument to match react-router-dom signature (e.g. useParams<{ id: string }>())
+export const useParams = <T = Record<string, string | undefined>>() => {
+    return useContext(RouterContext).params as unknown as T;
+};
 
 export const useSearchParams = () => {
     const { search } = useLocation();
