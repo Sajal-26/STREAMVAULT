@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Play, Plus, ThumbsUp, ChevronDown, Check, Users, ArrowLeft } from 'lucide-react';
+import { Play, Plus, ThumbsUp, ChevronDown, Check, Users, ArrowLeft, Calendar, Clock, Globe, Building2, Signal, Info } from 'lucide-react';
 import { tmdbService } from '../services/tmdb';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { MediaDetails, SeasonDetails } from '../types';
+import { MediaDetails, SeasonDetails, MediaItem } from '../types';
 import { IMAGE_BASE_URL } from '../constants';
 import ContentRow from '../components/ContentRow';
 import Navbar from '../components/Navbar';
@@ -31,6 +31,10 @@ const Details: React.FC = () => {
   const [selectedSeasonNumber, setSelectedSeasonNumber] = useState(1);
   const [isSeasonDropdownOpen, setIsSeasonDropdownOpen] = useState(false);
   
+  // Actor Cross-Reference
+  const [actorCredits, setActorCredits] = useState<MediaItem[]>([]);
+  const [leadingActorName, setLeadingActorName] = useState<string>("");
+  
   const [logoPath, setLogoPath] = useState<string | null>(null);
 
   const inWatchlist = watchlist.some(i => i.mediaId === Number(id));
@@ -55,6 +59,22 @@ const Details: React.FC = () => {
              const seasonRes = await tmdbService.getSeasonDetails(Number(id), seasonNum);
              setSeasonData(seasonRes);
         }
+
+        // Fetch "More from Leading Actor"
+        if (res.credits?.cast && res.credits.cast.length > 0) {
+            const lead = res.credits.cast[0];
+            setLeadingActorName(lead.name);
+            const credits = await tmdbService.getPersonCredits(lead.id);
+            // Filter out the current movie/show and sort by popularity
+            const otherWorks = [...credits.cast]
+                .filter(m => m.id !== res.id && m.poster_path)
+                .sort((a,b) => (b.vote_count || 0) - (a.vote_count || 0));
+            
+            // Deduplicate by ID and take top 10
+            const uniqueWorks = Array.from(new Map(otherWorks.map(item => [item.id, item])).values()).slice(0, 15);
+            setActorCredits(uniqueWorks);
+        }
+
       } catch (e) {
         console.error("Failed to fetch details:", e);
       } finally {
@@ -122,27 +142,33 @@ const Details: React.FC = () => {
   const startWatchParty = async () => {
       if (!data) return;
       
-      const newRoomId = Math.random().toString(36).substr(2, 6).toUpperCase();
-      const userId = localStorage.getItem('sv_userid') || Math.random().toString(36).substr(2, 9);
-      const username = localStorage.getItem('sv_username') || `Host`;
-      
-      localStorage.setItem('sv_userid', userId);
+      try {
+          const newRoomId = Math.random().toString(36).substr(2, 6).toUpperCase();
+          const userId = localStorage.getItem('sv_userid') || Math.random().toString(36).substr(2, 9);
+          const username = localStorage.getItem('sv_username') || `Host`;
+          
+          localStorage.setItem('sv_userid', userId);
 
-      // Create room with this content selected
-      await set(ref(db, `rooms/${newRoomId}`), {
-          hostId: userId,
-          createdAt: Date.now(),
-          users: { [userId]: username },
-          state: {
-              mediaType: type,
-              mediaId: Number(id),
-              season: selectedSeasonNumber,
-              episode: 1, // Default to ep 1 for parties started from details
-              title: data.title || data.name
-          }
-      });
-      
-      navigate(`/party/${newRoomId}`);
+          // Create room with this content selected
+          await set(ref(db, `rooms/${newRoomId}`), {
+              hostId: userId,
+              createdAt: Date.now(),
+              users: { [userId]: username },
+              state: {
+                  mediaType: type,
+                  mediaId: Number(id),
+                  season: selectedSeasonNumber,
+                  episode: 1, // Default to ep 1 for parties started from details
+                  title: data.title || data.name
+              }
+          });
+          
+          showToast('Watch Party Created!', 'success');
+          navigate(`/party/${newRoomId}`);
+      } catch (error) {
+          console.error("Watch party creation failed", error);
+          showToast('Failed to start Watch Party. Try again.', 'error');
+      }
   };
 
   if (loading) return (
@@ -181,12 +207,22 @@ const Details: React.FC = () => {
       return `${h}h ${m}m`;
   };
 
+  const isReleased = (dateStr?: string) => {
+      if (!dateStr) return false;
+      return new Date(dateStr) <= new Date();
+  };
+
+  const getDaysUntil = (dateStr: string) => {
+      const diff = new Date(dateStr).getTime() - Date.now();
+      return Math.ceil(diff / (1000 * 60 * 60 * 24));
+  };
+
   return (
     <div className="min-h-screen bg-background text-primary pb-20">
       <Navbar />
       
       {/* Hero */}
-      <div className="relative h-[70vh] w-full bg-black overflow-hidden">
+      <div className="relative h-[70vh] w-full bg-black overflow-hidden group">
         <div className="absolute inset-0">
              <img src={backdrop} className="w-full h-full object-cover opacity-60" alt={data.title || data.name} />
         </div>
@@ -200,12 +236,17 @@ const Details: React.FC = () => {
                     <h1 className="text-4xl md:text-6xl font-bold mb-4">{data.title || data.name}</h1>
                  )}
                  
-                 <div className="flex items-center gap-4 text-sm md:text-base text-gray-200 mb-6">
+                 <div className="flex flex-wrap items-center gap-4 text-sm md:text-base text-gray-200 mb-6">
                      <span className="text-green-400 font-bold">{data.vote_average.toFixed(1)} Match</span>
-                     <span>{year}</span>
-                     <span>{type === 'movie' ? formatRuntime(runtime) : `${data.number_of_seasons} Seasons`}</span>
-                     {data.genres?.map(g => (
-                         <span key={g.id} className="border border-white/20 px-2 py-0.5 rounded text-xs">{g.name}</span>
+                     <span className="flex items-center gap-1"><Calendar className="w-4 h-4" /> {year}</span>
+                     <span className="flex items-center gap-1"><Clock className="w-4 h-4" /> {type === 'movie' ? formatRuntime(runtime) : `${data.number_of_seasons} Seasons`}</span>
+                     {data.status && <span className="px-2 py-0.5 bg-white/10 rounded text-xs uppercase tracking-wider font-bold">{data.status}</span>}
+                 </div>
+
+                 {/* Genres */}
+                 <div className="flex flex-wrap gap-2 mb-6">
+                    {data.genres?.map(g => (
+                         <span key={g.id} className="border border-white/20 px-2 py-0.5 rounded text-xs hover:bg-white/10 transition cursor-default">{g.name}</span>
                      ))}
                  </div>
 
@@ -229,84 +270,211 @@ const Details: React.FC = () => {
         </div>
       </div>
 
-      {/* Content */}
-      <div className="px-4 md:px-12 py-8 space-y-12">
-          {/* TV Seasons */}
-          {type === 'tv' && seasonData && (
-              <div>
-                  <div className="flex items-center justify-between mb-6">
-                      <h2 className="text-2xl font-bold">Episodes</h2>
-                      <div className="relative">
-                          <button 
-                            onClick={() => setIsSeasonDropdownOpen(!isSeasonDropdownOpen)}
-                            className="flex items-center gap-2 bg-white/10 px-4 py-2 rounded border border-white/10 hover:bg-white/20 transition"
-                          >
-                              {seasonData.name} <ChevronDown className="w-4 h-4" />
-                          </button>
-                          {isSeasonDropdownOpen && (
-                              <div className="absolute right-0 top-full mt-2 w-48 bg-surface border border-white/10 rounded shadow-xl z-50 max-h-60 overflow-y-auto">
-                                  {data.seasons?.map(s => (
-                                      <button
-                                        key={s.season_number}
-                                        onClick={() => handleSeasonChange(s.season_number)}
-                                        className="block w-full text-left px-4 py-3 hover:bg-white/10 text-sm border-b border-white/5 last:border-0"
-                                      >
-                                          {s.name}
-                                      </button>
-                                  ))}
-                              </div>
-                          )}
+      {/* Main Content Area */}
+      <div className="px-4 md:px-12 py-8 grid grid-cols-1 lg:grid-cols-3 gap-12">
+          
+          {/* Left: Episodes & Cast */}
+          <div className="lg:col-span-2 space-y-12">
+              
+              {/* Next Episode Banner (TV Only) */}
+              {data.next_episode_to_air && (
+                  <div className="bg-gradient-to-r from-brand-primary/20 to-transparent border-l-4 border-brand-primary p-6 rounded-r-lg">
+                      <h3 className="text-xl font-bold mb-2 flex items-center gap-2">
+                          <Signal className="w-5 h-5 text-brand-primary" /> 
+                          Next Episode Arriving
+                      </h3>
+                      <div className="flex flex-col md:flex-row md:items-center gap-4">
+                           <div className="flex-1">
+                               <p className="text-2xl font-bold">{data.next_episode_to_air.name}</p>
+                               <p className="text-secondary">
+                                   Season {data.next_episode_to_air.season_number} • Episode {data.next_episode_to_air.episode_number}
+                               </p>
+                           </div>
+                           <div className="text-right">
+                               <p className="text-lg font-bold text-white">
+                                   {new Date(data.next_episode_to_air.air_date).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}
+                               </p>
+                               <p className="text-brand-primary font-bold">
+                                   {getDaysUntil(data.next_episode_to_air.air_date)} days left
+                               </p>
+                           </div>
+                      </div>
+                  </div>
+              )}
+
+              {/* TV Seasons */}
+              {type === 'tv' && seasonData && (
+                  <div>
+                      <div className="flex items-center justify-between mb-6">
+                          <h2 className="text-2xl font-bold">Episodes</h2>
+                          <div className="relative">
+                              <button 
+                                onClick={() => setIsSeasonDropdownOpen(!isSeasonDropdownOpen)}
+                                className="flex items-center gap-2 bg-white/10 px-4 py-2 rounded border border-white/10 hover:bg-white/20 transition"
+                              >
+                                  {seasonData.name} <ChevronDown className="w-4 h-4" />
+                              </button>
+                              {isSeasonDropdownOpen && (
+                                  <div className="absolute right-0 top-full mt-2 w-48 bg-surface border border-white/10 rounded shadow-xl z-50 max-h-60 overflow-y-auto">
+                                      {data.seasons?.map(s => (
+                                          <button
+                                            key={s.season_number}
+                                            onClick={() => handleSeasonChange(s.season_number)}
+                                            className="block w-full text-left px-4 py-3 hover:bg-white/10 text-sm border-b border-white/5 last:border-0"
+                                          >
+                                              {s.name}
+                                          </button>
+                                      ))}
+                                  </div>
+                              )}
+                          </div>
+                      </div>
+                      
+                      <div className="space-y-4">
+                          {seasonData.episodes?.map(ep => {
+                              const released = isReleased(ep.air_date);
+                              return (
+                                <div 
+                                    key={ep.id} 
+                                    className={`group flex flex-col md:flex-row gap-4 p-4 rounded border border-transparent transition ${released ? 'hover:bg-white/5 hover:border-white/5 cursor-pointer' : 'opacity-60 cursor-not-allowed'}`}
+                                    onClick={() => released && navigate(`/watch/tv/${id}/${selectedSeasonNumber}/${ep.episode_number}`)}
+                                >
+                                    <div className="w-full md:w-48 aspect-video flex-shrink-0 bg-gray-800 rounded overflow-hidden relative">
+                                        {ep.still_path ? (
+                                            <img src={`${IMAGE_BASE_URL}/w300${ep.still_path}`} className="w-full h-full object-cover" alt={ep.name} />
+                                        ) : (
+                                            <div className="flex items-center justify-center h-full text-gray-500">No Image</div>
+                                        )}
+                                        {released ? (
+                                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
+                                                <Play className="w-8 h-8 text-white fill-white" />
+                                            </div>
+                                        ) : (
+                                            <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                                                <span className="text-xs font-bold uppercase tracking-wider text-white border border-white/50 px-2 py-1 rounded">Coming Soon</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="flex-1">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <h4 className="font-bold text-lg">{ep.episode_number}. {ep.name}</h4>
+                                            <span className="text-sm text-gray-400">{ep.runtime ? `${ep.runtime}m` : ''}</span>
+                                        </div>
+                                        <p className="text-gray-400 text-sm line-clamp-2 mb-3">{ep.overview || "No description available."}</p>
+                                        <div className="flex items-center gap-4 text-xs text-gray-500">
+                                            {ep.air_date && (
+                                                <span className="flex items-center gap-1">
+                                                    <Calendar className="w-3 h-3" /> 
+                                                    {new Date(ep.air_date).toLocaleDateString()}
+                                                </span>
+                                            )}
+                                            {ep.vote_average > 0 && (
+                                                <span className="flex items-center gap-1 text-green-500/80">
+                                                    <ThumbsUp className="w-3 h-3" />
+                                                    {ep.vote_average.toFixed(1)}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                              );
+                          })}
+                      </div>
+                  </div>
+              )}
+
+              {/* Cast */}
+              {data.credits?.cast && data.credits.cast.length > 0 && (
+                  <ContentRow 
+                    title="Cast" 
+                    items={data.credits.cast.slice(0, 15).map(c => ({
+                        id: c.id,
+                        media_type: 'person',
+                        name: c.name,
+                        profile_path: c.profile_path,
+                        title: c.name,
+                        poster_path: null,
+                        backdrop_path: null,
+                        overview: '',
+                        vote_average: 0
+                    }))} 
+                  />
+              )}
+          </div>
+
+          {/* Right: Info Sidebar */}
+          <div className="space-y-8">
+              {/* Detailed Stats */}
+              <div className="bg-surface p-6 rounded-lg border border-white/5 space-y-6">
+                  <div>
+                      <h3 className="text-gray-400 text-sm font-bold uppercase mb-1">Original Language</h3>
+                      <div className="flex items-center gap-2">
+                          <Globe className="w-4 h-4 text-brand-primary" />
+                          <span className="text-white capitalize">{new Intl.DisplayNames(['en'], { type: 'language' }).of(data.original_language || 'en')}</span>
                       </div>
                   </div>
                   
-                  <div className="space-y-4">
-                      {seasonData.episodes?.map(ep => (
-                          <div key={ep.id} className="group flex flex-col md:flex-row gap-4 p-4 rounded hover:bg-white/5 border border-transparent hover:border-white/5 transition cursor-pointer" onClick={() => navigate(`/watch/tv/${id}/${selectedSeasonNumber}/${ep.episode_number}`)}>
-                               <div className="w-full md:w-48 aspect-video flex-shrink-0 bg-gray-800 rounded overflow-hidden relative">
-                                   {ep.still_path ? (
-                                       <img src={`${IMAGE_BASE_URL}/w300${ep.still_path}`} className="w-full h-full object-cover" alt={ep.name} />
-                                   ) : (
-                                       <div className="flex items-center justify-center h-full text-gray-500">No Image</div>
-                                   )}
-                                   <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
-                                       <Play className="w-8 h-8 text-white fill-white" />
-                                   </div>
-                               </div>
-                               <div className="flex-1">
-                                   <div className="flex items-center justify-between mb-2">
-                                       <h4 className="font-bold text-lg">{ep.episode_number}. {ep.name}</h4>
-                                       <span className="text-sm text-gray-400">{ep.runtime}m</span>
-                                   </div>
-                                   <p className="text-gray-400 text-sm line-clamp-2">{ep.overview}</p>
-                               </div>
+                  {data.status && (
+                      <div>
+                          <h3 className="text-gray-400 text-sm font-bold uppercase mb-1">Status</h3>
+                          <span className={`px-2 py-1 rounded text-xs font-bold ${data.status === 'Ended' || data.status === 'Released' ? 'bg-green-900/50 text-green-400' : 'bg-brand-primary/20 text-brand-primary'}`}>
+                              {data.status}
+                          </span>
+                      </div>
+                  )}
+
+                  {/* Networks (TV) */}
+                  {data.networks && data.networks.length > 0 && (
+                      <div>
+                          <h3 className="text-gray-400 text-sm font-bold uppercase mb-3">Network</h3>
+                          <div className="flex flex-wrap gap-4 bg-white p-4 rounded-lg justify-center">
+                              {data.networks.map(net => (
+                                  net.logo_path ? (
+                                      <img key={net.id} src={`${IMAGE_BASE_URL}/w92${net.logo_path}`} alt={net.name} className="h-6 object-contain filter grayscale hover:grayscale-0 transition" title={net.name} />
+                                  ) : <span key={net.id} className="text-black font-bold text-xs">{net.name}</span>
+                              ))}
                           </div>
-                      ))}
-                  </div>
+                      </div>
+                  )}
+
+                  {/* Production Companies */}
+                  {data.production_companies && data.production_companies.length > 0 && (
+                      <div>
+                          <h3 className="text-gray-400 text-sm font-bold uppercase mb-3">Production</h3>
+                          <div className="space-y-3">
+                              {data.production_companies.slice(0, 4).map(comp => (
+                                  <div key={comp.id} className="flex items-center gap-3">
+                                      {comp.logo_path ? (
+                                          <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center p-1">
+                                              <img src={`${IMAGE_BASE_URL}/w92${comp.logo_path}`} className="w-full h-full object-contain" alt={comp.name} />
+                                          </div>
+                                      ) : (
+                                          <div className="w-8 h-8 bg-white/10 rounded-full flex items-center justify-center">
+                                              <Building2 className="w-4 h-4 text-gray-400" />
+                                          </div>
+                                      )}
+                                      <span className="text-sm text-gray-200">{comp.name}</span>
+                                  </div>
+                              ))}
+                          </div>
+                      </div>
+                  )}
               </div>
-          )}
+          </div>
+      </div>
 
-          {/* Cast */}
-          {data.credits?.cast && data.credits.cast.length > 0 && (
-              <ContentRow 
-                title="Cast" 
-                items={data.credits.cast.slice(0, 10).map(c => ({
-                    id: c.id,
-                    media_type: 'person',
-                    name: c.name,
-                    profile_path: c.profile_path,
-                    title: c.name,
-                    poster_path: null,
-                    backdrop_path: null,
-                    overview: '',
-                    vote_average: 0
-                }))} 
-              />
-          )}
+      {/* Full Width Bottom Rows */}
+      <div className="-mt-8">
+        {actorCredits.length > 0 && (
+            <ContentRow 
+                title={`More from ${leadingActorName}`} 
+                items={actorCredits} 
+            />
+        )}
 
-          {/* Similar */}
-          {data.similar?.results && data.similar.results.length > 0 && (
-              <ContentRow title="More Like This" items={data.similar.results.map(i => ({...i, media_type: type}))} />
-          )}
+        {data.similar?.results && data.similar.results.length > 0 && (
+            <ContentRow title="More Like This" items={data.similar.results.map(i => ({...i, media_type: type}))} />
+        )}
       </div>
     </div>
   );
