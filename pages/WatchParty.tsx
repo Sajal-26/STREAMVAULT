@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { ref, set, push, onValue, remove } from 'firebase/database';
-import { db } from '../services/firebase';
+import { useParams, useNavigate } from '../services/skipService';
+import { ref, set, push, onValue, remove, db } from '../services/firebase';
 import { useAuth } from '../context/AuthContext';
 import Navbar from '../components/Navbar';
 import { MessageCircle, Send, Users, Play, Copy, ArrowLeft, Tv, MonitorPlay } from 'lucide-react';

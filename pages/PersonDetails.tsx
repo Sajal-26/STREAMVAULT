@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams } from '../services/skipService';
 import { tmdbService } from '../services/tmdb';
 import { PersonDetails as PersonDetailsType, MediaItem } from '../types';
 import { IMAGE_BASE_URL } from '../constants';

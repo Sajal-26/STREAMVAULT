@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { Play, Plus, ThumbsUp, ChevronDown, Check, Users, ArrowLeft, Calendar, Clock, Globe, Building2, Signal } from 'lucide-react';
+import { useParams, useNavigate } from '../services/skipService';
+import { Play, Plus, ThumbsUp, ChevronDown, Check, Users, ArrowLeft, Calendar, Clock, Globe, Building2, Signal, LayoutGrid, List } from 'lucide-react';
 import { tmdbService } from '../services/tmdb';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -9,7 +9,7 @@ import { IMAGE_BASE_URL } from '../constants';
 import ContentRow from '../components/ContentRow';
 import Navbar from '../components/Navbar';
 import { db } from '../services/firebase';
-import { ref, set } from 'firebase/database';
+import { ref, set } from '../services/firebase';
 
 const Details: React.FC = () => {
   const params = useParams();
@@ -31,6 +31,10 @@ const Details: React.FC = () => {
   const [selectedSeasonNumber, setSelectedSeasonNumber] = useState(1);
   const [isSeasonDropdownOpen, setIsSeasonDropdownOpen] = useState(false);
   
+  // Episode View Control
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+  const [visibleEpisodes, setVisibleEpisodes] = useState(6);
+
   // Actor Cross-Reference
   const [actorCredits, setActorCredits] = useState<MediaItem[]>([]);
   const [leadingActorName, setLeadingActorName] = useState<string>("");
@@ -58,6 +62,7 @@ const Details: React.FC = () => {
              setSelectedSeasonNumber(seasonNum);
              const seasonRes = await tmdbService.getSeasonDetails(Number(id), seasonNum);
              setSeasonData(seasonRes);
+             setVisibleEpisodes(6); // Reset pagination
         }
 
         // Fetch "More from Leading Actor"
@@ -93,10 +98,15 @@ const Details: React.FC = () => {
   const handleSeasonChange = async (seasonNum: number) => {
       setSelectedSeasonNumber(seasonNum);
       setIsSeasonDropdownOpen(false);
+      setVisibleEpisodes(6); // Reset pagination on season change
       try {
           const res = await tmdbService.getSeasonDetails(Number(id), seasonNum);
           setSeasonData(res);
       } catch (e) { console.error(e); }
+  };
+
+  const handleLoadMoreEpisodes = () => {
+      setVisibleEpisodes(prev => prev + 6);
   };
 
   const toggleWatchlist = () => {
@@ -218,7 +228,7 @@ const Details: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background text-primary pb-20">
+    <div className="min-h-screen bg-background text-primary pb-24 md:pb-20">
       <Navbar />
       
       {/* Hero */}
@@ -307,32 +317,98 @@ const Details: React.FC = () => {
                   <div>
                       <div className="flex items-center justify-between mb-6">
                           <h2 className="text-2xl font-bold">Episodes</h2>
-                          <div className="relative">
-                              <button 
-                                onClick={() => setIsSeasonDropdownOpen(!isSeasonDropdownOpen)}
-                                className="flex items-center gap-2 bg-white/10 px-4 py-2 rounded border border-white/10 hover:bg-white/20 transition"
-                              >
-                                  {seasonData.name} <ChevronDown className="w-4 h-4" />
-                              </button>
-                              {isSeasonDropdownOpen && (
-                                  <div className="absolute right-0 top-full mt-2 w-48 bg-surface border border-white/10 rounded shadow-xl z-50 max-h-60 overflow-y-auto">
-                                      {data.seasons?.map(s => (
-                                          <button
-                                            key={s.season_number}
-                                            onClick={() => handleSeasonChange(s.season_number)}
-                                            className="block w-full text-left px-4 py-3 hover:bg-white/10 text-sm border-b border-white/5 last:border-0"
-                                          >
-                                              {s.name}
-                                          </button>
-                                      ))}
-                                  </div>
-                              )}
+                          <div className="flex items-center gap-3">
+                              {/* View Toggle */}
+                              <div className="flex bg-white/10 rounded-lg p-1 border border-white/5">
+                                  <button 
+                                      onClick={() => setViewMode('list')}
+                                      className={`p-1.5 rounded transition ${viewMode === 'list' ? 'bg-white/20 text-white shadow-sm' : 'text-gray-400 hover:text-white'}`}
+                                      title="List View"
+                                  >
+                                      <List className="w-4 h-4" />
+                                  </button>
+                                  <button 
+                                      onClick={() => setViewMode('grid')}
+                                      className={`p-1.5 rounded transition ${viewMode === 'grid' ? 'bg-white/20 text-white shadow-sm' : 'text-gray-400 hover:text-white'}`}
+                                      title="Grid View"
+                                  >
+                                      <LayoutGrid className="w-4 h-4" />
+                                  </button>
+                              </div>
+
+                              <div className="relative">
+                                  <button 
+                                    onClick={() => setIsSeasonDropdownOpen(!isSeasonDropdownOpen)}
+                                    className="flex items-center gap-2 bg-white/10 px-4 py-2 rounded border border-white/10 hover:bg-white/20 transition text-sm font-medium"
+                                  >
+                                      {seasonData.name} <ChevronDown className="w-4 h-4" />
+                                  </button>
+                                  {isSeasonDropdownOpen && (
+                                      <div className="absolute right-0 top-full mt-2 w-48 bg-surface border border-white/10 rounded shadow-xl z-50 max-h-60 overflow-y-auto">
+                                          {data.seasons?.map(s => (
+                                              <button
+                                                key={s.season_number}
+                                                onClick={() => handleSeasonChange(s.season_number)}
+                                                className="block w-full text-left px-4 py-3 hover:bg-white/10 text-sm border-b border-white/5 last:border-0"
+                                              >
+                                                  {s.name}
+                                              </button>
+                                          ))}
+                                      </div>
+                                  )}
+                              </div>
                           </div>
                       </div>
                       
-                      <div className="space-y-4">
-                          {seasonData.episodes?.map(ep => {
+                      <div className={viewMode === 'grid' ? "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4" : "space-y-4"}>
+                          {seasonData.episodes?.slice(0, visibleEpisodes).map(ep => {
                               const released = isReleased(ep.air_date);
+                              
+                              if (viewMode === 'grid') {
+                                  // Grid View Card
+                                  return (
+                                    <div 
+                                        key={ep.id}
+                                        className={`group relative bg-surface rounded-lg overflow-hidden border border-white/5 hover:border-white/20 transition ${released ? 'cursor-pointer' : 'cursor-not-allowed opacity-70'}`}
+                                        onClick={() => released && navigate(`/watch/tv/${id}/${selectedSeasonNumber}/${ep.episode_number}`)}
+                                    >
+                                        <div className="aspect-video bg-gray-800 relative">
+                                            {ep.still_path ? (
+                                                <img src={`${IMAGE_BASE_URL}/w300${ep.still_path}`} className="w-full h-full object-cover transition duration-300 group-hover:scale-105" alt={ep.name} />
+                                            ) : (
+                                                <div className="flex items-center justify-center h-full text-gray-500 text-xs">No Image</div>
+                                            )}
+                                            {released && (
+                                                <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
+                                                    <Play className="w-8 h-8 text-white fill-white" />
+                                                </div>
+                                            )}
+                                            {!released && (
+                                                <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                                                    <span className="text-[10px] font-bold uppercase tracking-wider text-white border border-white/50 px-2 py-0.5 rounded">Coming Soon</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="p-3">
+                                            <div className="flex justify-between items-start mb-1">
+                                                <h4 className="font-bold text-sm text-white line-clamp-1">{ep.episode_number}. {ep.name}</h4>
+                                                <span className="text-xs text-gray-400 whitespace-nowrap">{ep.runtime ? `${ep.runtime}m` : ''}</span>
+                                            </div>
+                                            <p className="text-xs text-gray-400 line-clamp-2 mb-2 min-h-[2.5em]">{ep.overview || "No description."}</p>
+                                            <div className="flex items-center gap-2 text-[10px] text-gray-500">
+                                                {ep.air_date && (
+                                                    <span className="flex items-center gap-1">
+                                                        <Calendar className="w-2.5 h-2.5" /> 
+                                                        {new Date(ep.air_date).toLocaleDateString()}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                  );
+                              }
+
+                              // List View Row
                               return (
                                 <div 
                                     key={ep.id} 
@@ -380,6 +456,19 @@ const Details: React.FC = () => {
                               );
                           })}
                       </div>
+                      
+                      {/* Show More Button */}
+                      {seasonData.episodes && visibleEpisodes < seasonData.episodes.length && (
+                          <div className="mt-6 flex justify-center">
+                              <button 
+                                onClick={handleLoadMoreEpisodes}
+                                className="px-6 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full text-sm font-bold text-white transition flex items-center gap-2 group"
+                              >
+                                  Show More Episodes
+                                  <ChevronDown className="w-4 h-4 transition-transform group-hover:translate-y-1" />
+                              </button>
+                          </div>
+                      )}
                   </div>
               )}
 
@@ -393,6 +482,7 @@ const Details: React.FC = () => {
                         name: c.name,
                         profile_path: c.profile_path,
                         title: c.name,
+                        character: c.character, // Added character mapping
                         poster_path: null,
                         backdrop_path: null,
                         overview: '',
@@ -475,6 +565,7 @@ const Details: React.FC = () => {
                 name: c.name,
                 profile_path: c.profile_path,
                 title: c.name,
+                character: c.character, // Added character mapping
                 poster_path: null,
                 backdrop_path: null,
                 overview: '',

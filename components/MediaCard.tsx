@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from '../services/skipService';
 import { Star, Play, Info, X, User, Layers, Building2 } from 'lucide-react';
 import { MediaItem } from '../types';
 import { IMAGE_BASE_URL } from '../constants';
@@ -173,6 +173,11 @@ const MediaCard: React.FC<MediaCardProps> = ({ item, onRemove }) => {
         </div>
 
         <h3 className="text-white font-bold text-sm line-clamp-2 leading-tight mb-1 drop-shadow-md">{title}</h3>
+        {/* Character Name for Actors */}
+        {item.character && (
+            <p className="text-xs text-gray-300 line-clamp-1 italic mb-1">as {item.character}</p>
+        )}
+        
         {!isPerson && !isCollection && !isCompany && (
             <div className="flex items-center justify-between text-xs text-gray-300">
             <span className="flex items-center text-green-400 font-medium drop-shadow-md">
@@ -184,7 +189,7 @@ const MediaCard: React.FC<MediaCardProps> = ({ item, onRemove }) => {
             </span>
             </div>
         )}
-        {isPerson && <p className="text-xs text-gray-300">Person</p>}
+        {isPerson && !item.character && <p className="text-xs text-gray-300">Person</p>}
         {isCollection && <p className="text-xs text-gray-300">Collection</p>}
         {isCompany && <p className="text-xs text-gray-300">Company</p>}
       </div>

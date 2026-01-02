@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams } from '../services/skipService';
 import Navbar from '../components/Navbar';
 import MediaCard from '../components/MediaCard';
 import { tmdbService } from '../services/tmdb';

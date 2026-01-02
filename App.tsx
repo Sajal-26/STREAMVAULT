@@ -1,5 +1,5 @@
 import React from 'react';
-import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route, Navigate } from './services/skipService';
 import { AuthProvider } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
 import Home from './pages/Home';
@@ -15,6 +15,7 @@ import Watch from './pages/Watch';
 import WatchParty from './pages/WatchParty';
 import SharedRedirect from './pages/SharedRedirect';
 import ViewAll from './pages/ViewAll';
+import BottomNav from './components/BottomNav';
 
 const AppContent: React.FC = () => {
   return (
@@ -48,6 +49,7 @@ const AppContent: React.FC = () => {
 
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
+      <BottomNav />
     </Router>
   );
 };

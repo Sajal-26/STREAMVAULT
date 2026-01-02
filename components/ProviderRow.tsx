@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { tmdbService } from '../services/tmdb';
 import { MediaItem } from '../types';
 import ContentRow from './ContentRow';
-import { Link } from 'react-router-dom';
+import { Link } from '../services/skipService';
 import { ArrowRight } from 'lucide-react';
 
 // User defined provider map
