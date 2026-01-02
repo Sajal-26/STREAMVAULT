@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from '../services/skipService';
-import { Play, Plus, ThumbsUp, ChevronDown, Check, Users } from 'lucide-react';
+import { Play, Plus, ThumbsUp, ChevronDown, Check, Users, ArrowLeft } from 'lucide-react';
 import { tmdbService } from '../services/tmdb';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -56,12 +56,17 @@ const Details: React.FC = () => {
              setSeasonData(seasonRes);
         }
       } catch (e) {
-        console.error(e);
+        console.error("Failed to fetch details:", e);
       } finally {
         setLoading(false);
       }
     };
-    if (id && type) fetchData();
+    
+    if (id && type) {
+        fetchData();
+    } else {
+        setLoading(false);
+    }
     window.scrollTo(0,0);
   }, [id, type]);
 
@@ -140,8 +145,31 @@ const Details: React.FC = () => {
       navigate(`/party/${newRoomId}`);
   };
 
-  if (loading) return <div className="min-h-screen bg-black animate-pulse" />;
-  if (!data) return <div className="min-h-screen bg-black text-white flex items-center justify-center">Content not found</div>;
+  if (loading) return (
+    <div className="min-h-screen bg-background text-primary">
+        <Navbar />
+        <div className="relative h-[70vh] w-full bg-gray-900 animate-pulse">
+            <div className="absolute bottom-0 left-0 w-full px-4 md:px-12 pb-12">
+                <div className="h-12 w-2/3 bg-gray-800 rounded mb-4" />
+                <div className="h-6 w-1/3 bg-gray-800 rounded mb-6" />
+                <div className="h-24 w-full max-w-2xl bg-gray-800 rounded mb-8" />
+                <div className="flex gap-4">
+                    <div className="h-12 w-32 bg-gray-800 rounded" />
+                    <div className="h-12 w-32 bg-gray-800 rounded" />
+                </div>
+            </div>
+        </div>
+    </div>
+  );
+
+  if (!data) return (
+      <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center">
+          <h2 className="text-2xl font-bold mb-4">Content not found</h2>
+          <button onClick={() => navigate('/')} className="flex items-center gap-2 text-brand-primary hover:underline">
+              <ArrowLeft className="w-4 h-4" /> Back to Home
+          </button>
+      </div>
+  );
 
   const backdrop = data.backdrop_path ? `${IMAGE_BASE_URL}/original${data.backdrop_path}` : '';
   const year = new Date(data.release_date || data.first_air_date || '').getFullYear();

@@ -12,12 +12,10 @@ const PROXY_GENERATORS = [
     (url: string) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
     // 4. CorsProxy.io (Fast, reliable)
     (url: string) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
-    // 5. ThingProxy (Last resort)
-    (url: string) => `https://thingproxy.freeboard.io/fetch/${url}`,
 ];
 
 // Helper: Fetch with a robust timeout
-const fetchWithTimeout = async (url: string, timeoutMs: number = 15000): Promise<Response> => {
+const fetchWithTimeout = async (url: string, timeoutMs: number = 8000): Promise<Response> => {
     const controller = new AbortController();
     const id = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -48,8 +46,8 @@ const fetchFromTMDB = async <T>(endpoint: string, params: Record<string, string>
       const fetchUrl = generateProxyUrl(targetUrl);
       
       try {
-          // Use a shorter timeout for direct to fail fast if blocked, longer for proxies
-          const timeout = isDirect ? 10000 : 20000;
+          // Shorter timeouts to fail fast
+          const timeout = isDirect ? 5000 : 10000;
           const response = await fetchWithTimeout(fetchUrl, timeout); 
           
           if (!response.ok) {
