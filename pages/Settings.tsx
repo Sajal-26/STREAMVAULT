@@ -2,7 +2,7 @@ import React from 'react';
 import Navbar from '../components/Navbar';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { Check, Trash2, Palette } from 'lucide-react';
+import { Check, Trash2, Palette, Plus } from 'lucide-react';
 
 const COLORS = [
   { name: 'Red', value: '#E50914' },
@@ -32,7 +32,11 @@ const Settings: React.FC = () => {
 
   const handleColorChange = (color: string) => {
       setAccentColor(color);
-      showToast('Theme accent color updated.', 'success');
+      // Optional: don't toast for color input changes as it spans many events, 
+      // but for click it's fine. We handle both here.
+      if (COLORS.some(c => c.value === color)) {
+        showToast('Theme accent color updated.', 'success');
+      }
   };
 
   return (
@@ -53,18 +57,32 @@ const Settings: React.FC = () => {
            {/* Accent Color */}
            <div>
               <label className="block text-sm font-medium text-secondary mb-4">Accent Color</label>
-              <div className="flex flex-wrap gap-4">
+              <div className="flex flex-wrap gap-4 items-center">
                  {COLORS.map((c) => (
                     <button
                        key={c.name}
                        onClick={() => handleColorChange(c.value)}
-                       className="w-12 h-12 rounded-full flex items-center justify-center transition-transform hover:scale-110 border-2 border-transparent hover:border-white/20"
+                       className="w-12 h-12 rounded-full flex items-center justify-center transition-transform hover:scale-110 border-2 border-transparent hover:border-white/20 relative"
                        style={{ backgroundColor: c.value }}
                        title={c.name}
                     >
                        {accentColor === c.value && <Check className="w-6 h-6 text-white drop-shadow-md" />}
                     </button>
                  ))}
+                 
+                 {/* Custom Color Picker */}
+                 <div className="relative group">
+                    <div className="w-12 h-12 rounded-full bg-gray-800 border-2 border-dashed border-gray-600 flex items-center justify-center hover:border-white/50 transition cursor-pointer overflow-hidden">
+                        <input 
+                            type="color" 
+                            value={accentColor}
+                            onChange={(e) => handleColorChange(e.target.value)}
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                            title="Custom Color"
+                        />
+                        <Plus className="w-5 h-5 text-gray-400 pointer-events-none group-hover:text-white" />
+                    </div>
+                 </div>
               </div>
            </div>
         </section>

@@ -1,6 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from '../services/skipService';
-import { ArrowLeft } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { tmdbService } from '../services/tmdb';
 
@@ -8,7 +7,6 @@ const Watch: React.FC = () => {
   const { type, id, season, episode } = useParams();
   const navigate = useNavigate();
   const { accentColor, addToContinueWatching, removeFromContinueWatching, addToWatchHistory } = useAuth();
-  const [showUI, setShowUI] = useState(true);
   const [playerUrl, setPlayerUrl] = useState<string>('');
   
   const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -25,19 +23,52 @@ const Watch: React.FC = () => {
       // User selected theme (remove hash for URL param)
       const color = accentColor.replace('#', '');
       
-      // Configuration based on user requirements:
-      // - primarycolor/secondarycolor: User's accent color (for progress bar/highlights)
-      // - iconcolor: Always white (ffffff)
-      // - autoplay: true (Enable by default)
-      // - poster: true (Enable by default)
-      // - servericon: false (Do not show server list)
-      // - chromecast: false (Do not show chromecast)
-      // - pip: false (Do not show PiP)
-      // - nextbutton: false (Do not show next button - optimistic param)
-      // - episodelist: false (Do not show episode list - optimistic param)
-      // - watchparty: true (Add Watch Party option - optimistic param)
-      // - setting: true (Show settings menu, containing Playback and potentially Watch Party)
-      const commonParams = `?primarycolor=${color}&secondarycolor=${color}&iconcolor=ffffff&autoplay=true&poster=true&servericon=false&chromecast=false&pip=false&nextbutton=false&episodelist=false&watchparty=true`;
+      // Strict configuration based on user request:
+      // - primarycolor: User Accent Color (Progress Bar)
+      // - secondarycolor: Dark Gray (1f2937)
+      // - iconcolor: White (ffffff)
+      // - Hide mostly everything else from the UI settings/controls
+      // - Keep Watch Party enabled
+      
+      const params = new URLSearchParams({
+        // Visuals
+        primarycolor: color,
+        secondarycolor: '1f2937',
+        iconcolor: 'ffffff',
+        
+        // Features Enabled
+        autoplay: 'true',
+        poster: 'true',
+        chromecast: 'true',
+        servericon: 'true', // Internal enable
+        setting: 'true',
+        pip: 'true',
+        download: 'true',
+        watchparty: 'true',
+        
+        // Subtitles
+        font: 'Roboto',
+        fontcolor: 'ffffff', // White subtitles for contrast
+        fontsize: '20',
+        opacity: '0.5',
+        
+        // Hiding UI Elements / Settings
+        hidenextbutton: 'true',
+        hideposter: 'true',
+        hidechromecast: 'true',
+        hideepisodelist: 'true',
+        hideservericon: 'true', // Hide the button
+        hidepip: 'true',
+        hideprimarycolor: 'true',
+        hidesecondarycolor: 'true',
+        hideiconcolor: 'true',
+        // hideprogresscontrol: 'true', // Removed to ensure seek bar (forward/backward) is visible
+        hideiconset: 'true',
+        hideautonext: 'true',
+        hideautoplay: 'true',
+      });
+
+      const commonParams = `?${params.toString()}`;
 
       let src = "";
       if (type === 'movie') {
@@ -145,37 +176,8 @@ const Watch: React.FC = () => {
       return () => window.removeEventListener('message', handleMessage);
   }, [id, type, addToContinueWatching, removeFromContinueWatching, addToWatchHistory, navigate]);
 
-  // Auto-hide UI
-  useEffect(() => {
-    let timeout: ReturnType<typeof setTimeout>;
-    const handleMouseMove = () => {
-      setShowUI(true);
-      clearTimeout(timeout);
-      timeout = setTimeout(() => setShowUI(false), 3000);
-    };
-
-    window.addEventListener('mousemove', handleMouseMove);
-    timeout = setTimeout(() => setShowUI(false), 3000);
-
-    return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      clearTimeout(timeout);
-    };
-  }, []);
-
   return (
     <div className="fixed inset-0 z-[100] bg-black overflow-hidden group font-sans select-none">
-      {/* Top Controls (Back) - Positioned to avoid overlap with player UI */}
-      <div className={`absolute top-4 left-4 z-[110] transition-opacity duration-300 ${showUI ? 'opacity-100' : 'opacity-0'}`}>
-        <button
-          onClick={() => navigate(`/details/${type}/${id}`)}
-          className="flex items-center justify-center w-10 h-10 md:w-12 md:h-12 rounded-full bg-black/50 hover:bg-black/80 text-white backdrop-blur-md transition-all transform hover:scale-110 border border-white/10 shadow-lg"
-          title="Go Back"
-        >
-          <ArrowLeft className="w-5 h-5 md:w-6 md:h-6" />
-        </button>
-      </div>
-
       {/* Video Player */}
       {playerUrl && (
           <iframe
