@@ -14,6 +14,8 @@ const Watch: React.FC = () => {
   
   // Ref to track play state inside event listeners without dependency issues
   const isPlayingRef = useRef(false);
+  // Ref to track last pause time to filter stray timeupdates
+  const lastPauseTimeRef = useRef(0);
 
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const detailsRef = useRef<any>(null);
@@ -177,19 +179,21 @@ const Watch: React.FC = () => {
       resetIdleTimer();
 
       // Global mouse move listener to reset timer when paused
-      const handleGlobalMouseMove = () => {
+      const handleGlobalActivity = () => {
           if (!isPlayingRef.current) {
              resetIdleTimer();
           }
       };
 
-      window.addEventListener('mousemove', handleGlobalMouseMove);
-      window.addEventListener('keydown', handleGlobalMouseMove);
+      window.addEventListener('mousemove', handleGlobalActivity);
+      window.addEventListener('keydown', handleGlobalActivity);
+      window.addEventListener('click', handleGlobalActivity);
 
       return () => {
           if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
-          window.removeEventListener('mousemove', handleGlobalMouseMove);
-          window.removeEventListener('keydown', handleGlobalMouseMove);
+          window.removeEventListener('mousemove', handleGlobalActivity);
+          window.removeEventListener('keydown', handleGlobalActivity);
+          window.removeEventListener('click', handleGlobalActivity);
       };
   }, [isPlaying]); // Re-bind when play state changes
 
@@ -215,25 +219,49 @@ const Watch: React.FC = () => {
           if (data?.type === 'WATCH_PROGRESS' && data.data) {
               const { currentTime, duration, eventType } = data.data;
 
-              // Update Play State Robustly
-              const isActive = eventType === 'play' || eventType === 'buffer' || eventType === 'timeupdate';
+              // --- STATE MANAGEMENT ---
+              
               const isPausedState = eventType === 'pause' || eventType === 'ended';
+              const isActiveState = eventType === 'play' || eventType === 'buffer';
+              const isTimeUpdate = eventType === 'timeupdate';
 
-              if (isActive && !isPlayingRef.current) {
-                  setIsPlaying(true);
-                  isPlayingRef.current = true;
-                  // Clear any pending idle timers immediately
-                  if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
-              } else if (isPausedState && isPlayingRef.current) {
-                  setIsPlaying(false);
-                  isPlayingRef.current = false;
+              // 1. Explicit Pause/Ended
+              if (isPausedState) {
+                  if (isPlayingRef.current) {
+                      setIsPlaying(false);
+                      isPlayingRef.current = false;
+                      lastPauseTimeRef.current = Date.now();
+                  }
               }
-
-              // FORCE HIDE OVERLAY if time is updating or buffering
-              if (isActive) {
+              // 2. Explicit Play/Buffer
+              else if (isActiveState) {
+                  if (!isPlayingRef.current) {
+                      setIsPlaying(true);
+                      isPlayingRef.current = true;
+                  }
+              }
+              // 3. TimeUpdate (Implicit Play)
+              else if (isTimeUpdate) {
+                  // Only treat timeupdate as "Play" if we haven't paused recently.
+                  // This filters out stray timeupdates that often trail a pause event by a few ms.
+                  const timeSincePause = Date.now() - lastPauseTimeRef.current;
+                  if (!isPlayingRef.current && timeSincePause > 1000) {
+                      setIsPlaying(true);
+                      isPlayingRef.current = true;
+                  }
+                  
+                  // Always hide overlay on timeupdate to prevent visual glitches during playback
                   setShowOverlay(false);
               }
+              
+              // Clear timer if playing (extra safety)
+              if (isPlayingRef.current && idleTimerRef.current) {
+                   clearTimeout(idleTimerRef.current);
+              }
 
+
+              // --- METADATA & PROGRESS ---
+              
               // Parse numbers safely
               const curr = Number(currentTime);
               let dur = Number(duration);
@@ -302,6 +330,10 @@ const Watch: React.FC = () => {
                 setIsPlaying(newState);
                 isPlayingRef.current = newState;
                 
+                if (!newState) {
+                   lastPauseTimeRef.current = Date.now();
+                }
+
                 // If we are now playing, hide overlay immediately
                 if (newState) {
                     setShowOverlay(false);
