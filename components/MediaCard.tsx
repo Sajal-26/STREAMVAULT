@@ -2,7 +2,7 @@ import React, { useRef, useState } from 'react';
 import { Link, useNavigate } from '../services/skipService';
 import { Play, Info, X, Plus, Check, ThumbsUp } from 'lucide-react';
 import { MediaItem } from '../types';
-import { IMAGE_BASE_URL } from '../constants';
+import { IMAGE_BASE_URL, GENRE_MAP } from '../constants';
 import { useAuth } from '../context/AuthContext';
 
 interface MediaCardProps {
@@ -251,9 +251,22 @@ const MediaCard: React.FC<MediaCardProps> = ({ item, onRemove }) => {
               {/* Metadata Row */}
               <div className="flex items-center flex-wrap gap-x-3 gap-y-1 text-[11px] font-semibold text-gray-300">
                   <span className="text-green-400">{matchScore}% Match</span>
-                  <span className="border border-gray-500 px-1 rounded text-[9px]">HD</span>
+                  
+                  {/* Age Rating / Quality Badge */}
+                  <span className="border border-gray-500 px-1 rounded text-[9px] text-white/80">
+                      {item.adult ? '18+' : 'HD'}
+                  </span>
+                  
                   <span>{year}</span>
-                  {item.media_type === 'tv' && <span>{item.season ? `S${item.season}` : 'Series'}</span>}
+                  
+                  {/* Media Type Badge */}
+                  <span className="uppercase text-[9px] border border-white/10 px-1.5 rounded bg-white/5 text-gray-200">
+                      {item.media_type === 'movie' ? 'Movie' : 'TV Series'}
+                  </span>
+                  
+                  {item.media_type === 'tv' && item.season && (
+                      <span className="text-gray-400">S{item.season}</span>
+                  )}
               </div>
 
               {/* Genres Row */}
@@ -261,7 +274,7 @@ const MediaCard: React.FC<MediaCardProps> = ({ item, onRemove }) => {
                   {item.genre_ids?.slice(0, 3).map(id => (
                       <span key={id} className="text-[10px] text-gray-400 capitalize flex items-center">
                           <span className="w-1 h-1 bg-gray-500 rounded-full mr-1.5"></span>
-                          Genre
+                          {GENRE_MAP[id] || 'Genre'}
                       </span>
                   ))}
               </div>

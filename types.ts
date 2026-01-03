@@ -1,5 +1,3 @@
-
-
 export interface WatchlistItem {
   mediaId: number;
   mediaType: 'movie' | 'tv';
@@ -49,6 +47,7 @@ export interface MediaItem {
   totalDuration?: number; // Optional total duration for UI
   season?: number; // Optional season for Continue Watching context
   episode?: number; // Optional episode for Continue Watching context
+  adult?: boolean; // Added for age rating discrimination
 }
 
 export interface Episode {
