@@ -2,8 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from '../services/skipService';
 import { useAuth } from '../context/AuthContext';
 import { tmdbService } from '../services/tmdb';
-import { RotateCw, Play } from 'lucide-react'; 
-import { IMAGE_BASE_URL } from '../constants';
+import { RotateCw } from 'lucide-react'; 
 
 const Watch: React.FC = () => {
   const { type, id, season, episode } = useParams();
@@ -21,17 +20,11 @@ const Watch: React.FC = () => {
   const detailsRef = useRef<any>(null);
   const lastUpdateRef = useRef<number>(0);
   const addedToHistoryRef = useRef<boolean>(false);
-  const idleTimerRef = useRef<any>(null); // Timer for screensaver
   
   const currentSeasonRef = useRef(season ? parseInt(season) : 1);
   const currentEpisodeRef = useRef(episode ? parseInt(episode) : 1);
 
   const [showRotateHint, setShowRotateHint] = useState(false);
-  
-  // New State for Screensaver Overlay
-  const [showOverlay, setShowOverlay] = useState(false);
-  const [logoPath, setLogoPath] = useState<string | null>(null);
-  const [title, setTitle] = useState<string>('');
 
   // Orientation Check
   useEffect(() => {
@@ -114,7 +107,7 @@ const Watch: React.FC = () => {
       isPlayingRef.current = false;
   }, [type, id, accentColor, season, episode]); 
 
-  // Fetch Metadata & Logo
+  // Fetch Metadata
   useEffect(() => {
     const fetchMeta = async () => {
       if (!id || !type) return;
@@ -127,11 +120,6 @@ const Watch: React.FC = () => {
         detailsRef.current = details;
         
         const mediaTitle = details.title || details.name || 'Unknown';
-        setTitle(mediaTitle);
-
-        const logos = details.images?.logos || [];
-        const logo = logos.find((l: any) => l.iso_639_1 === 'en') || logos[0];
-        setLogoPath(logo ? logo.file_path : null);
 
         addToContinueWatching({
           mediaId: parseInt(id),
@@ -158,55 +146,6 @@ const Watch: React.FC = () => {
   useEffect(() => {
       isPlayingRef.current = isPlaying;
   }, [isPlaying]);
-
-  const resetIdleTimer = () => {
-      if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
-      setShowOverlay(false);
-      
-      // Only start timer if we are currently paused
-      if (!isPlayingRef.current) {
-          idleTimerRef.current = setTimeout(() => {
-              // Double check play state before showing
-              if (!isPlayingRef.current) {
-                  setShowOverlay(true);
-              }
-          }, 5000);
-      }
-  };
-
-  // Idle Timer Logic (Screensaver)
-  useEffect(() => {
-      resetIdleTimer();
-
-      // Global mouse move listener to reset timer when paused
-      const handleGlobalActivity = () => {
-          if (!isPlayingRef.current) {
-             resetIdleTimer();
-          }
-      };
-
-      window.addEventListener('mousemove', handleGlobalActivity);
-      window.addEventListener('keydown', handleGlobalActivity);
-      window.addEventListener('click', handleGlobalActivity);
-
-      return () => {
-          if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
-          window.removeEventListener('mousemove', handleGlobalActivity);
-          window.removeEventListener('keydown', handleGlobalActivity);
-          window.removeEventListener('click', handleGlobalActivity);
-      };
-  }, [isPlaying]); // Re-bind when play state changes
-
-  const handleOverlayClick = () => {
-      setShowOverlay(false);
-      if (!isPlayingRef.current) {
-          if (iframeRef.current && iframeRef.current.contentWindow) {
-              iframeRef.current.contentWindow.postMessage({ type: 'PLAY' }, '*');
-              setIsPlaying(true);
-              isPlayingRef.current = true;
-          }
-      }
-  };
 
   // Player Communication & Logic Loop (Vidify Watch Progress)
   useEffect(() => {
@@ -242,23 +181,12 @@ const Watch: React.FC = () => {
               }
               // 3. TimeUpdate (Implicit Play)
               else if (isTimeUpdate) {
-                  // Only treat timeupdate as "Play" if we haven't paused recently.
-                  // This filters out stray timeupdates that often trail a pause event by a few ms.
                   const timeSincePause = Date.now() - lastPauseTimeRef.current;
                   if (!isPlayingRef.current && timeSincePause > 1000) {
                       setIsPlaying(true);
                       isPlayingRef.current = true;
                   }
-                  
-                  // Always hide overlay on timeupdate to prevent visual glitches during playback
-                  setShowOverlay(false);
               }
-              
-              // Clear timer if playing (extra safety)
-              if (isPlayingRef.current && idleTimerRef.current) {
-                   clearTimeout(idleTimerRef.current);
-              }
-
 
               // --- METADATA & PROGRESS ---
               
@@ -333,12 +261,6 @@ const Watch: React.FC = () => {
                 if (!newState) {
                    lastPauseTimeRef.current = Date.now();
                 }
-
-                // If we are now playing, hide overlay immediately
-                if (newState) {
-                    setShowOverlay(false);
-                    if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
-                }
             }
         }
     };
@@ -359,42 +281,6 @@ const Watch: React.FC = () => {
             allow="encrypted-media; autoplay; picture-in-picture"
             title="StreamVault Player"
           />
-      )}
-
-      {/* Idle Pause Overlay (Screensaver) */}
-      {showOverlay && (
-          <div 
-            className="absolute inset-0 z-[50] flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-700 cursor-pointer"
-            onClick={handleOverlayClick}
-          >
-              <div className="flex flex-col items-center p-8 text-center animate-in slide-in-from-bottom-10 duration-700">
-                  {logoPath ? (
-                      <img 
-                        src={`${IMAGE_BASE_URL}/w500${logoPath}`} 
-                        alt={title} 
-                        className="w-2/3 max-w-sm md:max-w-md object-contain mb-6 drop-shadow-2xl"
-                      />
-                  ) : (
-                      <h1 className="text-3xl md:text-5xl font-black text-white mb-6 tracking-tight drop-shadow-xl">{title}</h1>
-                  )}
-                  
-                  {type === 'tv' && (
-                      <div className="flex flex-col items-center gap-2">
-                         <div className="text-xl md:text-2xl text-white font-bold tracking-widest uppercase drop-shadow-md">
-                             Season {currentSeasonRef.current} • Episode {currentEpisodeRef.current}
-                         </div>
-                         <div className="mt-4 flex items-center gap-2 text-white/50 text-sm font-medium uppercase tracking-wider animate-pulse">
-                            <Play className="w-4 h-4 fill-current" /> Resume
-                         </div>
-                      </div>
-                  )}
-                  {type === 'movie' && (
-                       <div className="mt-4 flex items-center gap-2 text-white/50 text-sm font-medium uppercase tracking-wider animate-pulse">
-                            <Play className="w-4 h-4 fill-current" /> Resume
-                       </div>
-                  )}
-              </div>
-          </div>
       )}
 
       {/* Manual Orientation Toggle (Visible if Portrait) */}
