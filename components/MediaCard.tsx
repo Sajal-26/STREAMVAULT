@@ -143,7 +143,6 @@ const MediaCard: React.FC<MediaCardProps> = ({ item, onRemove }) => {
     >
       
       {/* 1. Base Static Card (Always Visible) */}
-      {/* REMOVED: group-hover/card:opacity-0 logic. The base card now stays visible behind the popout. */}
       <div className="absolute inset-0 rounded-md overflow-hidden bg-gray-800 ring-1 ring-white/10 transition-opacity duration-300">
           {imagePath ? (
             <img
@@ -168,10 +167,11 @@ const MediaCard: React.FC<MediaCardProps> = ({ item, onRemove }) => {
           )}
           
           {/* Always Visible Remove Button (if provided) */}
+          {/* UPDATE: Increased Z-Index to 40 to be above the link layer (z-30) on mobile */}
           {onRemove && (
               <button
                 onClick={handleRemove}
-                className="absolute top-1 right-1 z-20 p-1.5 bg-black/60 text-white rounded-full hover:bg-red-600 transition-colors backdrop-blur-sm"
+                className="absolute top-1 right-1 z-40 p-1.5 bg-black/60 text-white rounded-full hover:bg-red-600 transition-colors backdrop-blur-sm"
                 title="Remove"
               >
                   <X className="w-3 h-3" />

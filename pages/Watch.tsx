@@ -17,18 +17,34 @@ const Watch: React.FC = () => {
   const currentSeasonRef = useRef(season ? parseInt(season) : 1);
   const currentEpisodeRef = useRef(episode ? parseInt(episode) : 1);
 
+  // Automatic Landscape Orientation (Mobile)
+  useEffect(() => {
+    const lockLandscape = async () => {
+        try {
+            // Check if Screen Orientation API is supported
+            if (screen.orientation && typeof (screen.orientation as any).lock === 'function') {
+                await (screen.orientation as any).lock('landscape'); 
+            }
+        } catch (e) {
+            // Silently fail if locking is not supported or permitted (requires user gesture usually)
+            console.debug('Orientation lock failed (expected behavior on some devices without gesture):', e);
+        }
+    };
+    lockLandscape();
+    return () => {
+        try {
+             if (screen.orientation && typeof (screen.orientation as any).unlock === 'function') {
+                (screen.orientation as any).unlock();
+            }
+        } catch(e) {}
+    };
+  }, []);
+
   // Initialize Player URL (Vidify)
   useEffect(() => {
       const baseUrl = "https://player.vidify.top/embed";
       // User selected theme (remove hash for URL param)
       const color = accentColor.replace('#', '');
-      
-      // Strict configuration based on user request:
-      // - primarycolor: User Accent Color (Progress Bar)
-      // - secondarycolor: Dark Gray (1f2937)
-      // - iconcolor: White (ffffff)
-      // - Hide mostly everything else from the UI settings/controls
-      // - Keep Watch Party enabled
       
       const params = new URLSearchParams({
         // Visuals
@@ -40,7 +56,7 @@ const Watch: React.FC = () => {
         autoplay: 'true',
         poster: 'true',
         chromecast: 'true',
-        servericon: 'true', // Internal enable
+        servericon: 'true', 
         setting: 'true',
         pip: 'true',
         download: 'true',
@@ -48,7 +64,7 @@ const Watch: React.FC = () => {
         
         // Subtitles
         font: 'Roboto',
-        fontcolor: 'ffffff', // White subtitles for contrast
+        fontcolor: 'ffffff',
         fontsize: '20',
         opacity: '0.5',
         
@@ -57,12 +73,12 @@ const Watch: React.FC = () => {
         hideposter: 'true',
         hidechromecast: 'true',
         hideepisodelist: 'true',
-        hideservericon: 'true', // Hide the button
+        hideservericon: 'true',
         hidepip: 'true',
         hideprimarycolor: 'true',
         hidesecondarycolor: 'true',
         hideiconcolor: 'true',
-        // hideprogresscontrol: 'true', // Removed to ensure seek bar (forward/backward) is visible
+        // hideprogresscontrol: 'true', // Keep enabled
         hideiconset: 'true',
         hideautonext: 'true',
         hideautoplay: 'true',
@@ -120,16 +136,26 @@ const Watch: React.FC = () => {
   // Player Communication & Logic Loop (Vidify Watch Progress)
   useEffect(() => {
       const handleMessage = (event: MessageEvent) => {
-          // Vidify sends data in event.data with type 'WATCH_PROGRESS'
+          // Security Check
+          if (event.origin !== 'https://player.vidify.top') return;
+
           const data = event.data;
           
           if (data?.type === 'WATCH_PROGRESS' && data.data) {
               const { currentTime, duration, eventType } = data.data;
 
-              // Handle Episode Change if detected (optional, usually internal to player but we track URL)
-              if (typeof currentTime === 'number' && typeof duration === 'number' && duration > 0) {
+              // Parse numbers safely
+              const curr = Number(currentTime);
+              let dur = Number(duration);
+
+              // Fallback: If player reports 0 duration, try to use TMDB runtime
+              if ((isNaN(dur) || dur <= 0) && detailsRef.current?.runtime) {
+                  dur = detailsRef.current.runtime * 60; // Minutes to seconds
+              }
+
+              if (!isNaN(curr) && !isNaN(dur) && dur > 0) {
                   const now = Date.now();
-                  const progressPercent = (currentTime / duration) * 100;
+                  const progressPercent = (curr / dur) * 100;
                   
                   // Logic: > 90% -> Add to Watch History (Completed)
                   if (progressPercent > 90 && !addedToHistoryRef.current && detailsRef.current) {
@@ -163,8 +189,8 @@ const Watch: React.FC = () => {
                               episode: currentEpisodeRef.current,
                               watchedAt: Date.now(),
                               progress: progressPercent,
-                              watchedDuration: currentTime,
-                              totalDuration: duration
+                              watchedDuration: curr,
+                              totalDuration: dur
                           });
                       }
                   }
