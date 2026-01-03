@@ -19,12 +19,14 @@ const Watch: React.FC = () => {
   const currentSeasonRef = useRef(season ? parseInt(season) : 1);
   const currentEpisodeRef = useRef(episode ? parseInt(episode) : 1);
 
-  // Initialize Player URL
+  // Initialize Player URL (Vidify)
   useEffect(() => {
-      const baseUrl = "https://player.videasy.net";
+      const baseUrl = "https://player.vidify.top/embed";
       const color = accentColor.replace('#', '');
-      // Removed overlay=true and episodeSelector=true to remove the external player's custom buttons
-      const commonParams = `?color=${color}&autoplayNextEpisode=true&autoplay=true`;
+      
+      // Config: Netflix-like (using app accent color), autoplay enabled, essential settings only.
+      // Removed logo as requested.
+      const commonParams = `?primarycolor=${color}&secondarycolor=${color}&iconcolor=${color}&autoplay=true`;
 
       let src = "";
       if (type === 'movie') {
@@ -32,7 +34,7 @@ const Watch: React.FC = () => {
       } else if (type === 'tv') {
           const s = season || 1;
           const e = episode || 1;
-          src = `${baseUrl}/tv/${id}/${s}/${e}${commonParams}&nextEpisode=true`;
+          src = `${baseUrl}/tv/${id}/${s}/${e}${commonParams}`;
       }
       setPlayerUrl(src);
       // Reset history flag on navigation
@@ -73,38 +75,18 @@ const Watch: React.FC = () => {
     fetchMeta();
   }, [id, type, season, episode]); 
 
-  // Player Communication & Logic Loop
+  // Player Communication & Logic Loop (Vidify Watch Progress)
   useEffect(() => {
       const handleMessage = (event: MessageEvent) => {
-          try {
-              let data = event.data;
-              if (typeof data === "string") {
-                  try {
-                      data = JSON.parse(data);
-                  } catch (e) { return; }
-              }
+          // Vidify sends data in event.data with type 'WATCH_PROGRESS'
+          const data = event.data;
+          
+          if (data?.type === 'WATCH_PROGRESS' && data.data) {
+              const { currentTime, duration, eventType } = data.data;
 
-              if (!data) return;
-              const payload = data.data || data.payload || data;
-
-              // 1. Detect Episode Change from Player Internal Navigation
-              if (type === 'tv' && payload.season && payload.episode) {
-                   const newSeason = parseInt(payload.season);
-                   const newEpisode = parseInt(payload.episode);
-
-                   if (newSeason !== currentSeasonRef.current || newEpisode !== currentEpisodeRef.current) {
-                       currentSeasonRef.current = newSeason;
-                       currentEpisodeRef.current = newEpisode;
-                       // Reset history flag for new episode
-                       addedToHistoryRef.current = false;
-                       // Trigger internal navigation
-                       navigate(`/watch/tv/${id}/${newSeason}/${newEpisode}`, { replace: true });
-                   }
-              }
-
-              // 2. Handle Time Update & Save Progress
-              const currentTime = payload.currentTime ?? payload.time ?? payload.position;
-              const duration = payload.duration ?? payload.total ?? payload.length ?? payload.videoLength;
+              // Handle Episode Change if detected (optional, usually internal to player but we track URL)
+              // Since Vidify is an embed, it might not push navigation events out for season/episode changes cleanly
+              // outside of what we control via URL. We rely on the user navigating or 'next' buttons if implemented.
 
               if (typeof currentTime === 'number' && typeof duration === 'number' && duration > 0) {
                   const now = Date.now();
@@ -127,7 +109,7 @@ const Watch: React.FC = () => {
                   // Logic: > 95% -> Remove from Continue Watching
                   if (progressPercent > 95) {
                       removeFromContinueWatching(parseInt(id!));
-                  } else if (now - lastUpdateRef.current > 5000) { 
+                  } else if (now - lastUpdateRef.current > 5000 && eventType !== 'pause') { 
                       // Only update continue watching every 5s if under 95%
                       lastUpdateRef.current = now;
                       if (detailsRef.current && id && type) {
@@ -148,8 +130,6 @@ const Watch: React.FC = () => {
                       }
                   }
               }
-          } catch (e) {
-              // Silent error
           }
       };
 

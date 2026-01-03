@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from '../services/skipService';
-import { Search, Settings, Star, Download, Layers, Building2, List, Users } from 'lucide-react';
+import { Search, Settings, Star, Download, Layers, Building2, List } from 'lucide-react';
 import { tmdbService } from '../services/tmdb';
 import { MediaItem } from '../types';
 import { IMAGE_BASE_URL } from '../constants';
@@ -235,15 +235,6 @@ const Navbar: React.FC = () => {
                     {link.name}
                   </Link>
                 ))}
-                {/* Watch Party Link */}
-                <Link 
-                    to="/party"
-                    className={`text-sm font-medium transition-colors flex items-center gap-1 ${
-                        location.pathname.startsWith('/party') ? 'text-brand-primary' : 'text-gray-300 hover:text-brand-primary'
-                    }`}
-                >
-                    <Users className="w-4 h-4" /> Party
-                </Link>
               </div>
             </div>
           </div>

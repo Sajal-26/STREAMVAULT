@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from '../services/skipService';
-import { Play, Plus, ThumbsUp, ChevronDown, Check, Users, ArrowLeft, Globe, Building2, Signal, LayoutGrid, List } from 'lucide-react';
+import { Play, Plus, ThumbsUp, ChevronDown, Check, ArrowLeft, Globe, Building2, Signal, LayoutGrid, List } from 'lucide-react';
 import { tmdbService } from '../services/tmdb';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -8,8 +8,6 @@ import { MediaDetails, SeasonDetails, MediaItem } from '../types';
 import { IMAGE_BASE_URL } from '../constants';
 import ContentRow from '../components/ContentRow';
 import Navbar from '../components/Navbar';
-import { db } from '../services/firebase';
-import { ref, set } from '../services/firebase';
 
 const Details: React.FC = () => {
   const params = useParams();
@@ -164,38 +162,6 @@ const Details: React.FC = () => {
       }
   };
 
-  const startWatchParty = async () => {
-      if (!data) return;
-      
-      try {
-          const newRoomId = Math.random().toString(36).substr(2, 6).toUpperCase();
-          const userId = localStorage.getItem('sv_userid') || Math.random().toString(36).substr(2, 9);
-          const username = localStorage.getItem('sv_username') || `Host`;
-          
-          localStorage.setItem('sv_userid', userId);
-
-          // Create room with this content selected
-          await set(ref(db, `rooms/${newRoomId}`), {
-              hostId: userId,
-              createdAt: Date.now(),
-              users: { [userId]: username },
-              state: {
-                  mediaType: type,
-                  mediaId: Number(id),
-                  season: selectedSeasonNumber,
-                  episode: 1, // Default to ep 1 for parties started from details
-                  title: data.title || data.name
-              }
-          });
-          
-          showToast('Watch Party Created!', 'success');
-          navigate(`/party/${newRoomId}`);
-      } catch (error) {
-          console.error("Watch party creation failed", error);
-          showToast('Failed to start Watch Party. Try again.', 'error');
-      }
-  };
-
   const getEpisodeProgress = (seasonNum: number, episodeNum: number) => {
       // Logic:
       // If currentCW indicates we are past this episode (higher season OR same season higher episode), return 100%.
@@ -328,15 +294,6 @@ const Details: React.FC = () => {
                         >
                              <ThumbsUp className={`w-6 h-6 ${isLiked ? 'fill-brand-primary text-brand-primary' : ''}`} />
                              <span className="text-[10px] md:hidden">Rate</span>
-                         </button>
-                         
-                         <button 
-                            onClick={startWatchParty} 
-                            className="flex flex-col md:flex-row items-center gap-1 md:gap-0 p-2 md:p-3 text-gray-300 hover:text-white transition md:bg-white/10 md:rounded-full md:border md:border-white/10"
-                            title="Watch Party"
-                         >
-                             <Users className="w-6 h-6" />
-                             <span className="text-[10px] md:hidden">Party</span>
                          </button>
                      </div>
                  </div>
@@ -523,7 +480,7 @@ const Details: React.FC = () => {
                       
                       {/* Show More Button */}
                       {seasonData.episodes && visibleEpisodes < seasonData.episodes.length && (
-                          <div className="mt-8 flex justify-center relative z-20 py-4">
+                          <div className="mt-8 md:mt-12 flex justify-center relative z-20 py-4">
                               <button 
                                 onClick={handleLoadMoreEpisodes}
                                 className="px-8 py-3 bg-white/10 hover:bg-white/20 border border-white/10 rounded-full text-sm font-bold text-white transition flex items-center gap-2 group backdrop-blur-md"

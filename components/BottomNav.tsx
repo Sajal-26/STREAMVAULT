@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from '../services/skipService';
-import { Home, Film, Tv, List, Users } from 'lucide-react';
+import { Home, Film, Tv, List } from 'lucide-react';
 
 const BottomNav: React.FC = () => {
   const location = useLocation();
@@ -10,7 +10,6 @@ const BottomNav: React.FC = () => {
     { name: 'Home', path: '/', icon: Home },
     { name: 'Movies', path: '/movies', icon: Film },
     { name: 'Series', path: '/tv', icon: Tv },
-    { name: 'Party', path: '/party', icon: Users },
     { name: 'My List', path: '/watchlist', icon: List },
   ];
 
