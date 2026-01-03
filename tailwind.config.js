@@ -7,6 +7,9 @@ export default {
   darkMode: 'class',
   theme: {
     extend: {
+      screens: {
+        'short': { 'raw': '(max-height: 550px)' },
+      },
       fontFamily: {
         sans: ['Inter', 'sans-serif'],
       },

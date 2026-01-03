@@ -126,7 +126,7 @@ const Navbar: React.FC = () => {
           // 4. Lists / Keywords (Top 2)
           const lists = keywordRes.results.slice(0, 2).map((k: any) => ({
              id: k.id, 
-             title: k.name,
+             title: k.name, 
              name: k.name, 
              poster_path: null, 
              backdrop_path: null, 
@@ -210,23 +210,23 @@ const Navbar: React.FC = () => {
       }`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16 md:h-20 flex-nowrap gap-2 md:gap-4">
+        <div className="flex items-center justify-between h-16 md:h-20 short:h-12 flex-nowrap gap-2 md:gap-4">
           
           {/* Logo Section */}
           <div className="flex items-center flex-shrink-0">
-            <Link to="/" className="flex items-center gap-1 text-lg md:text-2xl font-bold text-brand-primary tracking-tighter mr-2">
+            <Link to="/" className="flex items-center gap-1 text-lg md:text-2xl short:text-lg font-bold text-brand-primary tracking-tighter mr-2">
               <span className="md:hidden">SV</span>
               <span className="hidden md:inline">STREAM<span className="text-white">VAULT</span></span>
             </Link>
 
-            {/* Desktop Links */}
-            <div className="hidden md:block ml-10">
-              <div className="flex items-baseline space-x-6">
+            {/* Desktop Links - Hide on very short screens to avoid clutter unless width is sufficient */}
+            <div className="hidden md:block ml-10 short:ml-4">
+              <div className="flex items-baseline space-x-6 short:space-x-3">
                 {navLinks.map((link) => (
                   <Link
                     key={link.name}
                     to={link.path}
-                    className={`text-sm font-medium transition-colors ${
+                    className={`text-sm short:text-xs font-medium transition-colors ${
                       location.pathname === link.path
                         ? 'text-white'
                         : 'text-gray-300 hover:text-white'
@@ -240,10 +240,10 @@ const Navbar: React.FC = () => {
           </div>
 
           {/* Search Bar & Actions */}
-          <div className="flex items-center flex-1 md:flex-none justify-end gap-2 md:gap-6 min-w-0">
+          <div className="flex items-center flex-1 md:flex-none justify-end gap-2 md:gap-6 short:gap-3 min-w-0">
             <div className="relative flex-1 md:flex-none max-w-full md:max-w-none" ref={searchContainerRef}>
               <form onSubmit={handleSearch} className="group w-full">
-                <div className="relative flex items-center bg-white/10 border border-transparent focus-within:border-white/20 rounded-full transition-all duration-300 w-full md:w-64 overflow-hidden h-9 md:h-10">
+                <div className="relative flex items-center bg-white/10 border border-transparent focus-within:border-white/20 rounded-full transition-all duration-300 w-full md:w-64 overflow-hidden h-9 md:h-10 short:h-8">
                     <div className="absolute left-0 top-0 w-9 md:w-10 h-full flex items-center justify-center pointer-events-none z-10">
                         <Search className="h-4 w-4 text-gray-400" />
                     </div>
@@ -317,7 +317,7 @@ const Navbar: React.FC = () => {
             )}
 
             <Link to="/settings" className="text-gray-300 hover:text-white transition p-1 shrink-0">
-                <Settings className="w-5 h-5" />
+                <Settings className="w-5 h-5 short:w-4 short:h-4" />
             </Link>
           </div>
         </div>

@@ -108,7 +108,7 @@ const Hero: React.FC<HeroProps> = ({ items }) => {
 
   return (
     <div 
-        className="relative h-[65vh] md:h-[95vh] w-full overflow-hidden group bg-black"
+        className="relative h-[65vh] md:h-[95vh] short:h-[100vh] w-full overflow-hidden group bg-black"
         onMouseEnter={() => setIsPaused(true)}
         onMouseLeave={() => setIsPaused(false)}
     >
@@ -148,23 +148,23 @@ const Hero: React.FC<HeroProps> = ({ items }) => {
       </div>
 
       {/* Content Container */}
-      <div className={`absolute inset-0 flex flex-col justify-end px-4 md:px-16 lg:px-24 pb-24 md:pb-48 max-w-7xl transition-opacity duration-500 ease-in-out ${isAnimating ? 'opacity-0' : 'opacity-100'} z-20 pointer-events-none`}>
+      <div className={`absolute inset-0 flex flex-col justify-end px-4 md:px-16 lg:px-24 pb-24 md:pb-48 short:pb-10 max-w-7xl transition-opacity duration-500 ease-in-out ${isAnimating ? 'opacity-0' : 'opacity-100'} z-20 pointer-events-none`}>
         <div className="max-w-3xl pointer-events-auto w-full">
             {/* Logo or Title */}
             {logoPath ? (
             <img 
                 src={`${IMAGE_BASE_URL}/w500${logoPath}`} 
                 alt={item.title || item.name} 
-                className="w-2/3 md:w-1/2 max-w-[300px] md:max-w-[450px] max-h-[120px] md:max-h-[180px] object-contain mb-6 origin-left drop-shadow-2xl"
+                className="w-2/3 md:w-1/2 max-w-[300px] md:max-w-[450px] short:max-w-[250px] max-h-[120px] md:max-h-[180px] short:max-h-[80px] object-contain mb-6 short:mb-2 origin-left drop-shadow-2xl"
             />
             ) : (
-            <h1 className="text-3xl md:text-5xl lg:text-7xl font-black text-white mb-4 drop-shadow-lg tracking-tight leading-tight">
+            <h1 className="text-3xl md:text-5xl lg:text-7xl short:text-3xl font-black text-white mb-4 short:mb-2 drop-shadow-lg tracking-tight leading-tight">
                 {item.title || item.name}
             </h1>
             )}
             
             {/* Metadata Row */}
-            <div className="flex flex-wrap items-center gap-3 text-sm font-medium text-gray-200 mb-6">
+            <div className="flex flex-wrap items-center gap-3 text-sm short:text-xs font-medium text-gray-200 mb-6 short:mb-3">
                 <div className="flex items-center text-yellow-400 bg-black/60 backdrop-blur-md px-2 py-1 rounded border border-yellow-500/20">
                     <Star className="w-3.5 h-3.5 mr-1.5 fill-current" />
                     <span>{rating.toFixed(1)}/10</span>
@@ -184,14 +184,17 @@ const Hero: React.FC<HeroProps> = ({ items }) => {
                     </div>
                 )}
                 
-                {genres.slice(0, 3).map(g => (
-                    <span key={g.id} className="text-gray-300 bg-white/5 border border-white/10 px-3 py-1 rounded-full text-xs">
-                        {g.name}
-                    </span>
-                ))}
+                <div className="hidden short:flex gap-2">
+                    {genres.slice(0, 2).map(g => (
+                        <span key={g.id} className="text-gray-300 bg-white/5 border border-white/10 px-3 py-1 rounded-full text-xs">
+                            {g.name}
+                        </span>
+                    ))}
+                </div>
             </div>
-
-            <p className="hidden md:block text-base md:text-lg text-gray-300 line-clamp-3 mb-8 drop-shadow-md max-w-2xl leading-relaxed text-shadow-sm">
+            
+            {/* Description - Hidden on short screens to save space */}
+            <p className="hidden md:block short:hidden text-base md:text-lg text-gray-300 line-clamp-3 mb-8 drop-shadow-md max-w-2xl leading-relaxed text-shadow-sm">
             {item.overview}
             </p>
             
@@ -199,17 +202,17 @@ const Hero: React.FC<HeroProps> = ({ items }) => {
             <div className="flex flex-row items-center gap-3 w-full md:w-auto mt-2">
                 <button 
                     onClick={handlePlay}
-                    className="flex-1 md:flex-none flex items-center justify-center px-6 md:px-8 py-3.5 bg-white text-black rounded-lg font-bold hover:bg-gray-200 transition-all transform hover:scale-105 text-base md:text-lg shadow-[0_0_20px_rgba(255,255,255,0.3)]"
+                    className="flex-1 md:flex-none flex items-center justify-center px-6 md:px-8 short:px-6 py-3.5 short:py-2 bg-white text-black rounded-lg font-bold hover:bg-gray-200 transition-all transform hover:scale-105 text-base md:text-lg short:text-sm shadow-[0_0_20px_rgba(255,255,255,0.3)]"
                 >
-                    <Play className="w-5 h-5 md:w-6 md:h-6 mr-2 fill-black" />
+                    <Play className="w-5 h-5 md:w-6 md:h-6 short:w-4 short:h-4 mr-2 fill-black" />
                     Play
                 </button>
                 
                 <Link 
                     to={linkTarget}
-                    className="flex-1 md:flex-none flex items-center justify-center px-6 md:px-8 py-3.5 bg-white/10 backdrop-blur-md text-white rounded-lg font-bold hover:bg-white/20 transition-all transform hover:scale-105 text-base md:text-lg border border-white/10"
+                    className="flex-1 md:flex-none flex items-center justify-center px-6 md:px-8 short:px-6 py-3.5 short:py-2 bg-white/10 backdrop-blur-md text-white rounded-lg font-bold hover:bg-white/20 transition-all transform hover:scale-105 text-base md:text-lg short:text-sm border border-white/10"
                 >
-                    <Info className="w-5 h-5 md:w-6 md:h-6 mr-2" />
+                    <Info className="w-5 h-5 md:w-6 md:h-6 short:w-4 short:h-4 mr-2" />
                     See More
                 </Link>
             </div>
@@ -217,7 +220,7 @@ const Hero: React.FC<HeroProps> = ({ items }) => {
       </div>
       
       {/* Carousel Indicators */}
-      <div className="absolute bottom-16 right-8 md:right-16 flex space-x-2 z-30">
+      <div className="absolute bottom-16 short:bottom-4 right-8 md:right-16 flex space-x-2 z-30">
           {heroData.map((_, idx) => (
               <button 
                 key={idx} 
