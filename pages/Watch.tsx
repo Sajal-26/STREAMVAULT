@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from '../services/skipService';
 import { useAuth } from '../context/AuthContext';
 import { tmdbService } from '../services/tmdb';
-import { Maximize, RotateCw } from 'lucide-react';
+import { RotateCw } from 'lucide-react';
 
 const Watch: React.FC = () => {
   const { type, id, season, episode } = useParams();
