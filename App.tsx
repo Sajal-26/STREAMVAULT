@@ -1,7 +1,8 @@
-import React from 'react';
-import { HashRouter as Router, Routes, Route, Navigate } from './services/skipService';
+import React, { useEffect } from 'react';
+import { HashRouter as Router, Routes, Route, Navigate, useLocation } from './services/skipService';
 import { AuthProvider } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
+import { CacheProvider } from './context/CacheContext';
 import Home from './pages/Home';
 import Browse from './pages/Browse';
 import Details from './pages/Details';
@@ -17,8 +18,41 @@ import ViewAll from './pages/ViewAll';
 import BottomNav from './components/BottomNav';
 
 const AppContent: React.FC = () => {
+  const location = useLocation();
+
+  // Global Orientation Locking Logic
+  useEffect(() => {
+    const handleOrientation = async () => {
+      const isWatchPage = location.pathname.includes('/watch/');
+      
+      try {
+        if (screen.orientation && typeof (screen.orientation as any).lock === 'function') {
+          if (isWatchPage) {
+            await (screen.orientation as any).lock('landscape');
+            // Force full screen if possible on watch page (optional user experience enhancement)
+          } else {
+            // Unlock/Reset when leaving watch page
+            (screen.orientation as any).unlock();
+          }
+        }
+      } catch (error) {
+        // Orientation lock often fails on desktop or without user gesture on mobile.
+        // We fail silently as this is a progressive enhancement.
+        // console.debug("Orientation lock failed:", error); 
+      }
+    };
+
+    handleOrientation();
+    
+    // Cleanup not strictly necessary as effect runs on location change, 
+    // but good practice to unlock if component unmounts.
+    return () => {
+       // Optional cleanup
+    };
+  }, [location.pathname]);
+
   return (
-    <Router>
+    <>
       <Routes>
         <Route path="/" element={<Home />} />
         
@@ -45,7 +79,7 @@ const AppContent: React.FC = () => {
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
       <BottomNav />
-    </Router>
+    </>
   );
 };
 
@@ -53,7 +87,11 @@ const App: React.FC = () => {
   return (
     <ToastProvider>
       <AuthProvider>
-        <AppContent />
+        <CacheProvider>
+          <Router>
+            <AppContent />
+          </Router>
+        </CacheProvider>
       </AuthProvider>
     </ToastProvider>
   );

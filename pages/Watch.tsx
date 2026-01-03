@@ -17,29 +17,6 @@ const Watch: React.FC = () => {
   const currentSeasonRef = useRef(season ? parseInt(season) : 1);
   const currentEpisodeRef = useRef(episode ? parseInt(episode) : 1);
 
-  // Automatic Landscape Orientation (Mobile)
-  useEffect(() => {
-    const lockLandscape = async () => {
-        try {
-            // Check if Screen Orientation API is supported
-            if (screen.orientation && typeof (screen.orientation as any).lock === 'function') {
-                await (screen.orientation as any).lock('landscape'); 
-            }
-        } catch (e) {
-            // Silently fail if locking is not supported or permitted (requires user gesture usually)
-            console.debug('Orientation lock failed (expected behavior on some devices without gesture):', e);
-        }
-    };
-    lockLandscape();
-    return () => {
-        try {
-             if (screen.orientation && typeof (screen.orientation as any).unlock === 'function') {
-                (screen.orientation as any).unlock();
-            }
-        } catch(e) {}
-    };
-  }, []);
-
   // Initialize Player URL (Vidify)
   useEffect(() => {
       const baseUrl = "https://player.vidify.top/embed";

@@ -5,6 +5,7 @@ import MediaCard from '../components/MediaCard';
 import { tmdbService } from '../services/tmdb';
 import { MediaItem, Genre } from '../types';
 import { useInfiniteScroll } from '../hooks/useInfiniteScroll';
+import { useCache } from '../context/CacheContext';
 
 interface BrowseProps {
   type: 'movie' | 'tv';
@@ -13,6 +14,7 @@ interface BrowseProps {
 const Browse: React.FC<BrowseProps> = ({ type }) => {
   const [searchParams] = useSearchParams();
   const urlGenreId = searchParams.get('genre');
+  const { browseCache, setBrowseCache } = useCache();
 
   const [items, setItems] = useState<MediaItem[]>([]);
   const [genres, setGenres] = useState<Genre[]>([]);
@@ -21,6 +23,9 @@ const Browse: React.FC<BrowseProps> = ({ type }) => {
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [hasMore, setHasMore] = useState(true);
+
+  // Determine Cache Key based on Type + Genre
+  const getCacheKey = (gId: number | null) => `${type}_${gId || 'all'}`;
 
   // Sync URL params with state
   useEffect(() => {
@@ -34,6 +39,22 @@ const Browse: React.FC<BrowseProps> = ({ type }) => {
   // Initial Data Load & Genre Change
   useEffect(() => {
     const fetchInitial = async () => {
+      const cacheKey = getCacheKey(selectedGenre);
+      
+      // Try loading from cache
+      if (browseCache[cacheKey]) {
+          const cached = browseCache[cacheKey];
+          setItems(cached.items);
+          setPage(cached.page);
+          setHasMore(cached.hasMore);
+          setLoading(false);
+          // Fetch genres if not present (usually fast)
+          if (genres.length === 0) {
+              tmdbService.getGenres(type).then(res => setGenres(res.genres));
+          }
+          return;
+      }
+
       setItems([]); // Clear stale data immediately to show skeleton
       setLoading(true);
       setPage(1);
@@ -43,7 +64,18 @@ const Browse: React.FC<BrowseProps> = ({ type }) => {
         setGenres(genreRes.genres);
 
         const dataRes = await tmdbService.discover(type, selectedGenre || undefined, 1);
-        setItems(dataRes.results);
+        
+        const initialItems = dataRes.results;
+        setItems(initialItems);
+        
+        // Save initial state to cache
+        setBrowseCache(cacheKey, {
+            items: initialItems,
+            page: 1,
+            hasMore: true,
+            scrollY: 0
+        });
+
       } catch (err) {
         console.error(err);
       } finally {
@@ -51,7 +83,7 @@ const Browse: React.FC<BrowseProps> = ({ type }) => {
       }
     };
     fetchInitial();
-  }, [type, selectedGenre]);
+  }, [type, selectedGenre]); // Re-run when type or genre changes
 
   // Load More Function
   const loadMore = useCallback(async () => {
@@ -64,9 +96,24 @@ const Browse: React.FC<BrowseProps> = ({ type }) => {
           
           if (dataRes.results.length === 0) {
               setHasMore(false);
+              // Update cache with no more
+              const cacheKey = getCacheKey(selectedGenre);
+              if (browseCache[cacheKey]) {
+                  setBrowseCache(cacheKey, { ...browseCache[cacheKey], hasMore: false });
+              }
           } else {
-              setItems(prev => [...prev, ...dataRes.results]);
+              const newItems = [...items, ...dataRes.results];
+              setItems(newItems);
               setPage(nextPage);
+              
+              // Update cache with new page
+              const cacheKey = getCacheKey(selectedGenre);
+              setBrowseCache(cacheKey, {
+                  items: newItems,
+                  page: nextPage,
+                  hasMore: true,
+                  scrollY: window.scrollY
+              });
           }
       } catch (err) {
           console.error(err);
@@ -74,13 +121,11 @@ const Browse: React.FC<BrowseProps> = ({ type }) => {
       } finally {
           setLoading(false);
       }
-  }, [page, loading, hasMore, type, selectedGenre]);
+  }, [page, loading, hasMore, type, selectedGenre, items, browseCache, setBrowseCache]);
 
   const lastElementRef = useInfiniteScroll(loadMore, loading);
 
   const handleGenreClick = (id: number | null) => {
-      // If clicking inside the component, we update state directly. 
-      // If we wanted to update URL, we would use setSearchParams, but local state is smoother for browsing.
       setSelectedGenre(id);
   };
 

@@ -6,6 +6,7 @@ import ProviderRow from '../components/ProviderRow';
 import { tmdbService } from '../services/tmdb';
 import { MediaItem } from '../types';
 import { useAuth } from '../context/AuthContext';
+import { useCache } from '../context/CacheContext';
 
 interface RowConfig {
   title: string;
@@ -32,6 +33,8 @@ const ROW_CONFIGS: RowConfig[] = [
 ];
 
 const Home: React.FC = () => {
+  const { homeCache, setHomeCache } = useCache();
+  
   const [heroItems, setHeroItems] = useState<MediaItem[]>([]);
   const [trendingItems, setTrendingItems] = useState<MediaItem[]>([]);
   const [loadedRows, setLoadedRows] = useState<Record<string, MediaItem[]>>({});
@@ -45,24 +48,33 @@ const Home: React.FC = () => {
   const hasFetchedRows = useRef(false);
 
   useEffect(() => {
+    // Check Cache First
+    if (homeCache) {
+      setHeroItems(homeCache.heroItems);
+      setTrendingItems(homeCache.trendingItems);
+      setLoadedRows(homeCache.loadedRows);
+      setInitialLoading(false);
+      hasFetchedRows.current = true; // Prevent re-fetching rows if cached
+      return;
+    }
+
     const fetchInitial = async () => {
       try {
         // Fetch Trending (Week) for Hero and "Trending Now" row
         const trendingWeek = await tmdbService.getTrending('all', 'week');
         
-        setTrendingItems(trendingWeek.results);
+        const trendingRes = trendingWeek.results;
+        setTrendingItems(trendingRes);
         
-        if (trendingWeek.results.length > 0) {
-           // Use top 10 items for the hero carousel
-           setHeroItems(trendingWeek.results.slice(0, 10));
-        }
+        const heroRes = trendingRes.length > 0 ? trendingRes.slice(0, 10) : [];
+        setHeroItems(heroRes);
         
         setInitialLoading(false);
 
         // Fetch other rows lazily if not already fetched
         if (!hasFetchedRows.current) {
             hasFetchedRows.current = true;
-            fetchOtherRows();
+            await fetchOtherRows(heroRes, trendingRes);
         }
 
       } catch (error) {
@@ -71,9 +83,11 @@ const Home: React.FC = () => {
       }
     };
 
-    const fetchOtherRows = async () => {
+    const fetchOtherRows = async (currentHero: MediaItem[], currentTrending: MediaItem[]) => {
         // Fetch in batches of 3 to avoid hitting rate limits or overwhelming network
         const BATCH_SIZE = 3;
+        const newLoadedRows: Record<string, MediaItem[]> = {};
+
         for (let i = 0; i < ROW_CONFIGS.length; i += BATCH_SIZE) {
             const batch = ROW_CONFIGS.slice(i, i + BATCH_SIZE);
             const promises = batch.map(async (config) => {
@@ -87,18 +101,25 @@ const Home: React.FC = () => {
             });
 
             const results = await Promise.all(promises);
-            setLoadedRows(prev => {
-                const next = { ...prev };
-                results.forEach(r => {
-                    if (r.items.length > 0) next[r.title] = r.items;
-                });
-                return next;
+            results.forEach(r => {
+                if (r.items.length > 0) newLoadedRows[r.title] = r.items;
             });
+            
+            // Incrementally update UI state
+            setLoadedRows(prev => ({ ...prev, ...newLoadedRows }));
         }
+
+        // Save to Cache after all done
+        setHomeCache({
+          heroItems: currentHero,
+          trendingItems: currentTrending,
+          loadedRows: newLoadedRows,
+          lastFetched: Date.now()
+        });
     };
 
     fetchInitial();
-  }, []);
+  }, [homeCache, setHomeCache]); // Dependencies ensure we check cache on mount
 
   // Effect to fetch "Because you liked"
   useEffect(() => {

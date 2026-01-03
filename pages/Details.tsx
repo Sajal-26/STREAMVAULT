@@ -4,6 +4,7 @@ import { Play, Plus, ThumbsUp, ChevronDown, Check, ArrowLeft, Globe, Building2, 
 import { tmdbService } from '../services/tmdb';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { useCache } from '../context/CacheContext';
 import { MediaDetails, SeasonDetails, MediaItem } from '../types';
 import { IMAGE_BASE_URL } from '../constants';
 import ContentRow from '../components/ContentRow';
@@ -21,6 +22,7 @@ const Details: React.FC = () => {
     continueWatching
   } = useAuth();
   const { showToast } = useToast();
+  const { detailsCache, setDetailsCache } = useCache();
   
   const [data, setData] = useState<MediaDetails | null>(null);
   const [loading, setLoading] = useState(true);
@@ -46,9 +48,27 @@ const Details: React.FC = () => {
   // Determine current progress for this show (from Continue Watching list)
   const currentCW = continueWatching.find(i => i.mediaId === Number(id) && i.mediaType === 'tv');
 
+  const cacheKey = `${type}_${id}`;
+
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
+      
+      // Check Cache
+      if (detailsCache[cacheKey]) {
+          const cached = detailsCache[cacheKey];
+          setData(cached.data);
+          setSeasonData(cached.seasonData);
+          setActorCredits(cached.actorCredits);
+          setLogoPath(cached.logoPath);
+          setLoading(false);
+          // Restore visible episodes if we were deep in season
+          if (type === 'tv' && cached.seasonData) {
+              setVisibleEpisodes(Math.max(6, (currentCW?.episode || 0) + 2)); 
+          }
+          return;
+      }
+
       try {
         const res = await tmdbService.getDetails(type, Number(id));
         setData(res);
@@ -56,7 +76,11 @@ const Details: React.FC = () => {
         // Logo
         const logos = res.images?.logos || [];
         const englishLogo = logos.find((l: any) => l.iso_639_1 === 'en');
-        setLogoPath(englishLogo ? englishLogo.file_path : (logos[0]?.file_path || null));
+        const foundLogo = englishLogo ? englishLogo.file_path : (logos[0]?.file_path || null);
+        setLogoPath(foundLogo);
+
+        let sData: SeasonDetails | null = null;
+        let aCredits: MediaItem[] = [];
 
         if (type === 'tv') {
              // Prefer last watched season if available, else 1
@@ -67,9 +91,9 @@ const Details: React.FC = () => {
              }
              
              setSelectedSeasonNumber(seasonNum);
-             const seasonRes = await tmdbService.getSeasonDetails(Number(id), seasonNum);
-             setSeasonData(seasonRes);
-             setVisibleEpisodes(Math.max(6, (currentCW?.episode || 0) + 2)); // Auto expand slightly to current ep
+             sData = await tmdbService.getSeasonDetails(Number(id), seasonNum);
+             setSeasonData(sData);
+             setVisibleEpisodes(Math.max(6, (currentCW?.episode || 0) + 2)); 
         }
 
         // Fetch "More from Leading Actor"
@@ -83,9 +107,18 @@ const Details: React.FC = () => {
                 .sort((a,b) => (b.vote_count || 0) - (a.vote_count || 0));
             
             // Deduplicate by ID and take top 10
-            const uniqueWorks = Array.from(new Map(otherWorks.map(item => [item.id, item])).values()).slice(0, 15);
-            setActorCredits(uniqueWorks);
+            aCredits = Array.from(new Map(otherWorks.map(item => [item.id, item])).values()).slice(0, 15);
+            setActorCredits(aCredits);
         }
+        
+        // Save to cache
+        setDetailsCache(cacheKey, {
+            data: res,
+            seasonData: sData,
+            actorCredits: aCredits,
+            logoPath: foundLogo,
+            timestamp: Date.now()
+        });
 
       } catch (e) {
         console.error("Failed to fetch details:", e);
@@ -99,7 +132,8 @@ const Details: React.FC = () => {
     } else {
         setLoading(false);
     }
-    window.scrollTo(0,0);
+    // Only scroll to top if not loading from cache or initial load
+    if (!detailsCache[cacheKey]) window.scrollTo(0,0);
   }, [id, type]);
 
   const handleSeasonChange = async (seasonNum: number) => {
@@ -109,6 +143,17 @@ const Details: React.FC = () => {
       try {
           const res = await tmdbService.getSeasonDetails(Number(id), seasonNum);
           setSeasonData(res);
+          
+          // Update Cache specifically for this view so coming back maintains last viewed season
+          if (data) {
+             setDetailsCache(cacheKey, {
+                 data: data,
+                 seasonData: res,
+                 actorCredits,
+                 logoPath,
+                 timestamp: Date.now()
+             });
+          }
       } catch (e) { console.error(e); }
   };
 
