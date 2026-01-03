@@ -22,11 +22,22 @@ const Watch: React.FC = () => {
   // Initialize Player URL (Vidify)
   useEffect(() => {
       const baseUrl = "https://player.vidify.top/embed";
+      // User selected theme (remove hash for URL param)
       const color = accentColor.replace('#', '');
       
-      // Config: Netflix-like (using app accent color), autoplay enabled, essential settings only.
-      // Removed logo as requested.
-      const commonParams = `?primarycolor=${color}&secondarycolor=${color}&iconcolor=${color}&autoplay=true`;
+      // Configuration based on user requirements:
+      // - primarycolor/secondarycolor: User's accent color (for progress bar/highlights)
+      // - iconcolor: Always white (ffffff)
+      // - autoplay: true (Enable by default)
+      // - poster: true (Enable by default)
+      // - servericon: false (Do not show server list)
+      // - chromecast: false (Do not show chromecast)
+      // - pip: false (Do not show PiP)
+      // - nextbutton: false (Do not show next button - optimistic param)
+      // - episodelist: false (Do not show episode list - optimistic param)
+      // - watchparty: true (Add Watch Party option - optimistic param)
+      // - setting: true (Show settings menu, containing Playback and potentially Watch Party)
+      const commonParams = `?primarycolor=${color}&secondarycolor=${color}&iconcolor=ffffff&autoplay=true&poster=true&servericon=false&chromecast=false&pip=false&nextbutton=false&episodelist=false&watchparty=true`;
 
       let src = "";
       if (type === 'movie') {
@@ -85,9 +96,6 @@ const Watch: React.FC = () => {
               const { currentTime, duration, eventType } = data.data;
 
               // Handle Episode Change if detected (optional, usually internal to player but we track URL)
-              // Since Vidify is an embed, it might not push navigation events out for season/episode changes cleanly
-              // outside of what we control via URL. We rely on the user navigating or 'next' buttons if implemented.
-
               if (typeof currentTime === 'number' && typeof duration === 'number' && duration > 0) {
                   const now = Date.now();
                   const progressPercent = (currentTime / duration) * 100;
@@ -157,13 +165,14 @@ const Watch: React.FC = () => {
 
   return (
     <div className="fixed inset-0 z-[100] bg-black overflow-hidden group font-sans select-none">
-      {/* Top Controls (Back) */}
-      <div className={`absolute top-0 left-0 w-full p-6 z-50 transition-opacity duration-300 ${showUI ? 'opacity-100' : 'opacity-0'}`}>
+      {/* Top Controls (Back) - Positioned to avoid overlap with player UI */}
+      <div className={`absolute top-4 left-4 z-[110] transition-opacity duration-300 ${showUI ? 'opacity-100' : 'opacity-0'}`}>
         <button
           onClick={() => navigate(`/details/${type}/${id}`)}
-          className="flex items-center justify-center w-12 h-12 rounded-full bg-black/40 hover:bg-black/80 text-white backdrop-blur-md transition-all transform hover:scale-110 border border-white/10"
+          className="flex items-center justify-center w-10 h-10 md:w-12 md:h-12 rounded-full bg-black/50 hover:bg-black/80 text-white backdrop-blur-md transition-all transform hover:scale-110 border border-white/10 shadow-lg"
+          title="Go Back"
         >
-          <ArrowLeft className="w-6 h-6" />
+          <ArrowLeft className="w-5 h-5 md:w-6 md:h-6" />
         </button>
       </div>
 
