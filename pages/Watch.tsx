@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from '../services/skipService';
 import { useAuth } from '../context/AuthContext';
 import { tmdbService } from '../services/tmdb';
-import { RotateCw, Play } from 'lucide-react'; // Added Play icon for overlay hint
+import { RotateCw, Play } from 'lucide-react'; 
 import { IMAGE_BASE_URL } from '../constants';
 
 const Watch: React.FC = () => {
@@ -34,7 +34,6 @@ const Watch: React.FC = () => {
   // Orientation Check
   useEffect(() => {
     const checkOrientation = () => {
-      // Show hint if in portrait mode on a likely mobile device (width < height)
       if (window.innerWidth < window.innerHeight && window.innerWidth < 768) {
         setShowRotateHint(true);
       } else {
@@ -44,8 +43,6 @@ const Watch: React.FC = () => {
 
     checkOrientation();
     window.addEventListener('resize', checkOrientation);
-    
-    // Attempt automatic lock on mount (might fail without gesture)
     forceLandscape(true);
 
     return () => window.removeEventListener('resize', checkOrientation);
@@ -67,16 +64,12 @@ const Watch: React.FC = () => {
   // Initialize Player URL (Vidify)
   useEffect(() => {
       const baseUrl = "https://player.vidify.top/embed";
-      // User selected theme (remove hash for URL param)
       const color = accentColor.replace('#', '');
       
       const params = new URLSearchParams({
-        // Visuals
         primarycolor: color,
         secondarycolor: '1f2937',
         iconcolor: 'ffffff',
-        
-        // Features Enabled
         autoplay: 'true',
         poster: 'true',
         chromecast: 'true',
@@ -85,14 +78,10 @@ const Watch: React.FC = () => {
         pip: 'true',
         download: 'true',
         watchparty: 'true',
-        
-        // Subtitles
         font: 'Roboto',
         fontcolor: 'ffffff',
         fontsize: '20',
         opacity: '0.5',
-        
-        // Hiding UI Elements / Settings
         hidenextbutton: 'true',
         hideposter: 'true',
         hidechromecast: 'true',
@@ -102,7 +91,6 @@ const Watch: React.FC = () => {
         hideprimarycolor: 'true',
         hidesecondarycolor: 'true',
         hideiconcolor: 'true',
-        // hideprogresscontrol: 'true', // Keep enabled
         hideiconset: 'true',
         hideautonext: 'true',
         hideautoplay: 'true',
@@ -119,7 +107,6 @@ const Watch: React.FC = () => {
           src = `${baseUrl}/tv/${id}/${s}/${e}${commonParams}`;
       }
       setPlayerUrl(src);
-      // Reset history flag on navigation
       addedToHistoryRef.current = false;
       setIsPlaying(false);
       isPlayingRef.current = false;
@@ -140,12 +127,10 @@ const Watch: React.FC = () => {
         const mediaTitle = details.title || details.name || 'Unknown';
         setTitle(mediaTitle);
 
-        // Extract Logo (English preferred, fallback to first)
         const logos = details.images?.logos || [];
         const logo = logos.find((l: any) => l.iso_639_1 === 'en') || logos[0];
         setLogoPath(logo ? logo.file_path : null);
 
-        // Update Continue Watching (Start)
         addToContinueWatching({
           mediaId: parseInt(id),
           mediaType: type as 'movie' | 'tv',
@@ -167,46 +152,52 @@ const Watch: React.FC = () => {
     fetchMeta();
   }, [id, type, season, episode]); 
 
-  // Keep Ref in sync with state for other components/effects
+  // Keep Ref in sync
   useEffect(() => {
       isPlayingRef.current = isPlaying;
   }, [isPlaying]);
 
-  // Idle Timer Logic (Screensaver)
-  useEffect(() => {
+  const resetIdleTimer = () => {
       if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
       setShowOverlay(false);
-
-      if (!isPlaying) {
-          // If paused, start timer to show overlay
-          idleTimerRef.current = setTimeout(() => {
-              setShowOverlay(true);
-          }, 5000); // 5 Seconds
-      }
-
-      return () => {
-          if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
-      };
-  }, [isPlaying]);
-
-  const handleOverlayMouseMove = () => {
-      // Hide overlay on interaction and restart timer if still paused
-      setShowOverlay(false);
+      
+      // Only start timer if we are currently paused
       if (!isPlayingRef.current) {
-          if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
           idleTimerRef.current = setTimeout(() => {
-              setShowOverlay(true);
+              // Double check play state before showing
+              if (!isPlayingRef.current) {
+                  setShowOverlay(true);
+              }
           }, 5000);
       }
   };
 
+  // Idle Timer Logic (Screensaver)
+  useEffect(() => {
+      resetIdleTimer();
+
+      // Global mouse move listener to reset timer when paused
+      const handleGlobalMouseMove = () => {
+          if (!isPlayingRef.current) {
+             resetIdleTimer();
+          }
+      };
+
+      window.addEventListener('mousemove', handleGlobalMouseMove);
+      window.addEventListener('keydown', handleGlobalMouseMove);
+
+      return () => {
+          if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
+          window.removeEventListener('mousemove', handleGlobalMouseMove);
+          window.removeEventListener('keydown', handleGlobalMouseMove);
+      };
+  }, [isPlaying]); // Re-bind when play state changes
+
   const handleOverlayClick = () => {
-      // Resume playback and hide overlay
       setShowOverlay(false);
       if (!isPlayingRef.current) {
           if (iframeRef.current && iframeRef.current.contentWindow) {
               iframeRef.current.contentWindow.postMessage({ type: 'PLAY' }, '*');
-              // Optimistically update
               setIsPlaying(true);
               isPlayingRef.current = true;
           }
@@ -231,14 +222,16 @@ const Watch: React.FC = () => {
               if (isActive && !isPlayingRef.current) {
                   setIsPlaying(true);
                   isPlayingRef.current = true;
+                  // Clear any pending idle timers immediately
+                  if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
               } else if (isPausedState && isPlayingRef.current) {
                   setIsPlaying(false);
                   isPlayingRef.current = false;
               }
 
-              // FAILSAFE: If we are receiving time updates, the overlay MUST be hidden
-              if (isActive && eventType === 'timeupdate') {
-                  setShowOverlay((prev) => (prev ? false : prev));
+              // FORCE HIDE OVERLAY if time is updating or buffering
+              if (isActive) {
+                  setShowOverlay(false);
               }
 
               // Parse numbers safely
@@ -254,7 +247,6 @@ const Watch: React.FC = () => {
                   const now = Date.now();
                   const progressPercent = (curr / dur) * 100;
                   
-                  // Logic: > 90% -> Add to Watch History (Completed)
                   if (progressPercent > 90 && !addedToHistoryRef.current && detailsRef.current) {
                       addToWatchHistory({
                           mediaId: parseInt(id!),
@@ -268,11 +260,9 @@ const Watch: React.FC = () => {
                       addedToHistoryRef.current = true;
                   }
 
-                  // Logic: > 95% -> Remove from Continue Watching
                   if (progressPercent > 95) {
                       removeFromContinueWatching(parseInt(id!));
                   } else if (now - lastUpdateRef.current > 5000 && eventType !== 'pause') { 
-                      // Only update continue watching every 5s if under 95%
                       lastUpdateRef.current = now;
                       if (detailsRef.current && id && type) {
                           addToContinueWatching({
@@ -297,22 +287,26 @@ const Watch: React.FC = () => {
 
       window.addEventListener('message', handleMessage);
       return () => window.removeEventListener('message', handleMessage);
-  }, [id, type, addToContinueWatching, removeFromContinueWatching, addToWatchHistory, navigate]); // removed isPlaying to avoid churn
+  }, [id, type, addToContinueWatching, removeFromContinueWatching, addToWatchHistory, navigate]);
 
   // Handle Space Bar to Pause/Play
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
         if (e.code === 'Space') {
             e.preventDefault();
-            // Try to toggle play state via postMessage
             if (iframeRef.current && iframeRef.current.contentWindow) {
                 const command = isPlaying ? 'PAUSE' : 'PLAY';
                 iframeRef.current.contentWindow.postMessage({ type: command }, '*');
                 
-                // Optimistic update
                 const newState = !isPlaying;
                 setIsPlaying(newState);
                 isPlayingRef.current = newState;
+                
+                // If we are now playing, hide overlay immediately
+                if (newState) {
+                    setShowOverlay(false);
+                    if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
+                }
             }
         }
     };
@@ -339,7 +333,6 @@ const Watch: React.FC = () => {
       {showOverlay && (
           <div 
             className="absolute inset-0 z-[50] flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-700 cursor-pointer"
-            onMouseMove={handleOverlayMouseMove}
             onClick={handleOverlayClick}
           >
               <div className="flex flex-col items-center p-8 text-center animate-in slide-in-from-bottom-10 duration-700">
@@ -358,11 +351,15 @@ const Watch: React.FC = () => {
                          <div className="text-xl md:text-2xl text-white font-bold tracking-widest uppercase drop-shadow-md">
                              Season {currentSeasonRef.current} • Episode {currentEpisodeRef.current}
                          </div>
-                         {/* Optional Resume Hint */}
                          <div className="mt-4 flex items-center gap-2 text-white/50 text-sm font-medium uppercase tracking-wider animate-pulse">
                             <Play className="w-4 h-4 fill-current" /> Resume
                          </div>
                       </div>
+                  )}
+                  {type === 'movie' && (
+                       <div className="mt-4 flex items-center gap-2 text-white/50 text-sm font-medium uppercase tracking-wider animate-pulse">
+                            <Play className="w-4 h-4 fill-current" /> Resume
+                       </div>
                   )}
               </div>
           </div>
