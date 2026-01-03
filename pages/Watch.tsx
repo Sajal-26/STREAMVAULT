@@ -12,6 +12,9 @@ const Watch: React.FC = () => {
   const [playerUrl, setPlayerUrl] = useState<string>('');
   const [isPlaying, setIsPlaying] = useState(false);
   
+  // Ref to track play state inside event listeners without dependency issues
+  const isPlayingRef = useRef(false);
+
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const detailsRef = useRef<any>(null);
   const lastUpdateRef = useRef<number>(0);
@@ -118,6 +121,8 @@ const Watch: React.FC = () => {
       setPlayerUrl(src);
       // Reset history flag on navigation
       addedToHistoryRef.current = false;
+      setIsPlaying(false);
+      isPlayingRef.current = false;
   }, [type, id, accentColor, season, episode]); 
 
   // Fetch Metadata & Logo
@@ -162,6 +167,11 @@ const Watch: React.FC = () => {
     fetchMeta();
   }, [id, type, season, episode]); 
 
+  // Keep Ref in sync with state for other components/effects
+  useEffect(() => {
+      isPlayingRef.current = isPlaying;
+  }, [isPlaying]);
+
   // Idle Timer Logic (Screensaver)
   useEffect(() => {
       if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
@@ -179,14 +189,27 @@ const Watch: React.FC = () => {
       };
   }, [isPlaying]);
 
-  const handleOverlayInteraction = () => {
+  const handleOverlayMouseMove = () => {
       // Hide overlay on interaction and restart timer if still paused
       setShowOverlay(false);
-      if (!isPlaying) {
+      if (!isPlayingRef.current) {
           if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
           idleTimerRef.current = setTimeout(() => {
               setShowOverlay(true);
           }, 5000);
+      }
+  };
+
+  const handleOverlayClick = () => {
+      // Resume playback and hide overlay
+      setShowOverlay(false);
+      if (!isPlayingRef.current) {
+          if (iframeRef.current && iframeRef.current.contentWindow) {
+              iframeRef.current.contentWindow.postMessage({ type: 'PLAY' }, '*');
+              // Optimistically update
+              setIsPlaying(true);
+              isPlayingRef.current = true;
+          }
       }
   };
 
@@ -201,11 +224,22 @@ const Watch: React.FC = () => {
           if (data?.type === 'WATCH_PROGRESS' && data.data) {
               const { currentTime, duration, eventType } = data.data;
 
-              // Update Play State
-              if (eventType === 'play' || eventType === 'buffer') setIsPlaying(true);
-              if (eventType === 'pause' || eventType === 'ended') setIsPlaying(false);
-              // Fallback: If time is updating, we are playing
-              if (eventType === 'timeupdate' && !isPlaying) setIsPlaying(true);
+              // Update Play State Robustly
+              const isActive = eventType === 'play' || eventType === 'buffer' || eventType === 'timeupdate';
+              const isPausedState = eventType === 'pause' || eventType === 'ended';
+
+              if (isActive && !isPlayingRef.current) {
+                  setIsPlaying(true);
+                  isPlayingRef.current = true;
+              } else if (isPausedState && isPlayingRef.current) {
+                  setIsPlaying(false);
+                  isPlayingRef.current = false;
+              }
+
+              // FAILSAFE: If we are receiving time updates, the overlay MUST be hidden
+              if (isActive && eventType === 'timeupdate') {
+                  setShowOverlay((prev) => (prev ? false : prev));
+              }
 
               // Parse numbers safely
               const curr = Number(currentTime);
@@ -263,7 +297,7 @@ const Watch: React.FC = () => {
 
       window.addEventListener('message', handleMessage);
       return () => window.removeEventListener('message', handleMessage);
-  }, [id, type, addToContinueWatching, removeFromContinueWatching, addToWatchHistory, navigate, isPlaying]);
+  }, [id, type, addToContinueWatching, removeFromContinueWatching, addToWatchHistory, navigate]); // removed isPlaying to avoid churn
 
   // Handle Space Bar to Pause/Play
   useEffect(() => {
@@ -276,7 +310,9 @@ const Watch: React.FC = () => {
                 iframeRef.current.contentWindow.postMessage({ type: command }, '*');
                 
                 // Optimistic update
-                setIsPlaying(!isPlaying);
+                const newState = !isPlaying;
+                setIsPlaying(newState);
+                isPlayingRef.current = newState;
             }
         }
     };
@@ -303,8 +339,8 @@ const Watch: React.FC = () => {
       {showOverlay && (
           <div 
             className="absolute inset-0 z-[50] flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-700 cursor-pointer"
-            onMouseMove={handleOverlayInteraction}
-            onClick={handleOverlayInteraction}
+            onMouseMove={handleOverlayMouseMove}
+            onClick={handleOverlayClick}
           >
               <div className="flex flex-col items-center p-8 text-center animate-in slide-in-from-bottom-10 duration-700">
                   {logoPath ? (
@@ -324,7 +360,7 @@ const Watch: React.FC = () => {
                          </div>
                          {/* Optional Resume Hint */}
                          <div className="mt-4 flex items-center gap-2 text-white/50 text-sm font-medium uppercase tracking-wider animate-pulse">
-                            <Play className="w-4 h-4 fill-current" /> Click to Resume
+                            <Play className="w-4 h-4 fill-current" /> Resume
                          </div>
                       </div>
                   )}
