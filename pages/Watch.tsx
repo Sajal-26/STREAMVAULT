@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from '../services/skipService';
 import { useAuth } from '../context/AuthContext';
 import { tmdbService } from '../services/tmdb';
+import { Maximize, RotateCw } from 'lucide-react';
 
 const Watch: React.FC = () => {
   const { type, id, season, episode } = useParams();
@@ -16,6 +17,41 @@ const Watch: React.FC = () => {
   
   const currentSeasonRef = useRef(season ? parseInt(season) : 1);
   const currentEpisodeRef = useRef(episode ? parseInt(episode) : 1);
+
+  const [showRotateHint, setShowRotateHint] = useState(false);
+
+  // Orientation Check
+  useEffect(() => {
+    const checkOrientation = () => {
+      // Show hint if in portrait mode on a likely mobile device (width < height)
+      if (window.innerWidth < window.innerHeight && window.innerWidth < 768) {
+        setShowRotateHint(true);
+      } else {
+        setShowRotateHint(false);
+      }
+    };
+
+    checkOrientation();
+    window.addEventListener('resize', checkOrientation);
+    
+    // Attempt automatic lock on mount (might fail without gesture)
+    forceLandscape(true);
+
+    return () => window.removeEventListener('resize', checkOrientation);
+  }, []);
+
+  const forceLandscape = async (silent = false) => {
+      try {
+          if (!document.fullscreenElement) {
+              await document.documentElement.requestFullscreen();
+          }
+          if (screen.orientation && (screen.orientation as any).lock) {
+              await (screen.orientation as any).lock('landscape');
+          }
+      } catch (e) {
+          if (!silent) console.debug("Landscape lock failed:", e);
+      }
+  };
 
   // Initialize Player URL (Vidify)
   useEffect(() => {
@@ -191,6 +227,17 @@ const Watch: React.FC = () => {
             allow="encrypted-media; autoplay; picture-in-picture"
             title="StreamVault Player"
           />
+      )}
+
+      {/* Manual Orientation Toggle (Visible if Portrait) */}
+      {showRotateHint && (
+         <button
+            onClick={() => forceLandscape(false)}
+            className="absolute bottom-20 right-5 z-[110] bg-black/60 text-white p-3 rounded-full backdrop-blur-md border border-white/20 shadow-xl animate-pulse flex items-center gap-2"
+         >
+            <RotateCw className="w-6 h-6" />
+            <span className="text-xs font-bold uppercase">Rotate</span>
+         </button>
       )}
     </div>
   );

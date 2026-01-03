@@ -20,35 +20,28 @@ import BottomNav from './components/BottomNav';
 const AppContent: React.FC = () => {
   const location = useLocation();
 
-  // Global Orientation Locking Logic
+  // Global Orientation Cleanup Logic
   useEffect(() => {
     const handleOrientation = async () => {
       const isWatchPage = location.pathname.includes('/watch/');
       
       try {
-        if (screen.orientation && typeof (screen.orientation as any).lock === 'function') {
-          if (isWatchPage) {
-            await (screen.orientation as any).lock('landscape');
-            // Force full screen if possible on watch page (optional user experience enhancement)
-          } else {
-            // Unlock/Reset when leaving watch page
+        if (screen.orientation && typeof (screen.orientation as any).unlock === 'function') {
+          if (!isWatchPage) {
+            // Ensure we are unlocked when not watching
             (screen.orientation as any).unlock();
+            // Also exit fullscreen if we are in it
+            if (document.fullscreenElement) {
+               await document.exitFullscreen();
+            }
           }
         }
       } catch (error) {
-        // Orientation lock often fails on desktop or without user gesture on mobile.
-        // We fail silently as this is a progressive enhancement.
-        // console.debug("Orientation lock failed:", error); 
+         // Silently fail
       }
     };
 
     handleOrientation();
-    
-    // Cleanup not strictly necessary as effect runs on location change, 
-    // but good practice to unlock if component unmounts.
-    return () => {
-       // Optional cleanup
-    };
   }, [location.pathname]);
 
   return (
