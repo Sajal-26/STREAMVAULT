@@ -284,7 +284,6 @@ const Details: React.FC = () => {
   );
 
   const backdrop = data.backdrop_path ? `${IMAGE_BASE_URL}/original${data.backdrop_path}` : '';
-  const year = new Date(data.release_date || data.first_air_date || '').getFullYear();
   const runtime = data.runtime || (data.episode_run_time ? data.episode_run_time[0] : 0);
   const releaseDate = data.release_date || data.first_air_date;
 
