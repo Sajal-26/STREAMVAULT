@@ -512,8 +512,8 @@ const Details: React.FC = () => {
                                     className={`group flex flex-row gap-3 md:gap-4 p-2 md:p-4 rounded border border-white/5 md:border-transparent transition bg-white/5 md:bg-transparent ${released ? 'hover:bg-white/5 hover:border-white/5 cursor-pointer' : 'opacity-60 cursor-not-allowed'}`}
                                     onClick={() => released && navigate(`/watch/tv/${id}/${selectedSeasonNumber}/${ep.episode_number}`)}
                                 >
-                                    {/* Fix aspect ratio issue: Enforce min-width to prevent flex squeezing */}
-                                    <div className="w-32 min-w-[8rem] md:w-48 md:min-w-[12rem] aspect-video flex-shrink-0 bg-gray-800 rounded overflow-hidden relative">
+                                    {/* Fix aspect ratio issue: Strictly enforce dimensions to 16:9 on all screens */}
+                                    <div className="w-[128px] min-w-[128px] h-[72px] md:w-[192px] md:min-w-[192px] md:h-[108px] flex-shrink-0 bg-gray-800 rounded overflow-hidden relative">
                                         {ep.still_path ? (
                                             <img src={`${IMAGE_BASE_URL}/w300${ep.still_path}`} className="w-full h-full object-cover" alt={ep.name} />
                                         ) : (

@@ -4,6 +4,7 @@ import { Play, Info, ChevronLeft, ChevronRight, Star, Calendar, Clock } from 'lu
 import { MediaItem, MediaDetails } from '../types';
 import { tmdbService } from '../services/tmdb';
 import { IMAGE_BASE_URL } from '../constants';
+import { useAuth } from '../context/AuthContext';
 
 interface HeroProps {
   items: MediaItem[];
@@ -11,6 +12,8 @@ interface HeroProps {
 
 const Hero: React.FC<HeroProps> = ({ items }) => {
   const navigate = useNavigate();
+  const { continueWatching } = useAuth();
+  
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
   const [heroData, setHeroData] = useState<MediaDetails[]>([]);
@@ -26,13 +29,18 @@ const Hero: React.FC<HeroProps> = ({ items }) => {
         // Take top 8 items to keep initial load reasonable
         const itemsToFetch = items.slice(0, 8);
         const promises = itemsToFetch.map(async item => {
-            const mediaType = item.media_type || 'movie';
+            // Heuristic: If first_air_date exists, it's likely TV, even if media_type is missing
+            let mediaType = item.media_type;
+            if (!mediaType) {
+                if ((item as any).first_air_date) mediaType = 'tv';
+                else mediaType = 'movie';
+            }
+
             // Ensure we only fetch details for supported media types
             if (mediaType === 'movie' || mediaType === 'tv') {
                 try {
                     const details = await tmdbService.getDetails(mediaType, item.id);
-                    // CRITICAL: Explicitly attach the media_type to the result, 
-                    // as detailed API responses sometimes omit it or we need to trust the source list.
+                    // Explicitly attach the media_type to the result
                     return { ...details, media_type: mediaType };
                 } catch (e) {
                     return null;
@@ -93,10 +101,20 @@ const Hero: React.FC<HeroProps> = ({ items }) => {
   const rating = item.vote_average || 0;
   const year = new Date(item.release_date || item.first_air_date || '').getFullYear();
 
+  // Find continue watching progress
+  const progressItem = continueWatching.find(
+      i => i.mediaId === item.id && i.mediaType === item.media_type
+  );
+
   const handlePlay = () => {
       const type = item.media_type || 'movie';
       if (type === 'tv') {
-          navigate(`/watch/tv/${item.id}/1/1`);
+          // Resume logic for TV
+          if (progressItem && progressItem.season && progressItem.episode) {
+              navigate(`/watch/tv/${item.id}/${progressItem.season}/${progressItem.episode}`);
+          } else {
+              navigate(`/watch/tv/${item.id}/1/1`);
+          }
       } else if (type === 'movie') {
           navigate(`/watch/movie/${item.id}`);
       }
@@ -211,7 +229,7 @@ const Hero: React.FC<HeroProps> = ({ items }) => {
                     className="flex-1 md:flex-none flex items-center justify-center px-6 md:px-8 short:px-6 py-3.5 short:py-2 bg-white text-black rounded-lg font-bold hover:bg-gray-200 transition-all transform hover:scale-105 text-base md:text-lg short:text-sm shadow-[0_0_20px_rgba(255,255,255,0.3)]"
                 >
                     <Play className="w-5 h-5 md:w-6 md:h-6 short:w-4 short:h-4 mr-2 fill-black" />
-                    Play
+                    {progressItem ? `Resume S${progressItem.season}:E${progressItem.episode}` : 'Play'}
                 </button>
                 
                 <Link 
