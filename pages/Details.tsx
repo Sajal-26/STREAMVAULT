@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from '../services/skipService';
-import { Play, Plus, ThumbsUp, ChevronDown, Check, ArrowLeft, Globe, Building2, Signal, LayoutGrid, List } from 'lucide-react';
+import { Play, Plus, ThumbsUp, ChevronDown, Check, ArrowLeft, Globe, Building2, Signal, LayoutGrid, List, Youtube, X } from 'lucide-react';
 import { tmdbService } from '../services/tmdb';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -41,6 +41,10 @@ const Details: React.FC = () => {
   const [leadingActorName, setLeadingActorName] = useState<string>("");
   
   const [logoPath, setLogoPath] = useState<string | null>(null);
+  
+  // Trailer State
+  const [showTrailer, setShowTrailer] = useState(false);
+  const [trailerKey, setTrailerKey] = useState<string | null>(null);
 
   const inWatchlist = watchlist.some(i => i.mediaId === Number(id));
   const isLiked = likedItems.some(i => i.mediaId === Number(id));
@@ -53,6 +57,7 @@ const Details: React.FC = () => {
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
+      setTrailerKey(null);
       
       // Check Cache
       if (detailsCache[cacheKey]) {
@@ -61,6 +66,13 @@ const Details: React.FC = () => {
           setSeasonData(cached.seasonData);
           setActorCredits(cached.actorCredits);
           setLogoPath(cached.logoPath);
+          
+          // Extract trailer from cached data
+          const vid = cached.data.videos?.results?.find(
+             (v: any) => v.site === 'YouTube' && (v.type === 'Trailer' || v.type === 'Teaser')
+          );
+          if (vid) setTrailerKey(vid.key);
+
           setLoading(false);
           // Restore visible episodes if we were deep in season
           if (type === 'tv' && cached.seasonData) {
@@ -78,6 +90,12 @@ const Details: React.FC = () => {
         const englishLogo = logos.find((l: any) => l.iso_639_1 === 'en');
         const foundLogo = englishLogo ? englishLogo.file_path : (logos[0]?.file_path || null);
         setLogoPath(foundLogo);
+
+        // Trailer
+        const trailer = res.videos?.results?.find(
+            (v: any) => v.site === 'YouTube' && (v.type === 'Trailer' || v.type === 'Teaser')
+        );
+        if (trailer) setTrailerKey(trailer.key);
 
         let sData: SeasonDetails | null = null;
         let aCredits: MediaItem[] = [];
@@ -106,7 +124,7 @@ const Details: React.FC = () => {
                 .filter(m => m.id !== res.id && m.poster_path)
                 .sort((a,b) => (b.vote_count || 0) - (a.vote_count || 0));
             
-            // Deduplicate by ID and take top 10
+            // Deduplicate by ID and take top 15
             aCredits = Array.from(new Map(otherWorks.map(item => [item.id, item])).values()).slice(0, 15);
             setActorCredits(aCredits);
         }
@@ -208,11 +226,6 @@ const Details: React.FC = () => {
   };
 
   const getEpisodeProgress = (seasonNum: number, episodeNum: number) => {
-      // Logic:
-      // If currentCW indicates we are past this episode (higher season OR same season higher episode), return 100%.
-      // If matches exactly, return cw.progress.
-      // Else 0.
-      
       if (currentCW) {
           const cwSeason = currentCW.season || 1;
           const cwEpisode = currentCW.episode || 1;
@@ -293,7 +306,7 @@ const Details: React.FC = () => {
                  
                  {/* Mobile Optimized Metadata */}
                  <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs md:text-base text-gray-200 mb-4 md:mb-6 font-medium">
-                     <span className="text-green-400 font-bold">{data.vote_average.toFixed(1)} Match</span>
+                     <span className="text-green-400 font-bold">{(data.vote_average || 0).toFixed(1)} Match</span>
                      <span className="text-gray-400">|</span>
                      <span className="flex items-center gap-1">{year}</span>
                      <span className="text-gray-400">|</span>
@@ -320,6 +333,16 @@ const Details: React.FC = () => {
                     >
                          <Play className="w-5 h-5 md:w-6 md:h-6 mr-2 fill-black" /> {currentCW ? 'Resume' : 'Play'}
                      </button>
+
+                     {/* Trailer Button */}
+                     {trailerKey && (
+                        <button 
+                            onClick={() => setShowTrailer(true)} 
+                            className="w-full md:w-auto flex items-center justify-center px-6 md:px-8 py-3 bg-white/20 text-white rounded font-bold hover:bg-white/30 transition backdrop-blur-md"
+                        >
+                             <Youtube className="w-5 h-5 md:w-6 md:h-6 mr-2" /> Trailer
+                        </button>
+                     )}
 
                      {/* Secondary Actions Row */}
                      <div className="flex items-center justify-around md:justify-start gap-4 md:gap-4 mt-2 md:mt-0">
@@ -651,6 +674,30 @@ const Details: React.FC = () => {
             <ContentRow title="More Like This" items={data.similar.results.map(i => ({...i, media_type: type}))} />
         )}
       </div>
+
+      {/* Trailer Modal Overlay */}
+      {showTrailer && trailerKey && (
+         <div 
+             className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-300"
+             onClick={() => setShowTrailer(false)}
+         >
+             <div className="relative w-full max-w-5xl aspect-video bg-black rounded-lg overflow-hidden shadow-2xl border border-white/10 animate-in zoom-in-95 duration-300">
+                 <button 
+                     className="absolute top-4 right-4 text-white z-20 p-2 bg-black/50 rounded-full hover:bg-white/20 transition backdrop-blur-sm"
+                     onClick={(e) => { e.stopPropagation(); setShowTrailer(false); }}
+                 >
+                     <X className="w-6 h-6" />
+                 </button>
+                 <iframe
+                    src={`https://www.youtube.com/embed/${trailerKey}?autoplay=1&rel=0&modestbranding=1`}
+                    className="w-full h-full"
+                    allowFullScreen
+                    allow="autoplay; encrypted-media; picture-in-picture"
+                    title="Trailer"
+                 />
+             </div>
+         </div>
+      )}
     </div>
   );
 };
