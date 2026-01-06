@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { Link, useNavigate } from '../services/skipService';
-import { Play, Info, ChevronLeft, ChevronRight, Star, Calendar, Clock } from 'lucide-react';
+import { Play, Info, ChevronLeft, ChevronRight, Star, Calendar, Clock, Tv, Film } from 'lucide-react';
 import { MediaItem, MediaDetails } from '../types';
 import { tmdbService } from '../services/tmdb';
 import { IMAGE_BASE_URL } from '../constants';
@@ -26,27 +26,25 @@ const Hero: React.FC<HeroProps> = ({ items }) => {
       if (items.length === 0) return;
       setLoading(true);
       try {
-        // Take top 8 items to keep initial load reasonable
         const itemsToFetch = items.slice(0, 8);
         const promises = itemsToFetch.map(async item => {
-            // Heuristic: If first_air_date exists, it's likely TV, even if media_type is missing
-            let mediaType = item.media_type;
-            if (!mediaType) {
-                if ((item as any).first_air_date) mediaType = 'tv';
+            // Robust Media Type Detection
+            let mediaType: 'movie' | 'tv';
+
+            if (item.media_type === 'movie' || item.media_type === 'tv') {
+                mediaType = item.media_type;
+            } else {
+                // If missing, guess based on keys or default
+                if ((item as any).first_air_date || (item as any).name) mediaType = 'tv';
                 else mediaType = 'movie';
             }
 
-            // Ensure we only fetch details for supported media types
-            if (mediaType === 'movie' || mediaType === 'tv') {
-                try {
-                    const details = await tmdbService.getDetails(mediaType, item.id);
-                    // Explicitly attach the media_type to the result
-                    return { ...details, media_type: mediaType };
-                } catch (e) {
-                    return null;
-                }
+            try {
+                const details = await tmdbService.getDetails(mediaType, item.id);
+                return { ...details, media_type: mediaType };
+            } catch (e) {
+                return null;
             }
-            return null;
         });
 
         const results = await Promise.all(promises);
@@ -92,7 +90,7 @@ const Hero: React.FC<HeroProps> = ({ items }) => {
 
   const item = heroData[currentIndex];
   
-  // Data extraction from fully loaded item
+  // Data extraction
   const backdrop = item.backdrop_path ? `${IMAGE_BASE_URL}/original${item.backdrop_path}` : null;
   const logo = item.images?.logos?.find((l: any) => l.iso_639_1 === 'en') || item.images?.logos?.[0];
   const logoPath = logo ? logo.file_path : null;
@@ -100,6 +98,7 @@ const Hero: React.FC<HeroProps> = ({ items }) => {
   const runtime = item.runtime || (item.episode_run_time ? item.episode_run_time[0] : null);
   const rating = item.vote_average || 0;
   const year = new Date(item.release_date || item.first_air_date || '').getFullYear();
+  const isTV = item.media_type === 'tv';
 
   // Find continue watching progress
   const progressItem = continueWatching.find(
@@ -107,22 +106,18 @@ const Hero: React.FC<HeroProps> = ({ items }) => {
   );
 
   const handlePlay = () => {
-      const type = item.media_type || 'movie';
-      if (type === 'tv') {
-          // Resume logic for TV
+      if (isTV) {
           if (progressItem && progressItem.season && progressItem.episode) {
               navigate(`/watch/tv/${item.id}/${progressItem.season}/${progressItem.episode}`);
           } else {
               navigate(`/watch/tv/${item.id}/1/1`);
           }
-      } else if (type === 'movie') {
+      } else {
           navigate(`/watch/movie/${item.id}`);
       }
   };
 
-  const linkTarget = item.media_type === 'person' 
-     ? `/person/${item.id}`
-     : `/details/${item.media_type || 'movie'}/${item.id}`;
+  const linkTarget = `/details/${item.media_type || (isTV ? 'tv' : 'movie')}/${item.id}`;
 
   const formatRuntime = (mins: number) => {
       const h = Math.floor(mins / 60);
@@ -150,9 +145,10 @@ const Hero: React.FC<HeroProps> = ({ items }) => {
         )}
       </div>
 
-      {/* Heavy Gradient Overlays for Cinematic Look */}
-      <div className="absolute inset-0 bg-gradient-to-t from-[#141414] via-[#141414]/20 to-transparent" />
-      <div className="absolute inset-0 bg-gradient-to-r from-[#141414] via-[#141414]/40 to-transparent" />
+      {/* Enhanced Gradient Overlays */}
+      <div className="absolute inset-0 bg-gradient-to-t from-[#141414] via-[#141414]/10 to-transparent" />
+      <div className="absolute inset-0 bg-gradient-to-r from-[#141414] via-[#141414]/50 to-transparent" />
+      <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-[#141414] to-transparent" />
       
       {/* Navigation Buttons */}
       <div className="absolute inset-0 pointer-events-none flex items-center justify-between px-2 md:px-4 z-30">
@@ -172,14 +168,14 @@ const Hero: React.FC<HeroProps> = ({ items }) => {
       </div>
 
       {/* Content Container */}
-      <div className={`absolute inset-0 flex flex-col justify-end px-4 md:px-16 lg:px-24 pb-24 md:pb-48 short:pb-10 max-w-7xl transition-opacity duration-500 ease-in-out ${isAnimating ? 'opacity-0' : 'opacity-100'} z-20 pointer-events-none`}>
+      <div className={`absolute inset-0 flex flex-col justify-end px-5 md:px-16 lg:px-24 pb-20 md:pb-48 short:pb-12 max-w-7xl transition-opacity duration-500 ease-in-out ${isAnimating ? 'opacity-0' : 'opacity-100'} z-20 pointer-events-none`}>
         <div className="max-w-3xl pointer-events-auto w-full">
             {/* Logo or Title */}
             {logoPath ? (
             <img 
                 src={`${IMAGE_BASE_URL}/w500${logoPath}`} 
                 alt={item.title || item.name} 
-                className="w-2/3 md:w-1/2 max-w-[300px] md:max-w-[450px] short:max-w-[250px] max-h-[120px] md:max-h-[180px] short:max-h-[80px] object-contain mb-6 short:mb-2 origin-left drop-shadow-2xl"
+                className="w-2/3 md:w-1/2 max-w-[300px] md:max-w-[450px] short:max-w-[250px] max-h-[120px] md:max-h-[180px] short:max-h-[80px] object-contain mb-6 short:mb-4 origin-left drop-shadow-2xl"
             />
             ) : (
             <h1 className="text-3xl md:text-5xl lg:text-7xl short:text-3xl font-black text-white mb-4 short:mb-2 drop-shadow-lg tracking-tight leading-tight">
@@ -188,10 +184,16 @@ const Hero: React.FC<HeroProps> = ({ items }) => {
             )}
             
             {/* Metadata Row */}
-            <div className="flex flex-wrap items-center gap-3 text-sm short:text-xs font-medium text-gray-200 mb-6 short:mb-3">
+            <div className="flex flex-wrap items-center gap-3 text-sm short:text-xs font-medium text-gray-200 mb-6 short:mb-4">
+                {/* Content Type Badge */}
+                <div className="flex items-center bg-brand-primary text-white px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider shadow-lg">
+                    {isTV ? <Tv className="w-3 h-3 mr-1" /> : <Film className="w-3 h-3 mr-1" />}
+                    {isTV ? 'Series' : 'Movie'}
+                </div>
+
                 <div className="flex items-center text-yellow-400 bg-black/60 backdrop-blur-md px-2 py-1 rounded border border-yellow-500/20">
                     <Star className="w-3.5 h-3.5 mr-1.5 fill-current" />
-                    <span>{rating.toFixed(1)}/10</span>
+                    <span>{rating.toFixed(1)}</span>
                 </div>
                 
                 {year && (
@@ -217,12 +219,12 @@ const Hero: React.FC<HeroProps> = ({ items }) => {
                 </div>
             </div>
             
-            {/* Description - Hidden on short screens to save space */}
+            {/* Description */}
             <p className="hidden md:block short:hidden text-base md:text-lg text-gray-300 line-clamp-3 mb-8 drop-shadow-md max-w-2xl leading-relaxed text-shadow-sm">
             {item.overview}
             </p>
             
-            {/* Action Buttons: 50/50 Split on Mobile */}
+            {/* Action Buttons */}
             <div className="flex flex-row items-center gap-3 w-full md:w-auto mt-2">
                 <button 
                     onClick={handlePlay}

@@ -107,22 +107,25 @@ export const tmdbService = {
 
   getPopular: async (type: 'movie' | 'tv', page: number = 1) => {
     const res = await fetchFromTMDB<{ results: MediaItem[] }>(`/${type}/popular`, { page: page.toString() });
-    res.results = filterQualityContent(res.results);
+    // Inject media_type explicitly
+    res.results = filterQualityContent(res.results).map(item => ({ ...item, media_type: type }));
     return res;
   },
 
   getTopRated: async (type: 'movie' | 'tv', page: number = 1) => {
-    // API naturally returns top rated, so vote_count > 0 is implicit, but filtering images is good.
     const res = await fetchFromTMDB<{ results: MediaItem[] }>(`/${type}/top_rated`, { page: page.toString() });
-    res.results = filterQualityContent(res.results);
+    // Inject media_type explicitly
+    res.results = filterQualityContent(res.results).map(item => ({ ...item, media_type: type }));
     return res;
   },
 
   getDetails: async (type: 'movie' | 'tv', id: number) => {
-    return fetchFromTMDB<MediaDetails>(`/${type}/${id}`, {
+    const details = await fetchFromTMDB<MediaDetails>(`/${type}/${id}`, {
       append_to_response: 'videos,credits,similar,images',
       include_image_language: 'en,null'
     });
+    // Inject media_type explicitly
+    return { ...details, media_type: type };
   },
 
   getSeasonDetails: async (tvId: number, seasonNumber: number) => {
@@ -133,7 +136,7 @@ export const tmdbService = {
 
   getRecommendations: async (type: 'movie' | 'tv', id: number, page: number = 1) => {
       const res = await fetchFromTMDB<{ results: MediaItem[] }>(`/${type}/${id}/recommendations`, { page: page.toString() });
-      res.results = filterQualityContent(res.results);
+      res.results = filterQualityContent(res.results).map(item => ({ ...item, media_type: type }));
       return res;
   },
 
@@ -143,22 +146,18 @@ export const tmdbService = {
     return res;
   },
 
-  // Search specifically for collections
   searchCollections: async (query: string, page: number = 1) => {
     const res = await fetchFromTMDB<{ results: MediaItem[] }>('/search/collection', { query, page: page.toString() });
     res.results = filterQualityContent(res.results);
     return res;
   },
 
-  // Search keywords (for lists like "Oscar", "Anime", etc)
   searchKeywords: async (query: string, page: number = 1) => {
     return fetchFromTMDB<{ results: { id: number, name: string }[] }>('/search/keyword', { query, page: page.toString() });
   },
 
-  // Search companies (e.g. T-Series, Marvel)
   searchCompanies: async (query: string, page: number = 1) => {
     const res = await fetchFromTMDB<{ results: { id: number, name: string, logo_path: string | null }[] }>('/search/company', { query, page: page.toString() });
-    // Filter companies without logos
     res.results = res.results.filter(c => !!c.logo_path);
     return res;
   },
@@ -171,8 +170,8 @@ export const tmdbService = {
       const params: Record<string, string> = {
           page: page.toString(),
           sort_by: 'popularity.desc',
-          'vote_count.gte': '1', // Server-side filter for votes
-          'vote_average.gte': '0' // Ensure it has a rating field
+          'vote_count.gte': '1', 
+          'vote_average.gte': '0'
       };
       if (genreId) params.with_genres = genreId.toString();
       if (keywordId) params.with_keywords = keywordId.toString();
@@ -181,8 +180,8 @@ export const tmdbService = {
       
       const res = await fetchFromTMDB<{ results: MediaItem[] }>(`/discover/${type}`, params);
       
-      // Client-side filter for images (API doesn't allow filtering null posters easily)
-      res.results = filterQualityContent(res.results);
+      // Inject media_type explicitly
+      res.results = filterQualityContent(res.results).map(item => ({ ...item, media_type: type }));
       return res;
   },
 
@@ -192,9 +191,10 @@ export const tmdbService = {
           watch_region: 'US',
           sort_by: 'popularity.desc',
           page: page.toString(),
-          'vote_count.gte': '1' // Server-side filter
+          'vote_count.gte': '1'
       });
-      res.results = filterQualityContent(res.results);
+      // Inject media_type explicitly
+      res.results = filterQualityContent(res.results).map(item => ({ ...item, media_type: type }));
       return res;
   },
 
@@ -204,15 +204,12 @@ export const tmdbService = {
       });
   },
 
-  // Added: Fetch Collection Details
   getCollectionDetails: async (collectionId: number) => {
       const res = await fetchFromTMDB<CollectionDetails>(`/collection/${collectionId}`);
-      // Filter collection parts
-      res.parts = filterQualityContent(res.parts);
+      res.parts = filterQualityContent(res.parts).map(item => ({ ...item, media_type: 'movie' as const }));
       return res;
   },
 
-  // Added: Get combined credits for a person (for "More from X" section)
   getPersonCredits: async (personId: number) => {
       const res = await fetchFromTMDB<{cast: MediaItem[], crew: MediaItem[]}>(`/person/${personId}/combined_credits`);
       res.cast = filterQualityContent(res.cast);
@@ -220,30 +217,20 @@ export const tmdbService = {
       return res;
   },
 
-  // Added: Get a specific List (e.g. IMDb Top 250)
-  // Automatically fetches all pages if the API indicates more data
   getList: async (listId: number | string) => {
-      // First fetch to check metadata and first page of items
       const res = await fetchFromTMDB<{ items: MediaItem[], name: string, item_count?: number }>(`/list/${listId}`);
-      
       let allItems = res.items || [];
       
-      // Logic: If item_count exists and is greater than current items, we need to fetch more pages.
-      // Standard TMDB lists have ~20 items per page if paginated.
       if (res.item_count && res.items && res.items.length < res.item_count) {
          const totalItems = res.item_count;
-         // Heuristic: If we got 20 items, assuming page size is 20
          const pageSize = res.items.length > 0 ? res.items.length : 20;
          const totalPages = Math.ceil(totalItems / pageSize);
          
-         // Fetch remaining pages in parallel
          if (totalPages > 1) {
              const pagePromises = [];
-             // Start from page 2
              for (let p = 2; p <= totalPages; p++) {
                  pagePromises.push(fetchFromTMDB<{ items: MediaItem[] }>(`/list/${listId}`, { page: p.toString() }));
              }
-             
              try {
                  const responses = await Promise.all(pagePromises);
                  responses.forEach(r => {
@@ -255,7 +242,7 @@ export const tmdbService = {
          }
       }
 
-      // Adapt list items to standard results
+      // Note: List items usually have media_type mixed, so we rely on what API sends or default handling in UI if missing.
       const results = filterQualityContent(allItems);
       return { results, name: res.name };
   }
