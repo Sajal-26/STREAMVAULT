@@ -175,7 +175,7 @@ const Hero: React.FC<HeroProps> = ({ items }) => {
             <img 
                 src={`${IMAGE_BASE_URL}/w500${logoPath}`} 
                 alt={item.title || item.name} 
-                className="w-2/3 md:w-1/2 max-w-[300px] md:max-w-[450px] short:max-w-[250px] max-h-[120px] md:max-h-[180px] short:max-h-[80px] object-contain mb-6 short:mb-4 origin-left drop-shadow-2xl"
+                className="w-auto max-w-[80%] md:max-w-[450px] short:max-w-[250px] max-h-[120px] md:max-h-[180px] short:max-h-[80px] object-contain mb-6 short:mb-4 origin-left drop-shadow-2xl"
             />
             ) : (
             <h1 className="text-3xl md:text-5xl lg:text-7xl short:text-3xl font-black text-white mb-4 short:mb-2 drop-shadow-lg tracking-tight leading-tight">

@@ -509,7 +509,7 @@ const Details: React.FC = () => {
                               return (
                                 <div 
                                     key={ep.id} 
-                                    className={`group flex flex-row gap-3 md:gap-4 p-2 md:p-4 rounded border border-white/5 md:border-transparent transition bg-white/5 md:bg-transparent ${released ? 'hover:bg-white/5 hover:border-white/5 cursor-pointer' : 'opacity-60 cursor-not-allowed'}`}
+                                    className={`group flex flex-row gap-3 md:gap-4 p-2 md:p-4 rounded border border-white/5 md:border-transparent transition bg-white/5 md:bg-transparent hover:bg-white/5 hover:border-white/5 cursor-pointer md:h-36 items-center ${!released && 'opacity-60 cursor-not-allowed'}`}
                                     onClick={() => released && navigate(`/watch/tv/${id}/${selectedSeasonNumber}/${ep.episode_number}`)}
                                 >
                                     {/* Fix aspect ratio issue: Using aspect-video utility class ensures 16:9 everywhere. flex-shrink-0 prevents squash. */}
@@ -539,7 +539,7 @@ const Details: React.FC = () => {
                                             <h4 className="font-bold text-sm md:text-lg text-white line-clamp-2">{ep.episode_number}. {ep.name}</h4>
                                             <span className="text-xs text-gray-400 ml-2 whitespace-nowrap">{ep.runtime ? `${ep.runtime}m` : ''}</span>
                                         </div>
-                                        <p className="hidden md:block text-gray-400 text-sm line-clamp-2 mb-3">{ep.overview || "No description available."}</p>
+                                        <p className="hidden md:block text-gray-400 text-sm line-clamp-2 mb-3 max-h-[4.5em] overflow-hidden">{ep.overview || "No description available."}</p>
                                         <p className="md:hidden text-gray-400 text-xs line-clamp-2">{ep.overview || "No description."}</p>
                                     </div>
                                 </div>
