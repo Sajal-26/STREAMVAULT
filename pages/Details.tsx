@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from '../services/skipService';
-import { Play, Plus, ThumbsUp, ChevronDown, Check, ArrowLeft, Globe, Building2, Signal, LayoutGrid, List, Youtube, X } from 'lucide-react';
+import { Play, Plus, ThumbsUp, ChevronDown, Check, ArrowLeft, Globe, Building2, Signal, LayoutGrid, List, Youtube, X, Film } from 'lucide-react';
 import { tmdbService } from '../services/tmdb';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -512,7 +512,8 @@ const Details: React.FC = () => {
                                     className={`group flex flex-row gap-3 md:gap-4 p-2 md:p-4 rounded border border-white/5 md:border-transparent transition bg-white/5 md:bg-transparent ${released ? 'hover:bg-white/5 hover:border-white/5 cursor-pointer' : 'opacity-60 cursor-not-allowed'}`}
                                     onClick={() => released && navigate(`/watch/tv/${id}/${selectedSeasonNumber}/${ep.episode_number}`)}
                                 >
-                                    <div className="w-32 md:w-48 aspect-video flex-shrink-0 bg-gray-800 rounded overflow-hidden relative">
+                                    {/* Fix aspect ratio issue: Enforce min-width to prevent flex squeezing */}
+                                    <div className="w-32 min-w-[8rem] md:w-48 md:min-w-[12rem] aspect-video flex-shrink-0 bg-gray-800 rounded overflow-hidden relative">
                                         {ep.still_path ? (
                                             <img src={`${IMAGE_BASE_URL}/w300${ep.still_path}`} className="w-full h-full object-cover" alt={ep.name} />
                                         ) : (
@@ -533,7 +534,7 @@ const Details: React.FC = () => {
                                             </div>
                                         )}
                                     </div>
-                                    <div className="flex-1 flex flex-col justify-center">
+                                    <div className="flex-1 flex flex-col justify-center min-w-0">
                                         <div className="flex items-start justify-between mb-1">
                                             <h4 className="font-bold text-sm md:text-lg text-white line-clamp-2">{ep.episode_number}. {ep.name}</h4>
                                             <span className="text-xs text-gray-400 ml-2 whitespace-nowrap">{ep.runtime ? `${ep.runtime}m` : ''}</span>
@@ -644,6 +645,46 @@ const Details: React.FC = () => {
 
       {/* Full Width Bottom Rows */}
       <div className="mt-8 md:mt-12">
+        
+        {/* Videos / Trailers Section */}
+        {data.videos?.results && data.videos.results.length > 0 && (
+             <div className="mb-12 px-5 md:px-12 group/row relative">
+                 <h2 className="text-lg md:text-xl font-bold text-primary mb-4 flex items-center gap-2">
+                     Trailers & Extras
+                     <Film className="w-4 h-4 text-brand-primary" />
+                 </h2>
+                 <div className="flex gap-4 overflow-x-auto hide-scrollbar pb-4 -mx-5 px-5 md:mx-0 md:px-0">
+                     {data.videos.results
+                        .filter(v => v.site === 'YouTube')
+                        .slice(0, 10) // Limit to top 10 relevant videos
+                        .map(video => (
+                         <div 
+                            key={video.key} 
+                            className="min-w-[240px] md:min-w-[320px] cursor-pointer group/video relative rounded-lg overflow-hidden border border-white/10 hover:border-white/30 transition-all bg-black"
+                            onClick={() => { setTrailerKey(video.key); setShowTrailer(true); }}
+                         >
+                             <div className="aspect-video relative">
+                                 <img 
+                                    src={`https://img.youtube.com/vi/${video.key}/mqdefault.jpg`} 
+                                    className="w-full h-full object-cover opacity-80 group-hover/video:opacity-100 transition duration-300"
+                                    alt={video.name}
+                                 />
+                                 <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover/video:bg-black/0 transition">
+                                     <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-red-600 flex items-center justify-center shadow-lg transform group-hover/video:scale-110 transition duration-300">
+                                         <Play className="w-5 h-5 md:w-6 md:h-6 fill-white text-white ml-0.5" />
+                                     </div>
+                                 </div>
+                             </div>
+                             <div className="p-3 bg-white/5">
+                                 <h4 className="text-sm font-bold text-white line-clamp-1">{video.name}</h4>
+                                 <span className="text-xs text-gray-400 capitalize">{video.type}</span>
+                             </div>
+                         </div>
+                     ))}
+                 </div>
+             </div>
+        )}
+
         {/* Cast (TV Only - Moved here for full width space) */}
         {type === 'tv' && data.credits?.cast && data.credits.cast.length > 0 && (
             <ContentRow 

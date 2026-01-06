@@ -25,18 +25,24 @@ const Hero: React.FC<HeroProps> = ({ items }) => {
       try {
         // Take top 8 items to keep initial load reasonable
         const itemsToFetch = items.slice(0, 8);
-        const promises = itemsToFetch.map(item => {
+        const promises = itemsToFetch.map(async item => {
             const mediaType = item.media_type || 'movie';
             // Ensure we only fetch details for supported media types
             if (mediaType === 'movie' || mediaType === 'tv') {
-                return tmdbService.getDetails(mediaType, item.id)
-                    .catch(() => null);
+                try {
+                    const details = await tmdbService.getDetails(mediaType, item.id);
+                    // CRITICAL: Explicitly attach the media_type to the result, 
+                    // as detailed API responses sometimes omit it or we need to trust the source list.
+                    return { ...details, media_type: mediaType };
+                } catch (e) {
+                    return null;
+                }
             }
-            return Promise.resolve(null);
+            return null;
         });
 
         const results = await Promise.all(promises);
-        const validResults = results.filter((r): r is MediaDetails => r !== null);
+        const validResults = results.filter((r) => r !== null) as MediaDetails[];
         setHeroData(validResults);
       } catch (e) {
         console.error("Hero pre-fetch failed", e);
