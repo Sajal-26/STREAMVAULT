@@ -184,7 +184,7 @@ const Hero: React.FC<HeroProps> = ({ items }) => {
             )}
             
             {/* Metadata Row */}
-            <div className="flex flex-wrap items-center gap-3 text-sm short:text-xs font-medium text-gray-200 mb-6 short:mb-4">
+            <div className="flex flex-wrap items-center gap-3 text-sm short:text-xs font-medium text-gray-200 mb-8 short:mb-4">
                 {/* Content Type Badge */}
                 <div className="flex items-center bg-brand-primary text-white px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider shadow-lg">
                     {isTV ? <Tv className="w-3 h-3 mr-1" /> : <Film className="w-3 h-3 mr-1" />}
@@ -218,11 +218,6 @@ const Hero: React.FC<HeroProps> = ({ items }) => {
                     ))}
                 </div>
             </div>
-            
-            {/* Description */}
-            <p className="hidden md:block short:hidden text-base md:text-lg text-gray-300 line-clamp-3 mb-8 drop-shadow-md max-w-2xl leading-relaxed text-shadow-sm">
-            {item.overview}
-            </p>
             
             {/* Action Buttons */}
             <div className="flex flex-row items-center gap-3 w-full md:w-auto mt-2">

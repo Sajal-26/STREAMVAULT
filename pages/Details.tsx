@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from '../services/skipService';
-import { Play, Plus, ThumbsUp, ChevronDown, Check, ArrowLeft, Globe, Building2, Signal, LayoutGrid, List, Youtube, X, Film } from 'lucide-react';
+import { Play, Plus, ThumbsUp, ChevronDown, Check, ArrowLeft, Globe, Building2, Signal, LayoutGrid, List, Youtube, X, Film, Calendar } from 'lucide-react';
 import { tmdbService } from '../services/tmdb';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -239,6 +239,24 @@ const Details: React.FC = () => {
       return 0;
   };
 
+  const formatRelativeDate = (dateStr?: string) => {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const target = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    
+    const diffTime = target.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 0) return 'Today';
+    if (diffDays === 1) return 'Tomorrow';
+    if (diffDays === -1) return 'Yesterday';
+    
+    // Otherwise standard date format
+    return date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+  };
+
   if (loading) return (
     <div className="min-h-screen bg-background text-primary">
         <Navbar />
@@ -268,6 +286,7 @@ const Details: React.FC = () => {
   const backdrop = data.backdrop_path ? `${IMAGE_BASE_URL}/original${data.backdrop_path}` : '';
   const year = new Date(data.release_date || data.first_air_date || '').getFullYear();
   const runtime = data.runtime || (data.episode_run_time ? data.episode_run_time[0] : 0);
+  const releaseDate = data.release_date || data.first_air_date;
 
   const formatRuntime = (mins: number) => {
       const h = Math.floor(mins / 60);
@@ -308,7 +327,11 @@ const Details: React.FC = () => {
                  <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs md:text-base text-gray-200 mb-4 md:mb-6 font-medium">
                      <span className="text-green-400 font-bold">{(data.vote_average || 0).toFixed(1)} Match</span>
                      <span className="text-gray-400">|</span>
-                     <span className="flex items-center gap-1">{year}</span>
+                     {/* Full Release Date */}
+                     <span className="flex items-center gap-1">
+                         <Calendar className="w-3 h-3 md:w-4 md:h-4 text-gray-400" />
+                         {formatRelativeDate(releaseDate)}
+                     </span>
                      <span className="text-gray-400">|</span>
                      <span className="flex items-center gap-1">{type === 'movie' ? formatRuntime(runtime) : `${data.number_of_seasons} Seasons`}</span>
                      {data.status && <span className="hidden md:inline-block ml-2 px-2 py-0.5 bg-white/10 rounded text-xs uppercase tracking-wider font-bold">{data.status}</span>}
@@ -401,7 +424,7 @@ const Details: React.FC = () => {
                            </div>
                            <div className="text-left md:text-right mt-2 md:mt-0">
                                <p className="text-base md:text-lg font-bold text-white">
-                                   {new Date(data.next_episode_to_air.air_date).toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' })}
+                                   {formatRelativeDate(data.next_episode_to_air.air_date)}
                                </p>
                                <p className="text-sm text-brand-primary font-bold">
                                    {getDaysUntil(data.next_episode_to_air.air_date)} days left
@@ -497,9 +520,12 @@ const Details: React.FC = () => {
                                         <div className="p-3">
                                             <div className="flex justify-between items-start mb-1">
                                                 <h4 className="font-bold text-xs md:text-sm text-white line-clamp-1">{ep.episode_number}. {ep.name}</h4>
-                                                <span className="text-[10px] text-gray-400 whitespace-nowrap">{ep.runtime ? `${ep.runtime}m` : ''}</span>
                                             </div>
-                                            <p className="text-[10px] md:text-xs text-gray-400 line-clamp-2 mb-2 min-h-[2.5em]">{ep.overview || "No description."}</p>
+                                            <div className="flex items-center gap-2 text-[10px] text-gray-400 mb-2">
+                                                <span>{formatRelativeDate(ep.air_date)}</span>
+                                                {ep.runtime && <span>• {ep.runtime}m</span>}
+                                            </div>
+                                            <p className="text-[10px] md:text-xs text-gray-400 line-clamp-2 min-h-[2.5em]">{ep.overview || "No description."}</p>
                                         </div>
                                     </div>
                                   );
@@ -537,8 +563,16 @@ const Details: React.FC = () => {
                                     <div className="flex-1 flex flex-col justify-center min-w-0">
                                         <div className="flex items-start justify-between mb-1">
                                             <h4 className="font-bold text-sm md:text-lg text-white line-clamp-2">{ep.episode_number}. {ep.name}</h4>
-                                            <span className="text-xs text-gray-400 ml-2 whitespace-nowrap">{ep.runtime ? `${ep.runtime}m` : ''}</span>
+                                            <span className="text-xs text-gray-400 ml-2 whitespace-nowrap hidden md:inline">
+                                                {formatRelativeDate(ep.air_date)} • {ep.runtime ? `${ep.runtime}m` : ''}
+                                            </span>
+                                            <span className="text-[10px] text-gray-400 ml-2 whitespace-nowrap md:hidden">
+                                                {ep.runtime ? `${ep.runtime}m` : ''}
+                                            </span>
                                         </div>
+                                        {/* Mobile Date */}
+                                        <div className="md:hidden text-[10px] text-gray-500 mb-1">{formatRelativeDate(ep.air_date)}</div>
+
                                         <p className="hidden md:block text-gray-400 text-sm line-clamp-2 mb-3 max-h-[4.5em] overflow-hidden">{ep.overview || "No description available."}</p>
                                         <p className="md:hidden text-gray-400 text-xs line-clamp-2">{ep.overview || "No description."}</p>
                                     </div>
